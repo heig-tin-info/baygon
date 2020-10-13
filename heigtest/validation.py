@@ -10,12 +10,14 @@ from collections.abc import Sequence
 
 from .executable import Executable
 
+
 def AsList(x):
     return All(x, lambda u: [u])
 
+
 Match = Any(
-    All(Number(), Coerce(str), lambda x: [{'equals':x}]),
-    All(str, lambda x: [{'equals':x}]),
+    All(Number(), Coerce(str), lambda x: [{'equals': x}]),
+    All(str, lambda x: [{'equals': x}]),
     [
         {
             Optional('equals'): str,
@@ -44,6 +46,7 @@ schema = Schema({
         }
     ]
 })
+
 
 class TestDescription(dict):
     @property
@@ -76,6 +79,7 @@ class TestDescription(dict):
 
     def __repr__(self):
         return '<TestDescription:' + super().__repr__() + '>'
+
 
 class TestDescriptionList(Sequence):
     basenames = ['t', 'test', 'tests']

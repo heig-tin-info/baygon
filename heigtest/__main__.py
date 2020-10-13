@@ -2,6 +2,7 @@ import click
 import time
 from . import TestSuite, TestDescriptionList
 
+
 @click.command()
 @click.option('-v', '--verbose', count=True)
 def run(verbose):
@@ -34,7 +35,6 @@ def run(verbose):
         for test, failure in failures:
             display_failure(test, failure)
 
-
     click.echo('\nRan %d tests found into %s, in %s.' % (
         len(ts),
         td.filename,
@@ -55,6 +55,7 @@ def display_failure(test, failures):
     click.echo(click.style('  FAILED', fg='red'))
     for f in failures:
         click.echo(click.style('  - ' + str(f), fg='yellow'))
+
 
 if __name__ == '__main__':
     run()

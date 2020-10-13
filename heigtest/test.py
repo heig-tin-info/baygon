@@ -10,6 +10,7 @@ import logging
 
 logger = logging.getLogger()
 
+
 class InvalidCondition:
     def __init__(self, got, expected, message=None, on=None):
         self.got = got
@@ -20,16 +21,20 @@ class InvalidCondition:
     def __str__(self):
         return f'Expected "{self.expected}", but got "{self.got}"'
 
+
 class InvalidExitStatus(InvalidCondition):
     def __str__(self):
         return f'Invalid exit status. Expected {self.expected}, but got {self.got}'
 
+
 class InvalidContains(InvalidCondition):
     pass
+
 
 class InvalidRegex(InvalidCondition):
     def __str__(self):
         return f'Invalid value on {self.on}. Expected to match regex /{self.expected}/'
+
 
 class InvalidEquals(InvalidCondition):
     def __str__(self):
@@ -38,7 +43,7 @@ class InvalidEquals(InvalidCondition):
 
 class TestCase:
 
-    def __init__(self, executable : Executable, options : TestDescription, id=None):
+    def __init__(self, executable: Executable, options: TestDescription, id=None):
         self.options = options
         self.name = options.name
         self.executable = executable
@@ -58,7 +63,8 @@ class TestCase:
         if self.options.exit_status is None:
             return []
 
-        logger.debug('Checking exit status %d =? %d' % (self.options.exit_status, output.exit_status))
+        logger.debug('Checking exit status %d =? %d' %
+                     (self.options.exit_status, output.exit_status))
         expected = self.options.exit_status
         if (output.exit_status != expected):
             return [
@@ -87,12 +93,13 @@ class TestCase:
         for case in getattr(self.options, where):
             if 'regex' in case:
                 logger.debug('Checking regex')
-                if not re.match(case['regex'], value):
+                if not value.match(case['regex']):
                     issues += [InvalidRegex(value, case['regex'], on=where)]
             if 'contains' in case:
                 logger.debug('Checking contains')
                 if case['contains'] not in value:
-                    issues += [InvalidContains(value, case['contains'], on=where)]
+                    issues += [InvalidContains(value,
+                                               case['contains'], on=where)]
             if 'equals' in case:
                 logger.debug('Checking equals')
                 if case['equals'] != value:
@@ -103,8 +110,9 @@ class TestCase:
     def __repr__(self):
         return f'<TestCase:{self.options.name}>'
 
+
 class TestSuite(Sequence):
-    def __init__(self, tests : TestDescriptionList):
+    def __init__(self, tests: TestDescriptionList):
         self._tests = [
             TestCase(tests.executable, option, id + 1)
             for id, option in enumerate(tests)

@@ -10,6 +10,7 @@ Outputs = namedtuple('Outputs', ['exit_status', 'stdout', 'stderr'])
 
 
 class Executable:
+    """ Allow to execute a program and conveniently read the output. """
     def __init__(self, filename):
         self.filename = filename
 
@@ -35,5 +36,6 @@ class Executable:
 
 
 class GreppableString(str):
+    """ A string that can be parsed with regular expressions. """
     def grep(self, pattern):
         return re.findall(pattern, self)
