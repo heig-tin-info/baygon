@@ -14,7 +14,7 @@ def AsList(x):
     return All(x, lambda u: [u])
 
 Match = Any(
-    All(Number(), Coerce(str)),
+    All(Number(), Coerce(str), lambda x: [{'equals':x}]),
     All(str, lambda x: [{'equals':x}]),
     [
         {
@@ -37,9 +37,9 @@ schema = Schema({
         {
             Optional('name'): str,
             Optional('args'): [Any(str, All(Number(), Coerce(str)))],
-            Optional('stdin'): Any(str, [str]),
-            Optional('stdout'): Match,
-            Optional('stderr'): Match,
+            Optional('stdin', default=None): Any(None, str, [str]),
+            Optional('stdout', default=[]): Match,
+            Optional('stderr', default=[]): Match,
             Optional('exit-status'): All(Any(int, bool), Coerce(int))
         }
     ]
@@ -56,11 +56,26 @@ class TestDescription(dict):
 
     @property
     def exit_status(self):
-        return self['exit-status']
+        return self['exit-status'] if 'exit-status' in self else None
+
+    @property
+    def stdin(self):
+        return self['stdin']
+
+    @property
+    def stdout(self):
+        return self['stdout']
+
+    @property
+    def stderr(self):
+        return self['stderr']
 
     @property
     def id(self):
         return self.id
+
+    def __repr__(self):
+        return '<TestDescription:' + super().__repr__() + '>'
 
 class TestDescriptionList(Sequence):
     basenames = ['t', 'test', 'tests']
@@ -69,11 +84,15 @@ class TestDescriptionList(Sequence):
         if not filename:
             filename = self.find_testfile()
 
+        self.filename = filename
+
         self._raw = self.load(filename)
         data = self.validate(self._raw)
 
-        self.executable = Executable(data['executable'])
-        self.tests = data['tests']
+        self._executable = Executable(data['executable'])
+        self._tests = [
+            TestDescription(test) for test in data['tests']
+        ]
 
     def find_testfile(self):
         for filename in self.basenames:
@@ -102,10 +121,14 @@ class TestDescriptionList(Sequence):
         return schema(data)
 
     def __len__(self):
-        return len(self.tests)
+        return len(self._tests)
 
     def __repr__(self):
-        return '<tests:' + repr(self.tests) + '>'
+        return '<tests:' + repr(self._tests) + '>'
 
     def __getitem__(self, item):
-        return TestDescription(self.tests[item])
+        return self._tests[item]
+
+    @property
+    def executable(self):
+        return self._executable

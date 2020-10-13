@@ -3,7 +3,7 @@ executable: ./a.out
 tests:
   - name: No errors if two arguments
     args: [1, 2]
-    exit-status: 0
+    exit-status: 2
   - name: Error if less than two arguments
     args: [1]
     exit-status: 1

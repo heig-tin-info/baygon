@@ -5,3 +5,6 @@ __description__ = 'Functional tests for teaching activity'
 __email__ = 'yves.chevallier@heig-vd.ch'
 __license__ = 'MIT'
 __copyright__ = 'Copyright 2020 HEIG-VD'
+
+from .validation import TestDescription, TestDescriptionList
+from .test import TestCase, TestSuite

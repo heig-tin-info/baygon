@@ -12,7 +12,7 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/heig-tin-info/heig-test",
-    install_requires=["voluptuous", "click", "pyaml"],
+    install_requires=["voluptuous", "click", "pyaml", "colorama"],
     packages=setuptools.find_packages(),
     license="MIT",
     classifiers=[
@@ -24,4 +24,5 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     python_requires='>=3.6',
+    entry_points={"console_scripts": ["info-test = heigtest.main:cli"]},
 )
