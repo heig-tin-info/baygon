@@ -71,8 +71,8 @@ pip3 install -U heig-test
 ## Contributing ?
 
 ```
+sudo apt update python3-venv
 git clone https://github.com/heig-tin-info/heig-test.git
-pip3 install -U virtualenv
 cd heig-test
 python3 -m venv env
 source env/bin/activate

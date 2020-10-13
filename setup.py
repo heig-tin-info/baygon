@@ -1,38 +1,27 @@
-#!/usr/bin/env python
-import pkutils
+import setuptools
 
-try:
-    from setuptools import setup
-except ImportError:
-    from distutils.core import setup
+with open("README.md", "r") as fh:
+    long_description = fh.read()
 
-requirements = list(pkutils.parse_requirements('requirements.txt'))
-dependencies = list(pkutils.parse_requirements('requirements.txt', True))
-dev_requirements = list(pkutils.parse_requirements('dev-requirements.txt'))
-readme = pkutils.read('README.rst')
-module = pkutils.parse_module('heig-test/__init__.py')
-version = module.__version__
-project = module.__title__
-email = module.__email__
-user = pkutils.get_user(email)
-
-setup(
-    name=project,
-    version=version,
-    description=module.__description__,
-    long_description=readme,
-    author=module.__author__,
-    author_email=email,
-    install_requires=requirements,
-    tests_require=dev_requirements,
-    dependency_links=dependencies,
-    setup_requires=['pkutils'],
-    url=pkutils.get_url(project, user),
-    download_url=pkutils.get_dl_url(project, user, version),
+setuptools.setup(
+    name="heigtest",
+    version="0.1.0",
+    author="Yves Chevallier",
+    author_email="yves.chevallier@heig-vd.ch",
+    description="Functional tests for teaching activity",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
+    url="https://github.com/heig-tin-info/heig-test",
+    install_requires=["voluptuous", "click", "pyaml"],
+    packages=setuptools.find_packages(),
+    license="MIT",
     classifiers=[
-        pkutils.get_license(module.__license__),
-        pkutils.get_status(version),
-        ...
+        'Development Status :: 4 - Beta',
+        'Intended Audience :: Developers',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: OS Independent",
     ],
-    packages=['heig-test']
+    python_requires='>=3.6',
 )

@@ -93,3 +93,6 @@ venv.bak/
 
 # Cython debug symbols
 cython_debug/
+
+a.out
+*.o
