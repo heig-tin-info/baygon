@@ -11,8 +11,9 @@ Outputs = namedtuple('Outputs', ['exit_status', 'stdout', 'stderr'])
 
 class Executable:
     """ Allow to execute a program and conveniently read the output. """
-    def __init__(self, filename):
+    def __init__(self, filename, encoding='utf-8'):
         self.filename = filename
+        self.encoding = encoding
 
         if not self._is_executable(filename):
             raise ValueError("Program %s is not executable!" % filename)
@@ -21,9 +22,12 @@ class Executable:
         p = subprocess.Popen([self.filename, *[str(a) for a in args]],
                              stdout=subprocess.PIPE,
                              stdin=subprocess.PIPE,
-                             stderr=subprocess.STDOUT)
+                             stderr=subprocess.PIPE)
 
         stdout, stderr = p.communicate(input=stdin)
+
+        stdout = stdout.decode(self.encoding) if stdout is not None else None
+        stderr = stderr.decode(self.encoding) if stderr is not None else None
 
         return Outputs(p.returncode, GreppableString(stdout), GreppableString(stderr))
 

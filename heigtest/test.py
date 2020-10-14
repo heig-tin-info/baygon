@@ -93,7 +93,7 @@ class TestCase:
         for case in getattr(self.options, where):
             if 'regex' in case:
                 logger.debug('Checking regex')
-                if not value.match(case['regex']):
+                if not value.grep(case['regex']):
                     issues += [InvalidRegex(value, case['regex'], on=where)]
             if 'contains' in case:
                 logger.debug('Checking contains')
