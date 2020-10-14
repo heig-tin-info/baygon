@@ -42,7 +42,6 @@ class InvalidEquals(InvalidCondition):
 
 
 class TestCase:
-
     def __init__(self, executable: Executable, options: TestDescription, id=None):
         self.options = options
         self.name = options.name
@@ -52,7 +51,6 @@ class TestCase:
 
     def run(self):
         output = self.exe.run(*self.options.args, stdin=self.options.stdin)
-        logger.debug('Running test : %s' % self.options.name)
         issues = []
         issues += self._check_exit_status(output)
         issues += self._check_stdout(output)
@@ -62,9 +60,6 @@ class TestCase:
     def _check_exit_status(self, output):
         if self.options.exit_status is None:
             return []
-
-        logger.debug('Checking exit status %d =? %d' %
-                     (self.options.exit_status, output.exit_status))
         expected = self.options.exit_status
         if (output.exit_status != expected):
             return [
@@ -75,15 +70,11 @@ class TestCase:
         return []
 
     def _check_stdout(self, output):
-        if self.options.stdout is None:
-            return []
-
+        if self.options.stdout is None: return []
         return self._check_match(output, 'stdout')
 
     def _check_stderr(self, output):
-        if self.options.stderr is None:
-            return []
-
+        if self.options.stderr is None: return []
         return self._check_match(output, 'stderr')
 
     def _check_match(self, output, where):
@@ -91,10 +82,21 @@ class TestCase:
         value = getattr(output, where)
 
         for case in getattr(self.options, where):
+            if 'uppercase' in case:
+                value = value.upper()
+
+            if 'lowercase' in case:
+                value = value.lower()
+
+            if 'trim' in case:
+                logger.debug('Trimming str')
+                value = value.strip()
+
             if 'regex' in case:
                 logger.debug('Checking regex')
                 if not value.grep(case['regex']):
                     issues += [InvalidRegex(value, case['regex'], on=where)]
+
             if 'contains' in case:
                 logger.debug('Checking contains')
                 if case['contains'] not in value:

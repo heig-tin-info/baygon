@@ -4,6 +4,7 @@ Read and validate test file.
 import os.path
 import yaml
 import json
+
 from os import path
 from voluptuous import Schema, IsFile, Coerce, Required, Any, All, Number, Optional
 from collections.abc import Sequence
@@ -20,9 +21,10 @@ Match = Any(
     All(str, lambda x: [{'equals': x}]),
     [
         {
-            Optional('equals'): str,
-            Optional('regex'): str,
-            Optional('contains'): str
+            Optional('uppercase'): bool,
+            Optional('lowercase'): bool,
+            Optional('trim'): bool,
+            Required(Any('equals', 'regex', 'contains')): str
         }
     ]
 )
@@ -34,7 +36,7 @@ Matches = Any(
 
 schema = Schema({
     Required('version'): 1,
-    Required('executable'): IsFile('Missing configuration file'),
+    Optional('executable'): IsFile('Missing configuration file'),
     Required('tests'): [
         {
             Optional('name'): str,
@@ -49,33 +51,13 @@ schema = Schema({
 
 
 class TestDescription(dict):
-    @property
-    def name(self):
-        return self['name']
-
-    @property
-    def args(self):
-        return self['args']
+    def __init__(self, *args, **kwargs):
+        super(TestDescription, self).__init__(*args, **kwargs)
+        self.__dict__ = self
 
     @property
     def exit_status(self):
         return self['exit-status'] if 'exit-status' in self else None
-
-    @property
-    def stdin(self):
-        return self['stdin']
-
-    @property
-    def stdout(self):
-        return self['stdout']
-
-    @property
-    def stderr(self):
-        return self['stderr']
-
-    @property
-    def id(self):
-        return self.id
 
     def __repr__(self):
         return '<TestDescription:' + super().__repr__() + '>'
@@ -84,7 +66,7 @@ class TestDescription(dict):
 class TestDescriptionList(Sequence):
     basenames = ['t', 'test', 'tests']
 
-    def __init__(self, filename=None):
+    def __init__(self, filename=None, executable=None):
         if not filename:
             filename = self.find_testfile()
 
@@ -93,7 +75,8 @@ class TestDescriptionList(Sequence):
         self._raw = self.load(filename)
         data = self.validate(self._raw)
 
-        self._executable = Executable(data['executable'])
+        self._executable = Executable(data['executable'] if executable is None else executable)
+
         self._tests = [
             TestDescription(test) for test in data['tests']
         ]
@@ -135,4 +118,4 @@ class TestDescriptionList(Sequence):
 
     @property
     def executable(self):
-        return self._executable
+        return self._executable if hasattr(self, '_executable') else None

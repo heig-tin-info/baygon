@@ -1,5 +1,4 @@
 version: 1
-executable: ./a.out
 tests:
   - name: No errors if two arguments
     args: [1, 2]
