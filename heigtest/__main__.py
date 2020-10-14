@@ -5,7 +5,7 @@ from . import TestSuite, TestDescriptionList
 
 @click.command()
 @click.option('-v', '--verbose', count=True)
-def run(verbose):
+def cli(verbose):
     """Run tests."""
     start_time = time.time()
 
@@ -58,4 +58,4 @@ def display_failure(test, failures):
 
 
 if __name__ == '__main__':
-    run()
+    cli()

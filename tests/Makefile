@@ -9,6 +9,9 @@ all: $(EXEC)
 $(EXEC): $(COBJS)
 	$(CC) $^ -o$@ $(LDFLAGS)
 
+test: $(EXEC)
+	info-test -v
+
 clean:
 	$(RM) $(EXEC) *.o
 

@@ -1,14 +1,21 @@
 import setuptools
+import re
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
+name='heigtest'
+
+def get_property(prop, project):
+    result = re.search(r'__{}__\s*=\s*[\'"]([^\'"]*)[\'"]'.format(prop), open(project + '/__init__.py').read())
+    return result.group(1)
+
 setuptools.setup(
-    name="heigtest",
-    version="0.1.0",
-    author="Yves Chevallier",
-    author_email="yves.chevallier@heig-vd.ch",
-    description="Functional tests for teaching activity",
+    name=name,
+    version=get_property('version', name),
+    author=get_property('author', name),
+    author_email=get_property('email', name),
+    description=get_property('description', name),
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/heig-tin-info/heig-test",
@@ -24,5 +31,5 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     python_requires='>=3.6',
-    entry_points={"console_scripts": ["info-test = heigtest.main:cli"]},
+    entry_points={"console_scripts": ["info-test=heigtest.__main__:cli"]},
 )
