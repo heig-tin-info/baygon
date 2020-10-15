@@ -8,7 +8,7 @@ tests:
     exit-status: 1
   - name: Stdout is the sum of arguments
     args: [1, 2]
-    stdout: 3
+    stdout: []
   - name: Version on stderr
     args: ['--version']
     stderr:

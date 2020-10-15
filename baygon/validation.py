@@ -6,7 +6,7 @@ import yaml
 import json
 
 from os import path
-from voluptuous import Schema, IsFile, Coerce, Required, Any, All, Number, Optional
+from voluptuous import Schema, ExactSequence, IsFile, Coerce, Required, Any, All, Number, Optional
 from collections.abc import Sequence
 
 from .executable import Executable
@@ -20,6 +20,7 @@ Match = Any(
     All(Number(), Coerce(str), lambda x: [{'equals': x}]),
     All(str, lambda x: [{'equals': x}]),
     [
+        All(str, lambda x: {'equals': x}),
         {
             Optional('uppercase'): bool,
             Optional('lowercase'): bool,
@@ -37,6 +38,12 @@ Matches = Any(
 schema = Schema({
     Required('version'): 1,
     Optional('executable'): IsFile('Missing configuration file'),
+    Optional('filters'): {
+        Optional('uppercase'): bool,
+        Optional('lowercase'): bool,
+        Optional('trim'): bool,
+        Optional('regex'): ExactSequence([str, str])
+    },
     Required('tests'): [
         {
             Optional('name'): str,
@@ -64,7 +71,7 @@ class TestDescription(dict):
 
 
 class TestDescriptionList(Sequence):
-    basenames = ['t', 'test', 'tests']
+    basenames = ['baygon', 't', 'test', 'tests']
 
     def __init__(self, filename=None, executable=None):
         if not filename:
@@ -75,7 +82,10 @@ class TestDescriptionList(Sequence):
         self._raw = self.load(filename)
         data = self.validate(self._raw)
 
-        self._executable = Executable(data['executable'] if executable is None else executable)
+        filters = data['filters'] if 'filters' in data else {}
+
+        self._executable = Executable(data['executable'] if executable is None else executable,
+            filters=filters)
 
         self._tests = [
             TestDescription(test) for test in data['tests']

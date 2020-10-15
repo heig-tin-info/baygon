@@ -24,7 +24,10 @@ class InvalidCondition:
 
 class InvalidExitStatus(InvalidCondition):
     def __str__(self):
-        return f'Invalid exit status. Expected {self.expected}, but got {self.got}'
+        if hasattr(self.got, '__len__') and len(self.got) > 20:
+            return f'Invalid exit status. Expected {self.expected}'
+        else:
+            return f'Invalid exit status. Expected {self.expected}, but got {self.got}'
 
 
 class InvalidContains(InvalidCondition):
@@ -38,7 +41,12 @@ class InvalidRegex(InvalidCondition):
 
 class InvalidEquals(InvalidCondition):
     def __str__(self):
-        return f'Invalid value on {self.on}. Expected exactly "{self.expected}", but got "{self.got}"'
+        if hasattr(self.got, '__len__') and len(self.got) > 20:
+            return f'Invalid value on {self.on}. Expected exactly "{self.expected}"'
+        else:
+            return f'Invalid value on {self.on}. Expected exactly "{self.expected}", but got "{self.got}"'
+
+
 
 
 class TestCase:
@@ -99,7 +107,9 @@ class TestCase:
 
             if 'contains' in case:
                 logger.debug('Checking contains')
+                logger.debug(' - value :' + value)
                 if case['contains'] not in value:
+                    logger.debug('New issue : ' + case['contains'])
                     issues += [InvalidContains(value,
                                                case['contains'], on=where)]
             if 'equals' in case:

@@ -4,7 +4,7 @@ import re
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
-name='heigtest'
+name='baygon'
 
 def get_property(prop, project):
     result = re.search(r'__{}__\s*=\s*[\'"]([^\'"]*)[\'"]'.format(prop), open(project + '/__init__.py').read())
@@ -18,7 +18,7 @@ setuptools.setup(
     description=get_property('description', name),
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/heig-tin-info/heig-test",
+    url="https://github.com/heig-tin-info/baygon",
     install_requires=["voluptuous", "click", "pyaml", "colorama"],
     packages=setuptools.find_packages(),
     license="MIT",
@@ -31,5 +31,5 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     python_requires='>=3.6',
-    entry_points={"console_scripts": ["info-test=heigtest.__main__:cli"]},
+    entry_points={"console_scripts": [f"info-test={name}.__main__:cli"]},
 )

@@ -1,5 +1,9 @@
 import click
 import time
+import json
+import logging
+import os
+
 from . import TestSuite, TestDescriptionList
 
 def pad_size(tests):
@@ -33,27 +37,70 @@ def display_test_name(test):
     click.secho(f'Test {test.id}: ', nl=False, bold=True)
     click.echo(f'{test.name}', nl=False)
 
-def display_failure(test, failures, pad):
+def display_failure(test, failures, pad, verbose=0):
     display_fail(test, pad)
     for f in failures:
         click.secho('  - ' + str(f), fg='yellow')
+        if verbose > 1:
+            click.secho(f.got, fg='cyan')
 
+class OneLineExceptionFormatter(logging.Formatter):
+    def formatException(self, exc_info):
+        result = super().formatException(exc_info)
+        return repr(result)
+
+    def format(self, record):
+        result = super().format(record)
+        if record.exc_text:
+            result = result.replace("\n", "")
+        return result
 
 @click.command()
-@click.argument('executable', type=click.Path(exists=True))
+@click.argument('executable', required=False, type=click.Path(exists=True))
+@click.option('-c', '--check', is_flag=True)
 @click.option('-v', '--verbose', count=True)
-def cli(verbose=0):
+@click.option('-l', '--limit', type=int, default=-1)
+@click.option('--list', default=False, is_flag=True)
+def cli(verbose=0, executable=None, **kwargs):
     """Run tests."""
+
+    if 'check' in kwargs and kwargs['check']:
+        td = TestDescriptionList(executable=executable)
+        # try:
+        #     td = TestDescriptionList(executable=executable)
+        # except:
+        #     click.secho("Error", fg='red')
+        #     exit(1)
+        # click.secho("Good", fg='green')
+        exit(0)
+
+    if verbose > 3:
+        handler = logging.StreamHandler()
+        formatter = OneLineExceptionFormatter(logging.BASIC_FORMAT)
+        handler.setFormatter(formatter)
+        root = logging.getLogger()
+        root.setLevel(os.environ.get("LOGLEVEL", "DEBUG"))
+        root.addHandler(handler)
+
     start_time = time.time()
 
     td = TestDescriptionList(executable=executable)
+
+    if ('list' in kwargs and kwargs['list']):
+        print(td)
+        exit(0)
+
     ts = TestSuite(td)
 
     failures = []
 
     pad = pad_size(ts)
 
-    for t in ts:
+    limit = kwargs['limit']
+
+    for k, t in enumerate(ts):
+        if (limit > 0 and k > limit): break
+
         r = t.run()
         if not len(r):
             if (verbose == 0):
@@ -64,8 +111,8 @@ def cli(verbose=0):
             failures.append((t, r))
             if (verbose == 0):
                 click.secho('x', fg='red', nl=False)
-            if (verbose > 1):
-                display_failure(t, r, pad)
+            if (verbose >= 1):
+                display_failure(t, r, pad, verbose=verbose)
 
     click.echo('\n')
 
