@@ -42,7 +42,7 @@ def display_failure(test, failures, pad):
 @click.command()
 @click.argument('executable', type=click.Path(exists=True))
 @click.option('-v', '--verbose', count=True)
-def cli(executable, verbose):
+def cli(verbose=0):
     """Run tests."""
     start_time = time.time()
 
