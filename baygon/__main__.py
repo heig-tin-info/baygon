@@ -5,7 +5,8 @@ import logging
 import os
 
 
-from . import TestSuite, Tests, validation, Executable
+from . import TestSuite, TestCase, Tests, validation, Executable
+
 
 def pad_size(tests):
     width, _ = click.get_terminal_size()
@@ -18,25 +19,35 @@ def pad_size(tests):
         return max_display_len
     return 0
 
+
 def display_pad(pad=0):
     if pad == 0:
         click.secho('  ', nl=False)
     else:
         click.secho('.' * pad, nl=False, dim=True)
 
+
 def display_pass(test, pad=0):
-    display_test_name(test)
     display_pad(pad - len(test.name) - len(str(test.id)))
     click.secho(' PASSED', fg='green')
+
 
 def display_fail(test, pad=0):
     display_test_name(test)
     display_pad(pad - len(test.name) - len(str(test.id)))
     click.secho(' FAILED', fg='red')
 
+
+def test_name_length(test):
+    pad = '  ' * (len(test.id) - 1)
+    return len(f'{pad}Test {test.id}: {test.name}')
+
+
 def display_test_name(test):
-    click.secho(f'Test {test.id}: ', nl=False, bold=True)
+    pad = '  ' * (len(test.id) - 1)
+    click.secho(f'{pad}Test {test.id}: ', nl=False, bold=True)
     click.echo(f'{test.name}', nl=False)
+
 
 def display_failure(test, failures, pad, verbose=0):
     display_fail(test, pad)
@@ -44,6 +55,7 @@ def display_failure(test, failures, pad, verbose=0):
         click.secho('  - ' + str(f), fg='yellow')
         if verbose > 1:
             click.secho(f.got, fg='cyan')
+
 
 class OneLineExceptionFormatter(logging.Formatter):
     def formatException(self, exc_info):
@@ -56,70 +68,97 @@ class OneLineExceptionFormatter(logging.Formatter):
             result = result.replace("\n", "")
         return result
 
+
+class Runner:
+    def __init__(self, verbose, executable=None, **kwargs):
+        if verbose > 3:
+            self._init_logger("DEBUG")
+
+        self.verbose = verbose
+        self.executable = executable
+        self.limit = -1 if 'limit' not in kwargs else kwargs['limit']
+        self.filename = validation.find_testfile()
+        self.test_description = Tests(self.filename)
+        self.test_suite = TestSuite(
+            self.test_description, Executable(self.executable))
+
+    def _init_logger(self, loglevel):
+        handler = logging.StreamHandler()
+        formatter = OneLineExceptionFormatter(logging.BASIC_FORMAT)
+        handler.setFormatter(formatter)
+        root = logging.getLogger()
+        root.setLevel(os.environ.get("LOGLEVEL", loglevel))
+        root.addHandler(handler)
+
+    def run(self):
+        start_time = time.time()
+        self._traverse_group(self.test_suite)
+
+        click.secho('\nRan %d tests in %ss.' % (
+            self.successes + self.failures,
+            round(time.time() - start_time, 2)
+        ), bold=True)
+        
+        if self.failures > 0:
+            click.echo('%d failed, %d passed (%d%% ok).' % (
+                self.successes + self.failures, self.failures),
+                100-round(self.failures/self.successes*100, 2))
+            click.secho('\nfail.', fg='red')
+        else:
+            click.secho('\nok.', fg='green')        
+
+        return self.failures
+        
+    def _max_length(self, tests):
+        length = 0
+        for test in tests:
+            if isinstance(test, TestSuite):
+                length = max(test_name_length(test), length)
+                length = max(self._max_length(test), length)
+            else:
+                length = max(test_name_length(test), length)
+        return length
+
+    def _traverse_group(self, tests):
+        pad = self._max_length(tests) + 10
+
+        self.failures = 0
+        self.successes = 0
+
+        for test in tests:
+            if self.limit > 0 and self.failures > self.limit: 
+                break
+        
+            if isinstance(test, TestSuite):
+                display_test_name(test)
+                click.echo('')
+                self._traverse_group(test)
+            elif isinstance(test, TestCase):
+                display_test_name(test)
+                issues = test.run()
+                display_pad(pad - test_name_length(test))
+                if not len(issues):
+                    self.successes += 1
+                    click.secho(' PASSED', fg='green')
+                else:
+                    self.failures += 1
+                    click.secho(' FAILED', fg='red')
+                    for issue in issues:
+                        click.secho(repr(issue.value), fg='cyan')
+                        click.secho('  ' * len(test.id) +
+                                    str(issue), fg='yellow')
+        return self.failures
+
+
 @click.command()
 @click.argument('executable', required=False, type=click.Path(exists=True))
 @click.option('-v', '--verbose', count=True)
 @click.option('-l', '--limit', type=int, default=-1)
 def cli(verbose=0, executable=None, **kwargs):
-    """Run tests."""
-
-    if verbose > 3:
-        handler = logging.StreamHandler()
-        formatter = OneLineExceptionFormatter(logging.BASIC_FORMAT)
-        handler.setFormatter(formatter)
-        root = logging.getLogger()
-        root.setLevel(os.environ.get("LOGLEVEL", "DEBUG"))
-        root.addHandler(handler)
-
-
-    filename = validation.find_testfile()
-
-    td = Tests(filename)
-    ts = TestSuite(td, Executable(executable))
-
-    failures = []
-
-    pad = pad_size(ts)
-
-    limit = kwargs['limit']
-
-    start_time = time.time()
-    for k, t in enumerate(ts):
-        if (limit > 0 and k > limit): break
-
-        r = t.run()
-        if not len(r):
-            if (verbose == 0):
-                click.secho('.', fg='green', nl=False)
-            elif (verbose >= 1):
-                display_pass(t, pad)
-        else:
-            failures.append((t, r))
-            if (verbose == 0):
-                click.secho('x', fg='red', nl=False)
-            if (verbose >= 1):
-                display_failure(t, r, pad, verbose=verbose)
-
-    click.echo('\n')
-
-    if (verbose == 0):
-        for test, failure in failures:
-            display_failure(test, failure, pad)
-
-    click.secho('Ran %d tests in %ss.' % (
-        len(ts),
-        round(time.time() - start_time, 2)
-    ), bold=True)
-
-    if len(failures) > 0:
-        click.echo('%d failed, %d passed (%d%% ok).' % (
-            len(ts), len(failures),
-            100-round(len(failures)/len(ts)*100, 2)))
-        click.secho('\nfail.', fg='red')
-    else:
-        click.secho('\nok.', fg='green')
-
-    exit(bool(len(failures)))
+    runner = Runner(verbose, executable, **kwargs)
+    failures = runner.run()
+    click.echo('')
+    return failures
 
 
 if __name__ == '__main__':

@@ -24,12 +24,13 @@ test = Schema({
 })
 
 group = Schema({
-    Optional('name'): str,
+    Optional('name', default=''): str,
     Required('tests'): [test]
 })
 
 schema = Schema({
     Required('version'): 1,
+    Optional('name', default=''): str,
     Optional('executable'): IsFile('Missing configuration file'),
     Optional('filters'): {
         Optional('uppercase'): bool,

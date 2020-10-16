@@ -31,5 +31,6 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     python_requires='>=3.6',
+    py_modules=[name],
     entry_points={"console_scripts": [f"info-test={name}.__main__:cli"]},
 )

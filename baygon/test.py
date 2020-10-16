@@ -13,8 +13,6 @@ logger = logging.getLogger()
 
 
 def match(options, value, where=None):
-    options = schema.match(options)
-
     issues = []
 
     for case in options:
@@ -57,6 +55,7 @@ class TestCase:
         self._id = id
 
     def run(self):
+
         output = self.exe.run(*self.options.args, stdin=self.options.stdin)
         issues = []
         issues += self._check_exit_status(output)
@@ -70,7 +69,7 @@ class TestCase:
         expected = self.options.exit_status
         if (output.exit_status != expected):
             return [
-                InvalidExitStatus(
+                error.InvalidExitStatus(
                     output.exit_status, expected
                 )
             ]
@@ -79,15 +78,13 @@ class TestCase:
     def _check_stdout(self, output):
         if self.options.stdout is None:
             return []
-        return self._check_match(output, 'stdout')
+        return match(self.options, output.stdout, where='stdout')
 
     def _check_stderr(self, output):
         if self.options.stderr is None:
             return []
-        return self._check_match(output, 'stderr')
+        return match(self.options, output.stderr, where='stderr')
 
-    def _check_match(self, output, where):
-        return match(getattr(output, where), self.options, where=where)
 
     @property
     def id(self):
@@ -114,6 +111,7 @@ class TestGroup(Sequence):
 class TestSuite(TestGroup):
     def __init__(self, tests: Tests, executable: Executable = None, id=[]):
         self._id = id
+        self.name = tests.name
         self._executable = executable if executable is not None else None
         self._tests = list(self._build(tests))
 
