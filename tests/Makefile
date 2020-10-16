@@ -10,7 +10,7 @@ $(EXEC): $(COBJS)
 	$(CC) $^ -o$@ $(LDFLAGS)
 
 test: $(EXEC)
-	info-test -v ./$(EXEC)
+	baygon -v ./$(EXEC)
 
 clean:
 	$(RM) $(EXEC) *.o

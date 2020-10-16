@@ -1,6 +1,8 @@
-# HEIG Test
+# Baygon
 
-This package is a minimalist functional test suite for executables. It relies on a `test.yml` or `test.json` file that lists all the possible tests.
+Kills Bugs Dead!
+
+This package is a minimalist functional test suite for binaries. It relies on a description of tests usually in `test.yml` or `test.json`. 
 
 ## Test file format
 
@@ -8,17 +10,18 @@ It can be either a `.yml` or a `.json` file.
 
 ```yml
 version: 1
-executable: ./a.out
 tests:
-  - name: No errors if two arguments
-    args: [1, 2]
-    exit-status: 0
-  - name: Error if less than two arguments
-    args: [1]
-    exit-status: 1
+  - name: Arguments check
+    tests:
+      - name: No errors if two arguments
+        args: [1, 2]
+        exit-status: 0
+      - name: Error if less than two arguments
+        args: [1]
+        exit-status: 1
   - name: Stdout is the sum of arguments
     args: [1, 2]
-    stdout: 3
+    stdout: []
   - name: Version on stderr
     args: ['--version']
     stderr:
@@ -28,36 +31,15 @@ tests:
 
 ## Usage
 
-It can have the standard output:
-
 ```console
-$ heig-tests
-....
+$ info-test -v ./a.out
+Test 1: Arguments check
+    Test 1.1: No errors if two arguments................ PASSED
+    Test 1.2: Error if less than two arguments.......... PASSED
+Test 2: Stdout is the sum of arguments.................. PASSED
+Test 3: Version on stderr............................... PASSED
 
-Ran 4 tests found in tests.yml.
-
-ok.
-```
-
-It can be quiet:
-
-```console
-$ heig-tests
-$ echo $?
-0
-```
-
-It can be verbose:
-
-```console
-$ heig-tests -v
-
-Test 1: No errors if two arguments  PASSED
-Test 2: Error if less than two arguments  PASSED
-Test 3: Stdout is the sum of arguments  PASSED
-Test 4: Version on stderr  PASSED
-
-Ran 4 tests found in tests.yml.
+Ran 4 tests in 0.0s.
 
 ok.
 ```
@@ -65,15 +47,15 @@ ok.
 ## How to install?
 
 ```
-pip3 install -U heig-test
+pip3 install -U baygon
 ```
 
 ## Contributing ?
 
 ```
 sudo apt update python3-venv
-git clone https://github.com/heig-tin-info/heig-test.git
-cd heig-test
+git clone https://github.com/heig-tin-info/baygon.git
+cd baygon
 python3 -m venv env
 source env/bin/activate
 pip install -e .
