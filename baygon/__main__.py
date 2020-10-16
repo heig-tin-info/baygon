@@ -8,18 +8,6 @@ import os
 from . import TestSuite, TestCase, Tests, validation, Executable
 
 
-def pad_size(tests):
-    width, _ = click.get_terminal_size()
-    max_test_len = 0
-    for t in tests:
-        if len(t.name) > max_test_len:
-            max_test_len = len(t.name)
-    max_display_len = max_test_len + len('Test %d: PASSED' % len(tests))
-    if width > max_display_len:
-        return max_display_len
-    return 0
-
-
 def display_pad(pad=0):
     if pad == 0:
         click.secho('  ', nl=False)
@@ -27,34 +15,15 @@ def display_pad(pad=0):
         click.secho('.' * pad, nl=False, dim=True)
 
 
-def display_pass(test, pad=0):
-    display_pad(pad - len(test.name) - len(str(test.id)))
-    click.secho(' PASSED', fg='green')
-
-
-def display_fail(test, pad=0):
-    display_test_name(test)
-    display_pad(pad - len(test.name) - len(str(test.id)))
-    click.secho(' FAILED', fg='red')
-
-
 def test_name_length(test):
-    pad = '  ' * (len(test.id) - 1)
+    pad = '  ' * (len(test._id) - 1)
     return len(f'{pad}Test {test.id}: {test.name}')
 
 
 def display_test_name(test):
-    pad = '  ' * (len(test.id) - 1)
+    pad = '  ' * (len(test._id) - 1)
     click.secho(f'{pad}Test {test.id}: ', nl=False, bold=True)
     click.echo(f'{test.name}', nl=False)
-
-
-def display_failure(test, failures, pad, verbose=0):
-    display_fail(test, pad)
-    for f in failures:
-        click.secho('  - ' + str(f), fg='yellow')
-        if verbose > 1:
-            click.secho(f.got, fg='cyan')
 
 
 class OneLineExceptionFormatter(logging.Formatter):
@@ -92,23 +61,29 @@ class Runner:
 
     def run(self):
         start_time = time.time()
+        self.align_column = self._max_length(self.test_suite) + 10
+
+        self.failures = 0
+        self.successes = 0
+
         self._traverse_group(self.test_suite)
+
 
         click.secho('\nRan %d tests in %ss.' % (
             self.successes + self.failures,
             round(time.time() - start_time, 2)
         ), bold=True)
-        
+
         if self.failures > 0:
-            click.echo('%d failed, %d passed (%d%% ok).' % (
-                self.successes + self.failures, self.failures),
-                100-round(self.failures/self.successes*100, 2))
-            click.secho('\nfail.', fg='red')
+            click.secho('%d failed, %d passed (%d%% ok).' % (
+                self.failures, self.successes,
+                100-round(self.failures/self.successes*100, 2)), fg='yellow', bold=True)
+            click.secho('\nfail.', fg='red', bold=True)
         else:
-            click.secho('\nok.', fg='green')        
+            click.secho('\nok.', fg='green')
 
         return self.failures
-        
+
     def _max_length(self, tests):
         length = 0
         for test in tests:
@@ -120,15 +95,10 @@ class Runner:
         return length
 
     def _traverse_group(self, tests):
-        pad = self._max_length(tests) + 10
-
-        self.failures = 0
-        self.successes = 0
-
         for test in tests:
-            if self.limit > 0 and self.failures > self.limit: 
+            if self.limit > 0 and self.failures > self.limit:
                 break
-        
+
             if isinstance(test, TestSuite):
                 display_test_name(test)
                 click.echo('')
@@ -136,17 +106,16 @@ class Runner:
             elif isinstance(test, TestCase):
                 display_test_name(test)
                 issues = test.run()
-                display_pad(pad - test_name_length(test))
+                display_pad(self.align_column - test_name_length(test))
                 if not len(issues):
                     self.successes += 1
                     click.secho(' PASSED', fg='green')
                 else:
                     self.failures += 1
-                    click.secho(' FAILED', fg='red')
+                    click.secho(' FAILED', fg='red', bold=True)
                     for issue in issues:
-                        click.secho(repr(issue.value), fg='cyan')
-                        click.secho('  ' * len(test.id) +
-                                    str(issue), fg='yellow')
+                        click.secho('  ' * len(test._id) + '- ' + 
+                                    str(issue), fg='magenta', bold=True)
         return self.failures
 
 
