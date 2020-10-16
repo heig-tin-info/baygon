@@ -4,7 +4,8 @@ import json
 import logging
 import os
 
-from . import TestSuite, TestDescriptionList
+
+from . import TestSuite, Tests, validation, Executable
 
 def pad_size(tests):
     width, _ = click.get_terminal_size()
@@ -57,22 +58,10 @@ class OneLineExceptionFormatter(logging.Formatter):
 
 @click.command()
 @click.argument('executable', required=False, type=click.Path(exists=True))
-@click.option('-c', '--check', is_flag=True)
 @click.option('-v', '--verbose', count=True)
 @click.option('-l', '--limit', type=int, default=-1)
-@click.option('--list', default=False, is_flag=True)
 def cli(verbose=0, executable=None, **kwargs):
     """Run tests."""
-
-    if 'check' in kwargs and kwargs['check']:
-        td = TestDescriptionList(executable=executable)
-        # try:
-        #     td = TestDescriptionList(executable=executable)
-        # except:
-        #     click.secho("Error", fg='red')
-        #     exit(1)
-        # click.secho("Good", fg='green')
-        exit(0)
 
     if verbose > 3:
         handler = logging.StreamHandler()
@@ -82,15 +71,11 @@ def cli(verbose=0, executable=None, **kwargs):
         root.setLevel(os.environ.get("LOGLEVEL", "DEBUG"))
         root.addHandler(handler)
 
-    start_time = time.time()
 
-    td = TestDescriptionList(executable=executable)
+    filename = validation.find_testfile()
 
-    if ('list' in kwargs and kwargs['list']):
-        print(td)
-        exit(0)
-
-    ts = TestSuite(td)
+    td = Tests(filename)
+    ts = TestSuite(td, Executable(executable))
 
     failures = []
 
@@ -98,6 +83,7 @@ def cli(verbose=0, executable=None, **kwargs):
 
     limit = kwargs['limit']
 
+    start_time = time.time()
     for k, t in enumerate(ts):
         if (limit > 0 and k > limit): break
 

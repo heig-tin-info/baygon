@@ -4,58 +4,57 @@ Build a test case for a raw test description
 from collections.abc import Sequence
 
 from .executable import Executable
-from .validation import TestDescription, TestDescriptionList
-import re
+from .validation import Group, Test, Tests
+
+from . import schema, error
 import logging
 
 logger = logging.getLogger()
 
 
-class InvalidCondition:
-    def __init__(self, got, expected, message=None, on=None):
-        self.got = got
-        self.expected = expected
-        self.message = message
-        self.on = on
+def match(options, value, where=None):
+    options = schema.match(options)
 
-    def __str__(self):
-        return f'Expected "{self.expected}", but got "{self.got}"'
+    issues = []
 
+    for case in options:
+        if 'uppercase' in case:
+            value = value.upper()
 
-class InvalidExitStatus(InvalidCondition):
-    def __str__(self):
-        if hasattr(self.got, '__len__') and len(self.got) > 20:
-            return f'Invalid exit status. Expected {self.expected}'
-        else:
-            return f'Invalid exit status. Expected {self.expected}, but got {self.got}'
+        if 'lowercase' in case:
+            value = value.lower()
 
+        if 'trim' in case:
+            logger.debug('Trimming str')
+            value = value.strip()
 
-class InvalidContains(InvalidCondition):
-    pass
+        if 'regex' in case:
+            logger.debug('Checking regex')
+            if not value.grep(case['regex']):
+                issues += [error.InvalidRegex(value, case['regex'], on=where)]
 
+        if 'contains' in case:
+            logger.debug('Checking contains')
+            logger.debug(' - value :' + value)
+            if case['contains'] not in value:
+                logger.debug('New issue : ' + case['contains'])
+                issues += [error.InvalidContains(value,
+                                           case['contains'], on=where)]
+        if 'equals' in case:
+            logger.debug('Checking equals')
+            if case['equals'] != value:
+                issues += [error.InvalidEquals(value, case['equals'], on=where)]
 
-class InvalidRegex(InvalidCondition):
-    def __str__(self):
-        return f'Invalid value on {self.on}. Expected to match regex /{self.expected}/'
-
-
-class InvalidEquals(InvalidCondition):
-    def __str__(self):
-        if hasattr(self.got, '__len__') and len(self.got) > 20:
-            return f'Invalid value on {self.on}. Expected exactly "{self.expected}"'
-        else:
-            return f'Invalid value on {self.on}. Expected exactly "{self.expected}", but got "{self.got}"'
-
-
+    return issues
 
 
 class TestCase:
-    def __init__(self, executable: Executable, options: TestDescription, id=None):
-        self.options = options
+    def __init__(self, options: Test, executable: Executable = None, id=[]):
+        self.options = schema.test(options)
         self.name = options.name
         self.executable = executable
         self.exe = self.executable
-        self.id = id
+        self._id = id
 
     def run(self):
         output = self.exe.run(*self.options.args, stdin=self.options.stdin)
@@ -78,57 +77,29 @@ class TestCase:
         return []
 
     def _check_stdout(self, output):
-        if self.options.stdout is None: return []
+        if self.options.stdout is None:
+            return []
         return self._check_match(output, 'stdout')
 
     def _check_stderr(self, output):
-        if self.options.stderr is None: return []
+        if self.options.stderr is None:
+            return []
         return self._check_match(output, 'stderr')
 
     def _check_match(self, output, where):
-        issues = []
-        value = getattr(output, where)
+        return match(getattr(output, where), self.options, where=where)
 
-        for case in getattr(self.options, where):
-            if 'uppercase' in case:
-                value = value.upper()
-
-            if 'lowercase' in case:
-                value = value.lower()
-
-            if 'trim' in case:
-                logger.debug('Trimming str')
-                value = value.strip()
-
-            if 'regex' in case:
-                logger.debug('Checking regex')
-                if not value.grep(case['regex']):
-                    issues += [InvalidRegex(value, case['regex'], on=where)]
-
-            if 'contains' in case:
-                logger.debug('Checking contains')
-                logger.debug(' - value :' + value)
-                if case['contains'] not in value:
-                    logger.debug('New issue : ' + case['contains'])
-                    issues += [InvalidContains(value,
-                                               case['contains'], on=where)]
-            if 'equals' in case:
-                logger.debug('Checking equals')
-                if case['equals'] != value:
-                    issues += [InvalidEquals(value, case['equals'], on=where)]
-
-        return issues
+    @property
+    def id(self):
+        return '.'.join(map(str, self._id))
 
     def __repr__(self):
-        return f'<TestCase:{self.options.name}>'
+        return f'<TestCase {self.id}:{self.options.name}>'
 
 
-class TestSuite(Sequence):
-    def __init__(self, tests: TestDescriptionList):
-        self._tests = [
-            TestCase(tests.executable, option, id + 1)
-            for id, option in enumerate(tests)
-        ]
+class TestGroup(Sequence):
+    def __init__(self, tests):
+        self._tests = tests
 
     def __len__(self):
         return len(self._tests)
@@ -139,7 +110,21 @@ class TestSuite(Sequence):
     def __repr__(self):
         return repr(self._tests)
 
+
+class TestSuite(TestGroup):
+    def __init__(self, tests: Tests, executable: Executable = None, id=[]):
+        self._id = id
+        self._executable = executable if executable is not None else None
+        self._tests = list(self._build(tests))
+
+    def _build(self, tests):
+        for index, test in enumerate(tests):
+            yield [TestCase, TestSuite][isinstance(test, Group)](
+                test, self._executable, id=self._id + [index + 1])
+
+    @property
+    def id(self):
+        return '.'.join(map(str, self._id))
+
     def run(self):
-        return [
-            u.run() for u in self._tests
-        ]
+        return [u.run() for u in self._tests]

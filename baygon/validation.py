@@ -1,65 +1,50 @@
 """
 Read and validate test file.
 """
-import os.path
 import yaml
 import json
 
 from os import path
-from voluptuous import Schema, ExactSequence, IsFile, Coerce, Required, Any, All, Number, Optional
 from collections.abc import Sequence
 
-from .executable import Executable
+from . import schema 
+
+def find_testfile():
+    for filename in ['baygon', 't', 'test', 'tests']:
+        for ext in ['json', 'yml', 'yaml']:
+            f = f"{filename}.{ext}"
+            if path.exists(f):
+                return f
+
+def load(filename):
+    def loadYaml(filename):
+        with open(filename) as fp:
+            return yaml.load(fp, Loader=yaml.FullLoader)
+
+    def loadJson(filename):
+        with open(filename) as fp:
+            return json.load(fp)
+
+    def validate(data):
+        return schema.schema(data)
+
+    extension = path.splitext(filename)[1]
+    if extension in ['.yml', '.yaml']:
+        return validate(loadYaml(filename))
+    if extension in ['.json']:
+        return validate(loadJson(filename))
+    raise ValueError(f'Unknown extension: {extension}')
 
 
-def AsList(x):
-    return All(x, lambda u: [u])
+
+class Group(list):
+    def __repr__(self):
+        return '<' + self.__class__.__name__ + ':' + super().__repr__() + '>'
 
 
-Match = Any(
-    All(Number(), Coerce(str), lambda x: [{'equals': x}]),
-    All(str, lambda x: [{'equals': x}]),
-    [
-        All(str, lambda x: {'equals': x}),
-        {
-            Optional('uppercase'): bool,
-            Optional('lowercase'): bool,
-            Optional('trim'): bool,
-            Required(Any('equals', 'regex', 'contains')): str
-        }
-    ]
-)
-
-Matches = Any(
-    [Match],
-    All(Match, lambda x: [x])
-)
-
-schema = Schema({
-    Required('version'): 1,
-    Optional('executable'): IsFile('Missing configuration file'),
-    Optional('filters'): {
-        Optional('uppercase'): bool,
-        Optional('lowercase'): bool,
-        Optional('trim'): bool,
-        Optional('regex'): ExactSequence([str, str])
-    },
-    Required('tests'): [
-        {
-            Optional('name'): str,
-            Optional('args'): [Any(str, All(Number(), Coerce(str)))],
-            Optional('stdin', default=None): Any(None, str, [str]),
-            Optional('stdout', default=[]): Match,
-            Optional('stderr', default=[]): Match,
-            Optional('exit-status'): All(Any(int, bool), Coerce(int))
-        }
-    ]
-})
-
-
-class TestDescription(dict):
+class Test(dict):
     def __init__(self, *args, **kwargs):
-        super(TestDescription, self).__init__(*args, **kwargs)
+        super(Test, self).__init__(*args, **kwargs)
         self.__dict__ = self
 
     @property
@@ -67,65 +52,28 @@ class TestDescription(dict):
         return self['exit-status'] if 'exit-status' in self else None
 
     def __repr__(self):
-        return '<TestDescription:' + super().__repr__() + '>'
+        return '<' + self.__class__.__name__ + ':'  + super().__repr__() + '>'
 
 
-class TestDescriptionList(Sequence):
-    basenames = ['baygon', 't', 'test', 'tests']
-
-    def __init__(self, filename=None, executable=None):
-        if not filename:
-            filename = self.find_testfile()
-
+class Tests(Sequence):
+    def __init__(self, filename):
         self.filename = filename
+        self.data = load(filename)
+        self.filters = self.data['filters'] if 'filters' in self.data else {}
+        self.executable = self.data['executable'] if 'executable' in self.data else None
+        self.tests = self._build(self.data['tests'])
 
-        self._raw = self.load(filename)
-        data = self.validate(self._raw)
-
-        filters = data['filters'] if 'filters' in data else {}
-
-        self._executable = Executable(data['executable'] if executable is None else executable,
-            filters=filters)
-
-        self._tests = [
-            TestDescription(test) for test in data['tests']
+    def _build(self, tests):
+        return [
+            Group(self._build(test['tests'])) if 'tests' in test else Test(test)
+            for test in tests
         ]
 
-    def find_testfile(self):
-        for filename in self.basenames:
-            for ext in ['json', 'yml', 'yaml']:
-                f = f"{filename}.{ext}"
-                if path.exists(f):
-                    return f
-
-    def load(self, filename):
-        extension = os.path.splitext(filename)[1]
-        if extension in ['.yml', '.yaml']:
-            return self.loadYaml(filename)
-        if extension in ['.json']:
-            return self.loadJson(filename)
-        raise ValueError(f'Unknown extension: {extension}')
-
-    def loadYaml(self, filename):
-        with open(filename) as fp:
-            return yaml.load(fp, Loader=yaml.FullLoader)
-
-    def loadJson(self, filename):
-        with open(filename) as fp:
-            return json.load(fp)
-
-    def validate(self, data):
-        return schema(data)
-
     def __len__(self):
-        return len(self._tests)
+        return len(self.tests)
 
     def __repr__(self):
-        return '<tests:' + repr(self._tests) + '>'
+        return '<' + self.__class__.__name__ + ':' + repr(self.tests) + '>'
 
     def __getitem__(self, item):
-        return self._tests[item]
-
-    @property
-    def executable(self):
-        return self._executable if hasattr(self, '_executable') else None
+        return self.tests[item]
