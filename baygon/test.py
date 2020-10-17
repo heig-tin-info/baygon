@@ -72,14 +72,14 @@ class TestCase(description.Test):
         return match(self, output.stderr, where='stderr')
 
 
-class Group(description.Group):
+class TestGroup(description.Group):
     def run(self):
-        return [u.run() for u in self._tests]
+        return [u.run() for u in self]
 
 
 class TestSuite(description.Tests):
     _unit_class = TestCase
-    _group_class = Group
+    _group_class = TestGroup
 
     def run(self):
-        return [u.run() for u in self.tests]
+        return [u.run() for u in self]

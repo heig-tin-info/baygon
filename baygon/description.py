@@ -53,29 +53,27 @@ def load(filename):
     raise ValueError(f'Unknown extension: {extension}')
 
 
-class Group(Sequence):
-    """ Group of functional tests optionally identified by a name. """
-    def __init__(self, tests, name: str = '', executable: Executable = None, id: list = []):
-        self._tests = tests
-        self.name = name
-        self.executable = check_executable(executable)
-        self._id = id
-
-    def __len__(self):
-        return len(self._tests)
-
-    def __repr__(self):
-        return self.__class__.__name__ + '(' + self.name + ', ' + repr(self._tests) + ')'
-
-    def __getitem__(self, item):
-        return self._tests[item]
-
+class WithId:
     @property
     def id(self):
         return '.'.join(map(str, self._id))
 
+    def _get_id(self, *k: int):
+        return list(self._id) + list(k)
 
-class Test(dict):
+
+class TestSequence(Sequence):
+    def __len__(self):
+        return len(self._tests)
+
+    def __repr__(self):
+        return self.__class__.__name__ + '(' + repr(self._tests) + ')'
+
+    def __getitem__(self, item):
+        return self._tests[item]
+
+
+class Test(dict, WithId):
     """ Functional test descriptior. """
     def __init__(self, *args, executable: Executable = None, id=[]):
         super(Test, self).__init__(*args)
@@ -86,12 +84,17 @@ class Test(dict):
     def __repr__(self):
         return self.__class__.__name__ + '(' + super().__repr__() + ')'
 
-    @property
-    def id(self):
-        return '.'.join(map(str, self._id))
+
+class Group(TestSequence, WithId):
+    """ Group of functional tests optionally identified by a name. """
+    def __init__(self, tests, name: str = '', executable: Executable = None, id: list = []):
+        self._tests = tests
+        self.name = name
+        self.executable = check_executable(executable)
+        self._id = id
 
 
-class Tests(Sequence):
+class Tests(TestSequence, WithId):
     _group_class = Group
     _unit_class = Test
 
@@ -105,7 +108,7 @@ class Tests(Sequence):
         self.filename = path
         self.executable = check_executable(executable)
         self._id = id
-        self.tests = self._build(tests)
+        self._tests = list(self._build(tests, self._id))
 
     def _load(self, path=None):
         if not path:
@@ -120,28 +123,13 @@ class Tests(Sequence):
 
         return load(path)
 
-    def _get_id(self, *k: int):
-        return list(self._id) + list(k)
-
-    def _build(self, tests):
-        return [
-            self._group_class(
-                self._build(test['tests']), test['name'],
-                id=self._get_id(index + 1),
-                executable=self.executable)
-            if 'tests' in test else
-            self._unit_class(
-                test,
-                id=self._get_id(index + 1),
-                executable=self.executable)
-            for index, test in enumerate(tests)
-        ]
-
-    def __len__(self):
-        return len(self.tests)
-
-    def __repr__(self):
-        return self.__class__.__name__ + '(' + repr(self.tests) + ')'
-
-    def __getitem__(self, item):
-        return self.tests[item]
+    def _build(self, tests, id=[]):
+        for index, test in enumerate(tests, start=1):
+            new_id = id + [index]
+            kwargs = {'id': new_id, 'executable': self.executable}
+            if 'tests' in test:
+                yield self._group_class(
+                    list(self._build(test['tests'], id=new_id)),
+                    name=test['name'], **kwargs)
+            else:
+                yield self._unit_class(test, **kwargs)

@@ -7,6 +7,6 @@ __license__ = 'MIT'
 __copyright__ = 'Copyright 2020 HEIG-VD'
 
 from .executable import Executable
-from .test import TestCase, TestSuite
+from .test import TestCase, TestSuite, TestGroup
 
-__all__ = ['TestCase', 'TestSuite', 'Executable']
+__all__ = ['TestCase', 'TestGroup', 'TestSuite', 'Executable']

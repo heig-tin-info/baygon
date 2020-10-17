@@ -1,5 +1,5 @@
 from voluptuous import (Schema, ExactSequence, IsFile,
-                        Exclusive, Coerce, Required,
+                        Coerce, Required,
                         Any, All, Number, Optional)
 
 match = Any(
@@ -17,7 +17,7 @@ match = Any(
 )
 
 test = Schema({
-    Optional('name'): str,
+    Optional('name', default=''): str,
     Optional('args'): [Any(str, All(Number(), Coerce(str)))],
     Optional('stdin', default=None): Any(None, str, [str]),
     Optional('stdout', default=[]): match,

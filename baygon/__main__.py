@@ -3,7 +3,7 @@ import time
 import logging
 import os
 
-from . import TestSuite, TestCase, Executable
+from . import TestSuite, TestGroup, TestCase, Executable
 
 
 def display_pad(pad=0):
@@ -45,7 +45,7 @@ class Runner:
         self.executable = executable
         self.limit = -1 if 'limit' not in kwargs else kwargs['limit']
 
-        self.test_suite = TestSuite(executable = Executable(self.executable))
+        self.test_suite = TestSuite(executable=Executable(self.executable))
 
     def _init_logger(self, loglevel):
         handler = logging.StreamHandler()
@@ -95,7 +95,7 @@ class Runner:
             if self.limit > 0 and self.failures > self.limit:
                 break
 
-            if isinstance(test, TestSuite):
+            if isinstance(test, TestGroup):
                 display_test_name(test)
                 click.echo('')
                 self._traverse_group(test)
