@@ -1,4 +1,4 @@
 [flake8]
-ignore = E501
 exclude = .git,__pycache__,dist
 max-complexity = 10
+max-line-length = 100

@@ -35,7 +35,10 @@ class Executable:
         stdout = self._filter(self.filters, stdout)
         stderr = self._filter(self.filters, stderr)
 
-        return Outputs(p.returncode, GreppableString(stdout), GreppableString(stderr))
+        return Outputs(
+            p.returncode,
+            GreppableString(stdout),
+            GreppableString(stderr))
 
     def __call__(self, *args, **kwargs):
         return self.run(*args, **kwargs)

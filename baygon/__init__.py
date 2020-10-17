@@ -6,6 +6,7 @@ __email__ = 'yves.chevallier@heig-vd.ch'
 __license__ = 'MIT'
 __copyright__ = 'Copyright 2020 HEIG-VD'
 
-from .description import Test, Tests
-from .test import TestCase, TestSuite
 from .executable import Executable
+from .test import TestCase, TestSuite
+
+__all__ = ['TestCase', 'TestSuite', 'Executable']

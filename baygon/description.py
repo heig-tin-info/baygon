@@ -7,7 +7,13 @@ import json
 import os
 from collections.abc import Sequence
 
-from . import schema
+from . import schema, Executable
+
+
+def check_executable(executable: Executable):
+    if executable and not isinstance(executable, Executable):
+        raise AttributeError('Not an instance of Executable')
+    return executable
 
 
 def find_testfile(path=None):
@@ -49,9 +55,10 @@ def load(filename):
 
 class Group(Sequence):
     """ Group of functional tests optionally identified by a name. """
-    def __init__(self, tests, name: str = '', id: list = []):
+    def __init__(self, tests, name: str = '', executable: Executable = None, id: list = []):
         self._tests = tests
         self.name = name
+        self.executable = check_executable(executable)
         self._id = id
 
     def __len__(self):
@@ -70,20 +77,31 @@ class Group(Sequence):
 
 class Test(dict):
     """ Functional test descriptior. """
-    def __init__(self, *args, **kwargs):
-        super(Test, self).__init__(*args, **kwargs)
+    def __init__(self, *args, executable: Executable = None, id=[]):
+        super(Test, self).__init__(*args)
         self.__dict__ = self
+        self._id = id
+        self.executable = check_executable(executable)
 
     def __repr__(self):
         return self.__class__.__name__ + '(' + super().__repr__() + ')'
 
+    @property
+    def id(self):
+        return '.'.join(map(str, self._id))
+
 
 class Tests(Sequence):
-    def __init__(self, data={}, path=None):
+    _group_class = Group
+    _unit_class = Test
+
+    def __init__(self, data={}, path=None, executable: Executable = None, id=[]):
         data = schema.schema(self._load(path) if path else data)
         tests = data.pop('tests')
         self.__dict__ = data
         self.filename = path
+        self.executable = check_executable(executable)
+        self._id = id
         self.tests = self._build(tests)
 
     def _load(self, path=None):
@@ -93,14 +111,26 @@ class Tests(Sequence):
         if path and not os.path.isfile(path):
             path = find_testfile(path)
             if not path:
-                raise(ValueError(f"Couldn't find and configuration file in '{path}'"))
+                raise(ValueError(
+                    f"Couldn't find and configuration file in '{path}'"))
 
         return load(path)
 
+    def _get_id(self, *k: int):
+        return list(self._id) + list(k)
+
     def _build(self, tests):
         return [
-            Group(self._build(test['tests']), test['name']) if 'tests' in test else Test(test)
-            for test in tests
+            self._group_class(
+                self._build(test['tests']), test['name'],
+                id=self._get_id(index + 1),
+                executable=self.executable)
+            if 'tests' in test else
+            self._unit_class(
+                test,
+                id=self._get_id(index + 1),
+                executable=self.executable)
+            for index, test in enumerate(tests)
         ]
 
     def __len__(self):
