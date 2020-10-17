@@ -1,4 +1,4 @@
-__version__ = '0.1.2'
+__version__ = '0.1.5'
 
 __author__ = 'Yves Chevallier'
 __description__ = 'Functional tests for teaching activities'
