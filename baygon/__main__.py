@@ -3,8 +3,7 @@ import time
 import logging
 import os
 
-
-from . import TestSuite, TestCase, Tests, validation, Executable
+from . import TestSuite, TestCase, Executable
 
 
 def display_pad(pad=0):
@@ -45,10 +44,8 @@ class Runner:
         self.verbose = verbose
         self.executable = executable
         self.limit = -1 if 'limit' not in kwargs else kwargs['limit']
-        self.filename = validation.find_testfile()
-        self.test_description = Tests(self.filename)
-        self.test_suite = TestSuite(
-            self.test_description, Executable(self.executable))
+
+        self.test_suite = TestSuite(executable = Executable(self.executable))
 
     def _init_logger(self, loglevel):
         handler = logging.StreamHandler()

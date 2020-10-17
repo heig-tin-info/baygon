@@ -72,7 +72,7 @@ class Group(Sequence):
 
     @property
     def id(self):
-        return '.'.join(self._id)
+        return '.'.join(map(str, self._id))
 
 
 class Test(dict):
@@ -95,8 +95,11 @@ class Tests(Sequence):
     _group_class = Group
     _unit_class = Test
 
-    def __init__(self, data={}, path=None, executable: Executable = None, id=[]):
-        data = schema.schema(self._load(path) if path else data)
+    def __init__(self, data=None, path=None, executable: Executable = None, id=[]):
+        if not data:
+            obj = self._load(path)
+            data = schema.schema(obj)
+
         tests = data.pop('tests')
         self.__dict__ = data
         self.filename = path
@@ -106,13 +109,14 @@ class Tests(Sequence):
 
     def _load(self, path=None):
         if not path:
-            path = os.path.dirname(path.realpath('.'))
+            path = os.path.realpath('.')
 
         if path and not os.path.isfile(path):
+            old_path = path
             path = find_testfile(path)
             if not path:
                 raise(ValueError(
-                    f"Couldn't find and configuration file in '{path}'"))
+                    f"Couldn't find and configuration file in '{old_path}'"))
 
         return load(path)
 

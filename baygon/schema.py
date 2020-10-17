@@ -35,7 +35,7 @@ schema = Schema({
     Optional('name', default=''): str,
     Optional('executable', default=None): Any(IsFile('Missing configuration file'), None),
     Optional('filters', default={}): {
-        Exclusive('uppercase', 'lowercase'): bool,
+        Any('uppercase', 'lowercase'): bool,
         Optional('trim'): bool,
         Optional('regex'): ExactSequence([str, str])
     },
