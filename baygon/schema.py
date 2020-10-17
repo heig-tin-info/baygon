@@ -18,11 +18,11 @@ match = Any(
 
 test = Schema({
     Optional('name', default=''): str,
-    Optional('args'): [Any(str, All(Number(), Coerce(str)))],
+    Optional('args', default=[]): [Any(str, All(Number(), Coerce(str)))],
     Optional('stdin', default=None): Any(None, str, [str]),
     Optional('stdout', default=[]): match,
     Optional('stderr', default=[]): match,
-    Optional('exit-status'): All(Any(int, bool), Coerce(int))
+    Optional('exit'): All(Any(int, bool), Coerce(int))
 })
 
 group = Schema({
@@ -31,11 +31,12 @@ group = Schema({
 })
 
 schema = Schema({
-    Required('version'): 1,
+    Optional('version', default=1): 1,
     Optional('name', default=''): str,
     Optional('executable', default=None): Any(IsFile('Missing configuration file'), None),
     Optional('filters', default={}): {
-        Any('uppercase', 'lowercase'): bool,
+        Optional('uppercase'): bool,
+        Optional('lowercase'): bool,
         Optional('trim'): bool,
         Optional('regex'): ExactSequence([str, str])
     },

@@ -8,9 +8,9 @@ class TestDescription(TestCase):
             'name': name,
             'version': 1,
             'tests': [
-                {'exit-status': 0}
+                {'exit': 0}
             ]
-        })     
+        })
 
     def test_build(self):
         name = 'foobar'

@@ -4,10 +4,10 @@ tests:
     tests:
       - name: No errors if two arguments
         args: [1, 2]
-        exit-status: 0
+        exit: 0
       - name: Error if less than two arguments
         args: [1]
-        exit-status: 1
+        exit: 1
   - name: Stdout is the sum of arguments
     args: [1, 2]
     stdout: []

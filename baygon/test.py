@@ -17,7 +17,6 @@ def filter_value(value, options: dict = {}):
 
 def match(options, value, where=None):
     issues = []
-
     for case in options:
         value = filter_value(value, case)
 
@@ -44,6 +43,7 @@ class TestCase(description.Test):
             raise ValueError('Not a valid executable')
 
         output = self.executable.run(*self.args, stdin=self.stdin)
+
         return [
             *self._check_exit_status(output),
             *self._check_stdout(output),
@@ -51,12 +51,12 @@ class TestCase(description.Test):
         ]
 
     def _check_exit_status(self, output):
-        if 'exit_status' not in self:
+        if 'exit' not in self:
             return []
-        if (output.exit_status != self.exit_status):
+        if (output.exit_status != self.exit):
             return [
                 error.InvalidExitStatus(
-                    output.exit_status, self.exit_status
+                    output.exit_status, self.exit
                 )
             ]
         return []
@@ -64,12 +64,12 @@ class TestCase(description.Test):
     def _check_stdout(self, output):
         if self.stdout is None:
             return []
-        return match(self, output.stdout, where='stdout')
+        return match(self.stdout, output.stdout, where='stdout')
 
     def _check_stderr(self, output):
         if self.stderr is None:
             return []
-        return match(self, output.stderr, where='stderr')
+        return match(self.stderr, output.stderr, where='stderr')
 
 
 class TestGroup(description.Group):

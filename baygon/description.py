@@ -10,9 +10,13 @@ from collections.abc import Sequence
 from . import schema, Executable
 
 
-def check_executable(executable: Executable):
+def check_executable(executable: Executable, filters=None):
     if executable and not isinstance(executable, Executable):
         raise AttributeError('Not an instance of Executable')
+
+    if executable and filters:
+        executable.filters = filters
+
     return executable
 
 
@@ -99,14 +103,14 @@ class Tests(TestSequence, WithId):
     _unit_class = Test
 
     def __init__(self, data=None, path=None, executable: Executable = None, id=[]):
-        if not data:
-            obj = self._load(path)
-            data = schema.schema(obj)
+        if not isinstance(data, dict):
+            data = self._load(path)
 
+        data = schema.schema(data)  # Validate
         tests = data.pop('tests')
         self.__dict__ = data
         self.filename = path
-        self.executable = check_executable(executable)
+        self.executable = check_executable(executable, self.filters)
         self._id = id
         self._tests = list(self._build(tests, self._id))
 
