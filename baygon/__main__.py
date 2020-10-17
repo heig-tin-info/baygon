@@ -77,7 +77,9 @@ class Runner:
         if self.failures > 0:
             click.secho('%d failed, %d passed (%d%% ok).' % (
                 self.failures, self.successes,
-                100-round(self.failures/self.successes*100, 2)), fg='yellow', bold=True)
+                100-round(self.failures/
+                    (self.failures + self.successes)*100, 2)
+            ), fg='yellow', bold=True)
             click.secho('\nfail.', fg='red', bold=True)
         else:
             click.secho('\nok.', fg='green')

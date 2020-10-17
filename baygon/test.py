@@ -4,7 +4,7 @@ Build a test case for a raw test description
 from collections.abc import Sequence
 
 from .executable import Executable
-from .validation import Group, Test, Tests
+from .description import Group, Test, Tests
 
 from . import schema, error
 import logging

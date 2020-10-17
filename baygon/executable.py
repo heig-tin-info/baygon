@@ -24,6 +24,9 @@ class Executable:
                              stdin=subprocess.PIPE,
                              stderr=subprocess.PIPE)
 
+        if stdin is not None:
+            stdin = stdin.encode(self.encoding)
+
         stdout, stderr = p.communicate(input=stdin)
 
         stdout = stdout.decode(self.encoding) if stdout is not None else None

@@ -1,4 +1,6 @@
-from voluptuous import Schema, ExactSequence, IsFile, Coerce, Required, Any, All, Number, Optional
+from voluptuous import (Schema, ExactSequence, IsFile, 
+                        Exclusive, Coerce, Required, 
+                        Any, All, Number, Optional)
 
 match = Any(
     All(Number(), Coerce(str), lambda x: [{'equals': x}]),
@@ -31,10 +33,9 @@ group = Schema({
 schema = Schema({
     Required('version'): 1,
     Optional('name', default=''): str,
-    Optional('executable'): IsFile('Missing configuration file'),
-    Optional('filters'): {
-        Optional('uppercase'): bool,
-        Optional('lowercase'): bool,
+    Optional('executable', default=None): Any(IsFile('Missing configuration file'), None),
+    Optional('filters', default={}): {
+        Exclusive('uppercase', 'lowercase'): bool,
         Optional('trim'): bool,
         Optional('regex'): ExactSequence([str, str])
     },
