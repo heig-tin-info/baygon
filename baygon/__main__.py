@@ -1,6 +1,5 @@
 import click
 import time
-import json
 import logging
 import os
 
@@ -68,7 +67,6 @@ class Runner:
 
         self._traverse_group(self.test_suite)
 
-
         click.secho('\nRan %d tests in %ss.' % (
             self.successes + self.failures,
             round(time.time() - start_time, 2)
@@ -77,8 +75,7 @@ class Runner:
         if self.failures > 0:
             click.secho('%d failed, %d passed (%d%% ok).' % (
                 self.failures, self.successes,
-                100-round(self.failures/
-                    (self.failures + self.successes)*100, 2)
+                100 - round(self.failures / (self.failures + self.successes) * 100, 2)
             ), fg='yellow', bold=True)
             click.secho('\nfail.', fg='red', bold=True)
         else:
@@ -116,8 +113,8 @@ class Runner:
                     self.failures += 1
                     click.secho(' FAILED', fg='red', bold=True)
                     for issue in issues:
-                        click.secho('  ' * len(test._id) + '- ' + 
-                                    str(issue), fg='magenta', bold=True)
+                        click.secho('  ' * len(test._id) + '- ' + str(issue),
+                                    fg='magenta', bold=True)
         return self.failures
 
 

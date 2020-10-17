@@ -5,6 +5,7 @@ import baygon
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
+
 class TestDemo(TestCase):
     def test_minimal(self):
         print(dir_path)

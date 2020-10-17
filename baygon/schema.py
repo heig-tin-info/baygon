@@ -1,5 +1,5 @@
-from voluptuous import (Schema, ExactSequence, IsFile, 
-                        Exclusive, Coerce, Required, 
+from voluptuous import (Schema, ExactSequence, IsFile,
+                        Exclusive, Coerce, Required,
                         Any, All, Number, Optional)
 
 match = Any(
