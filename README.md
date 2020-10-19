@@ -2,7 +2,9 @@
 
 Kills Bugs Dead!
 
-This package is a minimalist functional test suite for binaries. It relies on a description of tests usually in `test.yml` or `test.json`. 
+![insect](docs/docs/.vuepress/public/baygon.svg)
+
+This package is a minimalist functional test suite for binaries. It relies on a description of tests usually in `test.yml` or `test.json`.
 
 ## Test file format
 
