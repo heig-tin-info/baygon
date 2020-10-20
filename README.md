@@ -1,10 +1,18 @@
 # Baygon
 
+[![GitHub issues](https://img.shields.io/github/issues/heig-tin-info/baygon.svg)](https://github.com/heig-tin-info/baygon/issues)
+[![GitHub last commit](https://img.shields.io/github/last-commit/heig-tin-info/baygon.svg)](https://github.com/heig-tin-info/baygon/commits/master)
+[![Build Status](https://travis-ci.com/heig-tin-info/baygon.svg?branch=master)](https://travis-ci.com/heig-tin-info/baygon)
+[![Analytics](https://ga-beacon.appspot.com/UA-83446952-1/github.com/heig-tin-info/baygon/README.md)](https://github.com/heig-tin-info/baygon/)
+
+
 Kills Bugs Dead!
 
 ![insect](docs/docs/.vuepress/public/baygon.svg)
 
 This package is a minimalist functional test suite for binaries. It relies on a description of tests usually in `test.yml` or `test.json`.
+
+The **documentation** is available [here](https://heig-tin-info.github.io/baygon/).
 
 ## Test file format
 

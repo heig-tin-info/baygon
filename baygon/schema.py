@@ -11,7 +11,9 @@ match = Any(
             Optional('uppercase'): bool,
             Optional('lowercase'): bool,
             Optional('trim'): bool,
-            Required(Any('equals', 'regex', 'contains')): str
+            Required(Any('equals', 'regex', 'contains')): str,
+
+            Optional('expected', description="Expected value when used with regex"): str,
         }
     ]
 )
@@ -30,15 +32,17 @@ group = Schema({
     Required('tests'): [test]
 })
 
+filters = Schema({
+    Optional('uppercase'): bool,
+    Optional('lowercase'): bool,
+    Optional('trim'): bool,
+    Optional('regex'): ExactSequence([str, str])
+})
+
 schema = Schema({
     Optional('version', default=1): 1,
     Optional('name', default=''): str,
     Optional('executable', default=None): Any(IsFile('Missing configuration file'), None),
-    Optional('filters', default={}): {
-        Optional('uppercase'): bool,
-        Optional('lowercase'): bool,
-        Optional('trim'): bool,
-        Optional('regex'): ExactSequence([str, str])
-    },
+    Optional('filters', default={}): filters,
     Required('tests'): [Any(test, group)]
 })
