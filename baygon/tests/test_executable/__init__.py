@@ -12,7 +12,7 @@ class TestExecutable(TestCase):
     def test_not_a_file(self):
         self.assertRaises(ValueError, Executable, 'not-a-file')
 
-    def test_args(self):
+    def test_arg(self):
         e = Executable(shutil.which('echo'))
         test_string = 'Live as if you were to die tomorrow'
         output = e.run(args=['-n', test_string])
