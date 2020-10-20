@@ -15,7 +15,7 @@ class TestExecutable(TestCase):
     def test_arg(self):
         e = Executable(shutil.which('echo'))
         test_string = 'Live as if you were to die tomorrow'
-        output = e.run(args=['-n', test_string])
+        output = e.run('-n', test_string)
         print(output)
         self.assertEquals(output.stdout, test_string)
 
