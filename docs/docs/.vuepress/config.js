@@ -27,11 +27,14 @@ module.exports = {
    * ref：https://v1.vuepress.vuejs.org/theme/default-theme-config.html
    */
   themeConfig: {
-    repo: '',
+    repo: 'heig-tin-info/baygon',
+    base: '/baygon/',
+    repoLabel: 'Contribute!',
     editLinks: false,
-    docsDir: '',
+    docsDir: 'docs',
     editLinkText: '',
     lastUpdated: false,
+    smoothScroll: true,
     nav: [
       {
         text: 'Guide',
