@@ -6,9 +6,11 @@
 [![Analytics](https://ga-beacon.appspot.com/UA-83446952-1/github.com/heig-tin-info/baygon/README.md)](https://github.com/heig-tin-info/baygon/)
 
 
-Kills Bugs Dead!
+**K**ills **B**ugs **D**ead!
 
-![insect](docs/docs/.vuepress/public/baygon.svg)
+<center>
+<img src="docs/docs/.vuepress/public/baygon.svg" data-canonical-src="https://github.com/heig-tin-info/baygon/docs/docs/.vuepress/public/baygon.svg" width="400"/>
+</center>
 
 This package is a minimalist functional test suite for binaries. It relies on a description of tests usually in `test.yml` or `test.json`.
 
