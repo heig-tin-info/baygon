@@ -2,7 +2,7 @@
 
 [![GitHub issues](https://img.shields.io/github/issues/heig-tin-info/baygon.svg)](https://github.com/heig-tin-info/baygon/issues)
 [![GitHub last commit](https://img.shields.io/github/last-commit/heig-tin-info/baygon.svg)](https://github.com/heig-tin-info/baygon/commits/master)
-![Build](https://github.com/heig-tin-info/baygon/workflows/build/badge.svg)
+![Build and Deploy](https://github.com/heig-tin-info/baygon/workflows/Build%20and%20Deploy/badge.svg)
 [![Analytics](https://ga-beacon.appspot.com/UA-83446952-1/github.com/heig-tin-info/baygon/README.md)](https://github.com/heig-tin-info/baygon/)
 
 
