@@ -1,6 +1,7 @@
 const { description } = require('../../package')
 
 module.exports = {
+  base: '/baygon/',
   /**
    * Ref：https://v1.vuepress.vuejs.org/config/#title
    */
@@ -28,7 +29,6 @@ module.exports = {
    */
   themeConfig: {
     repo: 'heig-tin-info/baygon',
-    base: '/baygon/',
     repoLabel: 'Contribute!',
     editLinks: false,
     docsDir: 'docs',
