@@ -37,7 +37,7 @@ class OneLineExceptionFormatter(logging.Formatter):
 
 
 class Runner:
-    def __init__(self, verbose, executable=None, **kwargs):
+    def __init__(self, verbose, executable=None, config=None, **kwargs):
         if verbose > 3:
             self._init_logger("DEBUG")
 
@@ -45,7 +45,7 @@ class Runner:
         self.executable = executable
         self.limit = -1 if 'limit' not in kwargs else kwargs['limit']
 
-        self.test_suite = TestSuite(executable=Executable(self.executable))
+        self.test_suite = TestSuite(path=config, executable=Executable(self.executable))
 
     def _init_logger(self, loglevel):
         handler = logging.StreamHandler()
@@ -117,10 +117,13 @@ class Runner:
 
 @click.command()
 @click.argument('executable', required=False, type=click.Path(exists=True))
-@click.option('-v', '--verbose', count=True)
-@click.option('-l', '--limit', type=int, default=-1)
-def cli(verbose=0, executable=None, **kwargs):
-    runner = Runner(verbose, executable, **kwargs)
+@click.option('-v', '--verbose', count=True, help='Shows more details')
+@click.option('-l', '--limit', type=int, default=-1, help='Limit to N tests')
+@click.option('-t', '--config',
+              type=click.Path(exists=True), default=-1,
+              help='Choose config file (.yml or .json)')
+def cli(verbose=0, executable=None, config=None, **kwargs):
+    runner = Runner(verbose, executable, config, **kwargs)
     failures = runner.run()
     click.echo('')
     return failures
