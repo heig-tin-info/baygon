@@ -3,6 +3,7 @@ from voluptuous.error import MultipleInvalid
 
 import baygon.schema as schema
 
+
 class TestSchema(TestCase):
     def test_minimal(self):
         schema.schema({

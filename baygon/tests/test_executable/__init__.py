@@ -6,6 +6,7 @@ from baygon.executable import GreppableString
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
+
 class TestExecutable(TestCase):
     def test_not_a_file(self):
         self.assertRaises(ValueError, Executable, 'not-a-file')

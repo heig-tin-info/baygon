@@ -1,6 +1,6 @@
 from unittest import TestCase
+from baygon.description import Tests
 
-from baygon.description import Test, Tests
 
 class TestDescription(TestCase):
     def getSample(self, name='foobar'):
@@ -22,4 +22,3 @@ class TestDescription(TestCase):
         name = 'foobar'
         td = self.getSample(name)
         self.assertEqual(len(td), 1)
-

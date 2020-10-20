@@ -29,7 +29,9 @@ class InvalidRegex(InvalidCondition):
 class InvalidEquals(InvalidCondition):
     def __str__(self):
         if hasattr(self.value, '__len__') and len(self.value) > 20:
-            return f'Invalid value on {self.on}. Expected exactly "{self.expected}"'
+            return f'Invalid value on {self.on}. '
+            'Expected exactly "{self.expected}"'
         else:
-            return f'Invalid value on {self.on}. Expected exactly "{self.expected}", but got "{self.value}"'
-
+            return f'Invalid value on {self.on}. '
+            f'Expected exactly "{self.expected}",'
+            f' but got "{self.value}"'
