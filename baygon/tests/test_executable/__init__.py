@@ -1,4 +1,5 @@
 import os
+import shutil
 from unittest import TestCase
 
 from baygon import Executable
@@ -10,6 +11,13 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 class TestExecutable(TestCase):
     def test_not_a_file(self):
         self.assertRaises(ValueError, Executable, 'not-a-file')
+
+    def test_args(self):
+        e = Executable(shutil.which('echo'))
+        test_string = 'Live as if you were to die tomorrow'
+        output = e.run(args=['-n', test_string])
+        print(output)
+        self.assertEquals(output.stdout, test_string)
 
     def test_stdout(self):
         e = Executable(dir_path + '/dummy.py')
@@ -24,7 +32,7 @@ class TestExecutable(TestCase):
         self.assertEquals(output.stderr, "an orange\n")
 
     def test_stdin(self):
-        e = Executable('/usr/bin/cat')
+        e = Executable(shutil.which('cat'))
         test_string = 'Live as if you were to die tomorrow'
         output = e.run(stdin=test_string)
         print(output)
