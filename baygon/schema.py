@@ -2,34 +2,44 @@ from voluptuous import (Schema, ExactSequence, IsFile,
                         Coerce, Required,
                         Any, All, Number, Optional)
 
-match = Any(
-    All(Number(), Coerce(str), lambda x: [{'equals': x}]),
-    All(str, lambda x: [{'equals': x}]),
-    [
-        All(str, lambda x: {'equals': x}),
-        {
-            Optional('uppercase'): bool,
-            Optional('lowercase'): bool,
-            Optional('trim'): bool,
-            Required(Any('equals', 'regex', 'contains')): str,
+value = Any(str, [str], All(Any(int, float), Coerce(str)))
 
-            Optional('expected', description="Expected value when used with regex"): str,
-        }
-    ]
+case = {
+    Optional('uppercase'): bool,
+    Optional('lowercase'): bool,
+    Optional('trim'): bool,
+    Required(Any('equals', 'regex', 'contains')): value,
+    Optional('expected', description="Expected value when used with regex"): value,
+}
+
+match = Any(
+    All(value, lambda x: [{'equals': x}]),
+    [
+        All(value, lambda x: {'equals': x}),
+        case
+    ],
+    case,
 )
 
 test = Schema({
     Optional('name', default=''): str,
-    Optional('args', default=[]): [Any(str, All(Number(), Coerce(str)))],
-    Optional('stdin', default=None): Any(None, str, [str]),
+    Optional('args', default=[]): [value],
+    Optional('stdin', default=None): Any(value, None),
     Optional('stdout', default=[]): match,
     Optional('stderr', default=[]): match,
     Optional('exit'): All(Any(int, bool), Coerce(int))
 })
 
+subgroup = Schema({
+    Optional('name', default=''): str,
+    Optional('executable', default=None): Any(IsFile('Missing configuration file'), None),
+    Required('tests'): [test]
+})
+
 group = Schema({
     Optional('name', default=''): str,
-    Required('tests'): [test]
+    Optional('executable', default=None): Any(IsFile('Missing configuration file'), None),
+    Required('tests'): [Any(subgroup,test)]
 })
 
 filters = Schema({
