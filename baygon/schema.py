@@ -32,13 +32,13 @@ test = Schema({
 
 subgroup = Schema({
     Optional('name', default=''): str,
-    Optional('executable', default=None): Any(IsFile('Missing configuration file'), None),
+    Optional('executable', default=None): Any(str, None),
     Required('tests'): [test]
 })
 
 group = Schema({
     Optional('name', default=''): str,
-    Optional('executable', default=None): Any(IsFile('Missing configuration file'), None),
+    Optional('executable', default=None): Any(str, None),
     Required('tests'): [Any(subgroup,test)]
 })
 
@@ -52,7 +52,7 @@ filters = Schema({
 schema = Schema({
     Optional('version', default=1): 1,
     Optional('name', default=''): str,
-    Optional('executable', default=None): Any(IsFile('Missing configuration file'), None),
+    Optional('executable', default=None): Any(str, None),
     Optional('filters', default={}): filters,
     Required('tests'): [Any(test, group)]
 })

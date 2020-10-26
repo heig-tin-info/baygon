@@ -21,7 +21,7 @@ def test_name_length(test):
 def display_test_name(test):
     pad = '  ' * (len(test._id) - 1)
     click.secho(f'{pad}Test {test.id}: ', nl=False, bold=True)
-    click.echo(f'{test.name}', nl=False)
+    click.secho(f'{test.name}', nl=False, bold=False)
 
 
 class OneLineExceptionFormatter(logging.Formatter):
@@ -60,6 +60,7 @@ class Runner:
 
         self.failures = 0
         self.successes = 0
+        self.skipped = 0
 
         self._traverse_group(self.test_suite)
 
@@ -77,16 +78,17 @@ class Runner:
         else:
             click.secho('\nok.', fg='green')
 
+        if self.skipped > 0:
+            click.secho(f'{self.skipped} test(s) skipped, some executables may be missing.', fg='yellow')
+
         return self.failures
 
-    def _max_length(self, tests):
+    def _max_length(self, tests, level=0):
         length = 0
         for test in tests:
-            if isinstance(test, TestSuite):
-                length = max(test_name_length(test), length)
+            length = max(test_name_length(test), length)
+            if isinstance(test, TestGroup):
                 length = max(self._max_length(test), length)
-            else:
-                length = max(test_name_length(test), length)
         return length
 
     def _traverse_group(self, tests):
@@ -101,6 +103,10 @@ class Runner:
             elif isinstance(test, TestCase):
                 display_test_name(test)
                 issues = test.run()
+                if issues is None: # Skipped
+                    click.secho(' SKIPPED', fg='yellow')
+                    self.skipped += 1
+                    continue
                 display_pad(self.align_column - test_name_length(test))
                 if not len(issues):
                     self.successes += 1

@@ -79,10 +79,11 @@ class TestSequence(Sequence):
 
 class Test(dict, WithId):
     """ Functional test descriptior. """
-    def __init__(self, *args, executable: Executable = None, id=[]):
+    def __init__(self, *args, executable: Executable = None, id=[], skip=False):
         super(Test, self).__init__(*args)
         self.__dict__ = self
         self._id = id
+        self._skip = skip
         self.executable = check_executable(executable)
 
     def __repr__(self):
@@ -91,10 +92,11 @@ class Test(dict, WithId):
 
 class Group(TestSequence, WithId):
     """ Group of functional tests optionally identified by a name. """
-    def __init__(self, tests, name: str = '', executable: Executable = None, id: list = []):
+    def __init__(self, tests, name: str = '', executable: Executable = None, id: list = [], skip=False):
         self._tests = tests
         self.name = name
         self.executable = check_executable(executable)
+        self._skip = skip
         self._id = id
 
 
@@ -102,7 +104,7 @@ class Tests(TestSequence, WithId):
     _group_class = Group
     _unit_class = Test
 
-    def __init__(self, data=None, path=None, executable: Executable = None, id=[]):
+    def __init__(self, data=None, path=None, executable: Executable = None, id=[], skip=False):
         if not isinstance(data, dict):
             data = self._load(path)
 
@@ -112,6 +114,7 @@ class Tests(TestSequence, WithId):
         self.filename = path
         self.executable = check_executable(executable, self.filters)
         self._id = id
+        self._skip = skip
         self._tests = list(self._build(tests, self._id, self.executable))
 
     def _load(self, path=None):
@@ -127,14 +130,19 @@ class Tests(TestSequence, WithId):
 
         return load(path)
 
-    def _build(self, tests, id=[], executable=None):
+    def _build(self, tests, id=[], executable=None, skip=False):
         for index, test in enumerate(tests, start=1):
             new_id = id + [index]
+            kwargs = {'id': new_id, 'skip': skip, 'executable': executable}
+            if 'executable' in test and test['executable'] is not None:
+                if os.path.isfile(test['executable']):
+                    kwargs['executable'] = Executable(test['executable'])
+                else:
+                    kwargs['skip'] = True
+
             if 'tests' in test:
-                if 'executable' in test and test['executable'] is not None:
-                    executable = Executable(test['executable'])
                 yield self._group_class(
-                    list(self._build(test['tests'], id=new_id, executable=executable)),
-                    name=test['name'], id=new_id, executable=executable)
+                    list(self._build(test['tests'], **kwargs)),
+                    name=test['name'], **kwargs)
             else:
-                yield self._unit_class(test, id=new_id, executable=executable)
+                yield self._unit_class(test, **kwargs)

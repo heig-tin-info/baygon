@@ -36,6 +36,9 @@ def match(options, value, where=None):
 
 class TestCase(description.Test):
     def run(self):
+        if self._skip:
+            return None
+
         if not isinstance(self.executable, Executable):
             raise ValueError('Not a valid executable')
 
