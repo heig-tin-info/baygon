@@ -10,6 +10,11 @@ Outputs = namedtuple('Outputs', ['exit_status', 'stdout', 'stderr'])
 
 class Executable:
     """ Allow to execute a program and conveniently read the output. """
+
+    def __new__(cls, filename, *args, **kwargs):
+        if filename is None: return None
+        return super(Executable, cls).__new__(cls, filename, *args, **kwargs)
+
     def __init__(self, filename, encoding='utf-8', filters={}):
         self.filename = filename
         self.encoding = encoding

@@ -4,7 +4,7 @@ import logging
 import os
 
 from . import TestSuite, TestGroup, TestCase, Executable
-
+from . import __version__, __copyright__
 
 def display_pad(pad=0):
     if pad == 0:
@@ -44,7 +44,6 @@ class Runner:
         self.verbose = verbose
         self.executable = executable
         self.limit = -1 if 'limit' not in kwargs else kwargs['limit']
-
         self.test_suite = TestSuite(path=config, executable=Executable(self.executable))
 
     def _init_logger(self, loglevel):
@@ -114,13 +113,18 @@ class Runner:
                                     fg='magenta', bold=True)
         return self.failures
 
+def version(ctx, param, value):
+    if not value: return
+    print(f"Baygon version {__version__} {__copyright__}")
+    exit(0)
 
 @click.command()
 @click.argument('executable', required=False, type=click.Path(exists=True))
+@click.option('--version', is_flag=True, callback=version, help='Shows version')
 @click.option('-v', '--verbose', count=True, help='Shows more details')
 @click.option('-l', '--limit', type=int, default=-1, help='Limit to N tests')
 @click.option('-t', '--config',
-              type=click.Path(exists=True), default=-1,
+              type=click.Path(exists=True),
               help='Choose config file (.yml or .json)')
 def cli(verbose=0, executable=None, config=None, **kwargs):
     runner = Runner(verbose, executable, config, **kwargs)
