@@ -2,7 +2,7 @@ from voluptuous import (Schema, ExactSequence, IsFile,
                         Coerce, Required,
                         Any, All, Number, Optional)
 
-value = Any(str, [str], All(Any(int, float), Coerce(str)))
+value = Any(str, All(Any(int, float), Coerce(str)))
 
 case = {
     Optional('uppercase'): bool,

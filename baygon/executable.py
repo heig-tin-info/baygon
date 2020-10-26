@@ -13,7 +13,7 @@ class Executable:
 
     def __new__(cls, filename, *args, **kwargs):
         if filename is None: return None
-        return super(Executable, cls).__new__(cls, filename, *args, **kwargs)
+        return super().__new__(cls)
 
     def __init__(self, filename, encoding='utf-8', filters={}):
         self.filename = filename
@@ -72,3 +72,6 @@ class GreppableString(str):
     """ A string that can be parsed with regular expressions. """
     def grep(self, pattern):
         return re.findall(pattern, self)
+
+    def contains(self, value):
+        return value in self

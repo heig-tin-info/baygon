@@ -112,7 +112,7 @@ class Tests(TestSequence, WithId):
         self.filename = path
         self.executable = check_executable(executable, self.filters)
         self._id = id
-        self._tests = list(self._build(tests, self._id))
+        self._tests = list(self._build(tests, self._id, self.executable))
 
     def _load(self, path=None):
         if not path:
@@ -127,13 +127,14 @@ class Tests(TestSequence, WithId):
 
         return load(path)
 
-    def _build(self, tests, id=[]):
+    def _build(self, tests, id=[], executable=None):
         for index, test in enumerate(tests, start=1):
             new_id = id + [index]
-            kwargs = {'id': new_id, 'executable': self.executable}
             if 'tests' in test:
+                if 'executable' in test and test['executable'] is not None:
+                    executable = Executable(test['executable'])
                 yield self._group_class(
-                    list(self._build(test['tests'], id=new_id)),
-                    name=test['name'], **kwargs)
+                    list(self._build(test['tests'], id=new_id, executable=executable)),
+                    name=test['name'], id=new_id, executable=executable)
             else:
-                yield self._unit_class(test, **kwargs)
+                yield self._unit_class(test, id=new_id, executable=executable)

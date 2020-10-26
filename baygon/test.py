@@ -19,13 +19,11 @@ def match(options, value, where=None):
     issues = []
     for case in options:
         value = filter_value(value, case)
-
         if 'regex' in case:
             if not value.grep(case['regex']):
                 issues += [error.InvalidRegex(value, case['regex'], on=where)]
-
         if 'contains' in case:
-            if case['contains'] not in value:
+            if not value.contains(case['contains']):
                 issues += [
                     error.InvalidContains(
                         value, case['contains'], on=where)]
@@ -33,7 +31,6 @@ def match(options, value, where=None):
             if case['equals'] != value:
                 issues += [
                     error.InvalidEquals(value, case['equals'], on=where)]
-
     return issues
 
 
