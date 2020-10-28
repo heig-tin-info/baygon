@@ -12,7 +12,8 @@ class Executable:
     """ Allow to execute a program and conveniently read the output. """
 
     def __new__(cls, filename, *args, **kwargs):
-        if filename is None: return None
+        if filename is None:
+            return None
         return super().__new__(cls)
 
     def __init__(self, filename, encoding='utf-8', filters={}):
@@ -70,6 +71,7 @@ class Executable:
 
 class GreppableString(str):
     """ A string that can be parsed with regular expressions. """
+
     def grep(self, pattern):
         return re.findall(pattern, self)
 

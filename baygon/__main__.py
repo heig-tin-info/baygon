@@ -6,6 +6,7 @@ import os
 from . import TestSuite, TestGroup, TestCase, Executable
 from . import __version__, __copyright__
 
+
 def display_pad(pad=0):
     if pad == 0:
         click.secho('  ', nl=False)
@@ -79,7 +80,8 @@ class Runner:
             click.secho('\nok.', fg='green')
 
         if self.skipped > 0:
-            click.secho(f'{self.skipped} test(s) skipped, some executables may be missing.', fg='yellow')
+            click.secho(
+                f'{self.skipped} test(s) skipped, some executables may be missing.', fg='yellow')
 
         return self.failures
 
@@ -103,7 +105,7 @@ class Runner:
             elif isinstance(test, TestCase):
                 display_test_name(test)
                 issues = test.run()
-                if issues is None: # Skipped
+                if issues is None:  # Skipped
                     click.secho(' SKIPPED', fg='yellow')
                     self.skipped += 1
                     continue
@@ -119,10 +121,13 @@ class Runner:
                                     fg='magenta', bold=True)
         return self.failures
 
+
 def version(ctx, param, value):
-    if not value: return
+    if not value:
+        return
     print(f"Baygon version {__version__} {__copyright__}")
     exit(0)
+
 
 @click.command()
 @click.argument('executable', required=False, type=click.Path(exists=True))

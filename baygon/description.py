@@ -79,6 +79,7 @@ class TestSequence(Sequence):
 
 class Test(dict, WithId):
     """ Functional test descriptior. """
+
     def __init__(self, *args, executable: Executable = None, id=[], skip=False):
         super(Test, self).__init__(*args)
         self.__dict__ = self
@@ -92,7 +93,9 @@ class Test(dict, WithId):
 
 class Group(TestSequence, WithId):
     """ Group of functional tests optionally identified by a name. """
-    def __init__(self, tests, name: str = '', executable: Executable = None, id: list = [], skip=False):
+
+    def __init__(self, tests, name: str = '', executable: Executable = None,
+                 id: list = [], skip=False):
         self._tests = tests
         self.name = name
         self.executable = check_executable(executable)
@@ -104,7 +107,8 @@ class Tests(TestSequence, WithId):
     _group_class = Group
     _unit_class = Test
 
-    def __init__(self, data=None, path=None, executable: Executable = None, id=[], skip=False):
+    def __init__(self, data=None, path=None, executable: Executable = None,
+                 id=[], skip=False):
         if not isinstance(data, dict):
             data = self._load(path)
 

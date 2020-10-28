@@ -1,6 +1,6 @@
-from voluptuous import (Schema, ExactSequence, IsFile,
+from voluptuous import (Schema, ExactSequence,
                         Coerce, Required,
-                        Any, All, Number, Optional)
+                        Any, All, Optional)
 
 value = Any(str, All(Any(int, float), Coerce(str)))
 
@@ -39,7 +39,7 @@ subgroup = Schema({
 group = Schema({
     Optional('name', default=''): str,
     Optional('executable', default=None): Any(str, None),
-    Required('tests'): [Any(subgroup,test)]
+    Required('tests'): [Any(subgroup, test)]
 })
 
 filters = Schema({
