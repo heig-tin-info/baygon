@@ -47,7 +47,7 @@ tests:
     exit: 2
 ```
 
-## Groups
+## Groups and subgroups
 
 Tests can be groupped into sub sections, by nesting each test into categories:
 
@@ -58,6 +58,12 @@ tests:
     tests:
       - args: [1, 2]
         stdout: 3
+  - name: Category 2
+    tests:
+      - name: Subcategory 1
+        tests:
+          - args: [1, 2]
+            stdout: 3
 ```
 
 ## Exit status
@@ -95,9 +101,14 @@ tests:
   - name: Test ./bar
     executable: ./bar
     stderr: I am bar
+  - name: Group
+    executable: ./baz
+    tests:
+      - name: Test 1
+        exit: 0
 ```
 
-Of couse the executable can be defined on the main header:
+The executable is propagated through the test tree and can be overwritten at any level. Of couse, the executable can also be defined on the main header:
 
 ```yaml
 version: 1
@@ -105,4 +116,47 @@ executable: ./foobar
 tests:
   - name: Test ./foobar
     exit: 0
+```
+
+Or even from the shell:
+
+```console
+$ baygon ./foobar
+```
+
+## Custom config file
+
+You may want to tell Baygon to use a custom configuration file. This is possible from the command line:
+
+```console
+$ baygon --config other.yaml
+```
+
+## Tests of strings
+
+Baygon currently features three type of tests :
+
+- `contains`: A string contained into the corresponding output.
+- `regex`: A Python regular expression
+- `equals`: An exact match
+
+You can combine any of the three tests together:
+
+```yaml
+tests:
+  - stdout:
+      - contains: foo # Must contain the word foo
+      - regex: f(oo|aa|uu) # Must match
+      - equals: foobar
+```
+
+You can also add a negation with the `not` keyword:
+
+```yaml
+tests:
+  - stdout:
+      not:
+        - contains: foo # Must contain the word foo
+        - regex: f(oo|aa|uu) # Must match
+        - equals: foobar
 ```

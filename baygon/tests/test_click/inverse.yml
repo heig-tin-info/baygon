@@ -1,0 +1,8 @@
+version: 1
+tests:
+  - name: Tapio not on stderr
+    args: ['--version']
+    stderr:
+      - not:
+        - regex: 'Tapio'
+

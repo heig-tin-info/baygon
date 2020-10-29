@@ -15,22 +15,25 @@ def filter_value(value, options: dict = {}):
     return value
 
 
-def match(options, value, where=None):
+def match(options, value, where=None, inverse=False):
     issues = []
     for case in options:
         value = filter_value(value, case)
         if 'regex' in case:
-            if not value.grep(case['regex']):
+            if (not value.grep(case['regex'])) ^ inverse:
                 issues += [error.InvalidRegex(value, case['regex'], on=where)]
         if 'contains' in case:
-            if not value.contains(case['contains']):
+            if (not value.contains(case['contains'])) ^ inverse:
                 issues += [
                     error.InvalidContains(
                         value, case['contains'], on=where)]
         if 'equals' in case:
-            if case['equals'] != value:
+            if (case['equals'] != value) ^ inverse:
                 issues += [
                     error.InvalidEquals(value, case['equals'], on=where)]
+        if 'not' in case:
+            issues += match(case['not'], value, where, inverse=True)
+
     return issues
 
 

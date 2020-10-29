@@ -5,10 +5,11 @@ from voluptuous import (Schema, ExactSequence,
 value = Any(str, All(Any(int, float), Coerce(str)))
 
 case = {
-    Optional('uppercase'): bool,
-    Optional('lowercase'): bool,
-    Optional('trim'): bool,
-    Required(Any('equals', 'regex', 'contains')): value,
+    'uppercase': bool,
+    'lowercase': bool,
+    'trim': bool,
+    Any('equals', 'regex', 'contains'): value,
+    Optional('not'): [{Required(Any('equals', 'regex', 'contains')): value}],
     Optional('expected', description="Expected value when used with regex"): value,
 }
 

@@ -41,3 +41,16 @@ class TestDemo(TestCase):
         self.assertIn('Invalid exit status', result.output)
         self.assertIn('Invalid value on stdout', result.output)
         self.assertIn('fail.', result.output)
+
+    def test_inverse(self):
+        runner = CliRunner()
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        result = runner.invoke(
+            cli, [
+                '--config=' + os.path.join(dir_path, 'inverse.yml'),
+                os.path.join(dir_path, 'main.py'), '-v'])
+
+        print(result, result.output)
+
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn('ok.', result.output)
