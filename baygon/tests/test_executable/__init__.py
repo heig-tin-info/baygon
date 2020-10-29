@@ -56,3 +56,23 @@ class TestExecutable(TestCase):
         u = s.grep(r'\b[aeiouy]\w{2}\b')
         print(u)
         self.assertEquals(u, ['you'])
+
+    def test_echo(self):
+        e = Executable('echo')
+        test_string = 'Live as if you were to die tomorrow'
+        output = e.run(test_string)
+        print(output)
+        self.assertEquals(output.stdout, test_string + "\n")
+
+    def test_printf(self):
+        e = Executable('printf')
+        test_string = 'Live as if you were to die tomorrow'
+        output = e.run(test_string)
+        print(output)
+        self.assertEquals(output.stdout, test_string)
+
+    def test_cat(self):
+        e = Executable('cat')
+        output = e.run(dir_path + '/test.txt')
+        print(output)
+        self.assertEquals(output.stdout, "Hello World\n")

@@ -1,11 +1,13 @@
 import os
 import re
+import shutil
 import subprocess
-
 from collections import namedtuple
 
 
 Outputs = namedtuple('Outputs', ['exit_status', 'stdout', 'stderr'])
+
+forbidden_binaries = ['rm', 'mv', 'dd', 'wget']
 
 
 class Executable:
@@ -22,7 +24,12 @@ class Executable:
         self.filters = filters
 
         if not self._is_executable(filename):
-            raise ValueError("Program %s is not executable!" % filename)
+            if '/' not in filename and shutil.which(filename) is not None:
+                if filename in forbidden_binaries:
+                    raise ValueError("Program %s is forbidden!" % filename)
+                filename = shutil.which(filename)
+            else:
+                raise ValueError("Program %s is not executable!" % filename)
 
     def run(self, *args, stdin=None):
         p = subprocess.Popen([self.filename, *[str(a) for a in args]],

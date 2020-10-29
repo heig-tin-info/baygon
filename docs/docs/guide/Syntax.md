@@ -160,3 +160,4 @@ tests:
         - regex: f(oo|aa|uu) # Must match
         - equals: foobar
 ```
+
