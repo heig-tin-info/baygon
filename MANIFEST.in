@@ -1,0 +1,4 @@
+include AUTHORS CHANGES.md LICENSE.txt README.md
+recursive-include baygon *
+exclude .editorconfig baygon/version.py .gitignore .eggs .env .tox .vscode
+global-exclude *.pyc *~ .DS_Store *__pycache__* *.pyo

@@ -1,3 +1,0 @@
-voluptuous=>0.10.0
-click>=6.0
-pyaml>=4.0

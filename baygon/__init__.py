@@ -1,12 +1,8 @@
-__version__ = '0.2.0'
-
-__author__ = 'Yves Chevallier'
-__description__ = 'Functional tests for teaching activities'
-__email__ = 'yves.chevallier@heig-vd.ch'
-__license__ = 'MIT'
-__copyright__ = 'Copyright 2020 HEIG-VD'
-
 from .executable import Executable
 from .test import TestCase, TestSuite, TestGroup
+from . import version
 
 __all__ = ['TestCase', 'TestGroup', 'TestSuite', 'Executable']
+
+__version__ = version.version
+__copyright__ = 'Copyright 2020 HEIG-VD'

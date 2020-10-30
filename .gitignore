@@ -97,4 +97,4 @@ cython_debug/
 a.out
 *.o
 
-.vscode/settings.json
+baygon/version.py
