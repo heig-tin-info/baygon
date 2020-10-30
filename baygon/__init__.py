@@ -1,8 +1,12 @@
 from .executable import Executable
 from .test import TestCase, TestSuite, TestGroup
-from . import version
 
 __all__ = ['TestCase', 'TestGroup', 'TestSuite', 'Executable']
 
-__version__ = version.version
+try:
+    from . import version
+    __version__ = version.version
+except ImportError:
+    __version__ = None
+
 __copyright__ = 'Copyright 2020 HEIG-VD'
