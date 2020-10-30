@@ -76,7 +76,6 @@ jobs:
         with:
           name: release
           path: dist/
-      - run: ls -Ral
       - name: Publish a Python distribution to PyPI
         uses: pypa/gh-action-pypi-publish@master
         with:
