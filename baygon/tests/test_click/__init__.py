@@ -54,3 +54,17 @@ class TestDemo(TestCase):
 
         self.assertEqual(result.exit_code, 0)
         self.assertIn('ok.', result.output)
+
+    def test_ignorespaces(self):
+        runner = CliRunner()
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        result = runner.invoke(
+            cli, [
+                '--config=' + os.path.join(dir_path, 'ignorespaces.yml'),
+                '--verbose',
+                os.path.join(dir_path, 'main2.py'), '-v'])
+
+        print(result, result.output)
+
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn('ok.', result.output)
