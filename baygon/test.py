@@ -12,6 +12,8 @@ def filter_value(value, options: dict = {}):
         value = value.lower()
     if 'trim' in options:
         value = value.strip()
+    if 'ignorespaces' in options:
+        value = value.replace(' ', '')
     return value
 
 

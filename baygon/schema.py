@@ -8,6 +8,7 @@ case = {
     'uppercase': bool,
     'lowercase': bool,
     'trim': bool,
+    'ignorespaces': bool,
     Any('equals', 'regex', 'contains'): value,
     Optional('not'): [{Required(Any('equals', 'regex', 'contains')): value}],
     Optional('expected', description="Expected value when used with regex"): value,
@@ -47,6 +48,7 @@ filters = Schema({
     Optional('uppercase'): bool,
     Optional('lowercase'): bool,
     Optional('trim'): bool,
+    Optional('ignorespaces'): bool,
     Optional('regex'): ExactSequence([str, str])
 })
 

@@ -25,7 +25,8 @@ class TestSchema(TestCase):
         schema.schema({
             'version': 1,
             'filters': {
-                'uppercase': True
+                'uppercase': True,
+                'ignorespaces': True
             },
             'tests': [
             ]

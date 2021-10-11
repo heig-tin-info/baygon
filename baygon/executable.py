@@ -70,6 +70,9 @@ class Executable:
         if 'trim' in filter:
             value = value.strip()
 
+        if 'ignorespaces' in filter:
+            value = value.replace(' ', '')
+
         if 'regex' in filter:
             value = re.sub(filter['regex'][0], filter['regex'][1], value)
 
