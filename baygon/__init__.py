@@ -9,4 +9,4 @@ try:
 except ImportError:
     __version__ = None
 
-__copyright__ = 'Copyright 2020 HEIG-VD'
+__copyright__ = 'Copyright 2022 HEIG-VD'
