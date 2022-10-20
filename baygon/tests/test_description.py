@@ -3,7 +3,7 @@ from baygon.description import Tests
 
 
 class TestDescription(TestCase):
-    def getSample(self, name='foobar'):
+    def get_sample(self, name='foobar'):
         return Tests({
             'name': name,
             'version': 1,
@@ -14,11 +14,11 @@ class TestDescription(TestCase):
 
     def test_build(self):
         name = 'foobar'
-        td = self.getSample(name)
+        td = self.get_sample(name)
         self.assertEqual(td.name, name)
         self.assertEqual(td.version, 1)
 
     def test_len(self):
         name = 'foobar'
-        td = self.getSample(name)
+        td = self.get_sample(name)
         self.assertEqual(len(td), 1)

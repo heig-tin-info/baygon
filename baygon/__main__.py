@@ -26,8 +26,8 @@ def display_test_name(test):
 
 
 class OneLineExceptionFormatter(logging.Formatter):
-    def formatException(self, exc_info):
-        result = super().formatException(exc_info)
+    def format_exception(self, exc_info):
+        result = super().format_exception(exc_info)
         return repr(result)
 
     def format(self, record):

@@ -41,19 +41,19 @@ def find_testfile(path=None):
 
 def load(filename):
     """Load a configuration file (can be YAML or JSON)."""
-    def loadYaml(filename):
+    def load_yaml(filename):
         with open(filename) as fp:
             return yaml.load(fp, Loader=yaml.FullLoader)
 
-    def loadJson(filename):
+    def load_json(filename):
         with open(filename) as fp:
             return json.load(fp)
 
     extension = os.path.splitext(filename)[1]
     if extension in ['.yml', '.yaml']:
-        return loadYaml(filename)
+        return load_yaml(filename)
     if extension in ['.json']:
-        return loadJson(filename)
+        return load_json(filename)
     raise ValueError(f'Unknown extension: {extension}')
 
 
@@ -129,8 +129,8 @@ class Tests(TestSequence, WithId):
             old_path = path
             path = find_testfile(path)
             if not path:
-                raise(ValueError(
-                    f"Couldn't find and configuration file in '{old_path}'"))
+                raise ValueError(
+                    f"Couldn't find and configuration file in '{old_path}'")
 
         return load(path)
 
