@@ -1,3 +1,4 @@
+""" Baygon is a tool to run tests on executables. """
 from .executable import Executable
 from .test import TestCase, TestSuite, TestGroup
 

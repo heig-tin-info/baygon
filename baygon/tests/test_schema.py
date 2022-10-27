@@ -1,7 +1,6 @@
 from unittest import TestCase
 from voluptuous.error import MultipleInvalid
-
-import baygon.schema as schema
+from baygon import schema
 
 
 class TestSchema(TestCase):

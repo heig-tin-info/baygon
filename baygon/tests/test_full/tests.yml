@@ -12,7 +12,8 @@ tests:
     args: [1, 2]
     stdout: []
   - name: Version on stderr
-    args: ['--version']
+    args: ["--version"]
     stderr:
+      - flai: 213
       - regex: '\b\d\.\d\.\d\b'
-      - contains: 'Version'
+      - contains: "Version"

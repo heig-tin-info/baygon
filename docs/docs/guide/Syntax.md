@@ -18,9 +18,13 @@ Global filters can be applied to all outputs of every tests. The outputs are `st
 - `uppercase`: All outputs are transformed into uppercase.
 - `lowercase`: All outputs are transformed into lowercase.
 - `trim`: All outputs are trimmed (spaces are removed from both ends, on each line
+- `ignore-spaces`: All spaces are removed from all outputs.
 - `regex`: A remplacement is made using regular expressions.
+- `replace`: A remplacement is made using a string.
 
-In the following, both standard output and standard error will be in lowercase and every occurence of `foo` or `foobar` will be replaced by `bar`:
+If more than one filter is applied, they are applied in the order they are written.
+
+In the following, both standard output and standard error will be in lowercase and every occurrences of `foo` or `foobar` will be replaced by `bar`:
 
 ```yaml
 version: 1
@@ -34,7 +38,7 @@ tests:
 
 ## Naming
 
-All tests can be optionnally named:
+All tests can be optionally named:
 
 ```yaml
 version: 1
@@ -49,7 +53,7 @@ tests:
 
 ## Groups and subgroups
 
-Tests can be groupped into sub sections, by nesting each test into categories:
+Tests can be grouped into sub sections, by nesting each test into categories:
 
 ```yaml
 version: 1
@@ -121,15 +125,26 @@ tests:
 Or even from the shell:
 
 ```console
-$ baygon ./foobar
+baygon ./foobar
 ```
 
-## Custom config file
+## Configuration file
 
-You may want to tell Baygon to use a custom configuration file. This is possible from the command line:
+By default Baygon will look for a file named `baygon.yml` in the current directory. You can specify a different file with the `-c` or `--config` option:
 
 ```console
-$ baygon --config other.yaml
+baygon --config other.yaml
+```
+
+Other names such as `t`, `test` or `tests` can be used, but the extension must be `.json`, `.yml` or `.yaml`. Here some valid configuration names:
+
+```text
+baygon.yml
+baygon.yaml
+baygon.json
+tests.yml
+t.json
+...
 ```
 
 ## Tests of strings
@@ -160,4 +175,3 @@ tests:
         - regex: f(oo|aa|uu) # Must match
         - equals: foobar
 ```
-

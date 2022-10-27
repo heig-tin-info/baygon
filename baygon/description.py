@@ -1,21 +1,20 @@
 """
 Read and validate test file.
 """
-import yaml
-import json
-
 import os
-from collections.abc import Sequence
+import json
+from collections.abc import Sequence, Mapping
+import yaml
 
 from . import schema, Executable
 
 
 def check_executable(executable: Executable, filters=None):
+    """ Check if the given executable is valid. """
     if executable and not isinstance(executable, Executable):
-        raise AttributeError('Not an instance of Executable')
+        raise AttributeError('Not an instance of Executable class')
 
-    if executable and filters:
-        executable.filters = filters
+    executable.filters.update(filters or {})
 
     return executable
 
@@ -38,35 +37,61 @@ def find_testfile(path=None):
     if os.path.dirname(path) != path:  # Test if root directory
         return find_testfile(os.path.dirname(path))
 
+    return None
 
-def load(filename):
-    """Load a configuration file (can be YAML or JSON)."""
-    def load_yaml(filename):
-        with open(filename) as fp:
-            return yaml.load(fp, Loader=yaml.FullLoader)
 
-    def load_json(filename):
-        with open(filename) as fp:
-            return json.load(fp)
+class TestFile(Mapping):
+    """ TestFile properties """
 
-    extension = os.path.splitext(filename)[1]
-    if extension in ['.yml', '.yaml']:
-        return load_yaml(filename)
-    if extension in ['.json']:
-        return load_json(filename)
-    raise ValueError(f'Unknown extension: {extension}')
+    def __init__(self, filename: str):
+        self._data = schema.schema(self._load(filename))
+
+    def _load(self, filename):
+        """Load a configuration file (can be YAML or JSON)."""
+        def load_yaml(filename):
+            with open(filename, 'rt', encoding="utf-8") as fp:
+                return yaml.safe_load(fp)
+
+        def load_json(filename):
+            with open(filename, 'rt', encoding="utf-8") as fp:
+                return json.load(fp)
+
+        extension = os.path.splitext(filename)[1]
+        if extension in ['.yml', '.yaml']:
+            return load_yaml(filename)
+        if extension in ['.json']:
+            return load_json(filename)
+        raise ValueError(f'Unknown extension: {extension}')
+
+    def __getitem__(self, key):
+        return self._data[key]
+
+    def __iter__(self):
+        for key in self._data:
+            yield key
+
+    def __len__(self):
+        return len(self._data)
 
 
 class WithId:
+    def __init__(self):
+        super().__init__()
+        self._id = None
+
     @property
     def id(self):
+        """ Return the id of the object. """
         return '.'.join(map(str, self._id))
-
-    def _get_id(self, *k: int):
-        return list(self._id) + list(k)
 
 
 class TestSequence(Sequence):
+    """ A sequence of tests. """
+
+    def __init__(self):
+        super().__init__()
+        self._tests = []
+
     def __len__(self):
         return len(self._tests)
 
@@ -77,13 +102,13 @@ class TestSequence(Sequence):
         return self._tests[item]
 
 
-class Test(dict, WithId):
-    """ Functional test descriptior. """
+class Test(Mapping, WithId):
+    """ Functional test descriptor. """
 
-    def __init__(self, *args, executable: Executable = None, id=[], skip=False):
-        super(Test, self).__init__(*args)
+    def __init__(self, *args, executable: Executable = None, id=None, skip=False):
+        super().__init__()
         self.__dict__ = self
-        self._id = id
+        self._id = id or []
         self._skip = skip
         self.executable = check_executable(executable)
 
@@ -104,20 +129,25 @@ class Group(TestSequence, WithId):
 
 
 class Tests(TestSequence, WithId):
+    """ A sequence of tests. """
     _group_class = Group
     _unit_class = Test
 
-    def __init__(self, data=None, path=None, executable: Executable = None,
-                 id=[], skip=False):
+    def __init__(self, data: dict = None, path: str = None,
+                 executable: Executable = None,
+                 id=None, skip: bool = False):
+        super().__init__()
+
         if not isinstance(data, dict):
             data = self._load(path)
 
         data = schema.schema(data)  # Validate
+
         tests = data.pop('tests')
         self.__dict__ = data
         self.filename = path
         self.executable = check_executable(executable, self.filters)
-        self._id = id
+        self._id = id or []
         self._skip = skip
         self._tests = list(self._build(tests, self._id, self.executable))
 

@@ -8,18 +8,18 @@ from . import __version__, __copyright__
 
 
 def display_pad(pad=0):
-    if pad == 0:
-        click.secho('  ', nl=False)
-    else:
-        click.secho('.' * pad, nl=False, dim=True)
+    """ Display a pad of spaces to align nested output. """
+    click.secho('.' * pad if pad > 0 else '  ', nl=False, dim=pad == 0)
 
 
 def test_name_length(test):
+    """ Compute the length of test name. """
     pad = '  ' * (len(test._id) - 1)
     return len(f'{pad}Test {test.id}: {test.name}')
 
 
 def display_test_name(test):
+    """ Display the name of a test. """
     pad = '  ' * (len(test._id) - 1)
     click.secho(f'{pad}Test {test.id}: ', nl=False, bold=True)
     click.secho(f'{test.name}', nl=False, bold=False)
@@ -45,7 +45,9 @@ class Runner:
         self.verbose = verbose
         self.executable = executable
         self.limit = -1 if 'limit' not in kwargs else kwargs['limit']
-        self.test_suite = TestSuite(path=config, executable=Executable(self.executable))
+        click.secho(config, fg='yellow')
+        self.test_suite = TestSuite(
+            path=config, executable=Executable(self.executable))
 
     def _init_logger(self, loglevel):
         handler = logging.StreamHandler()
@@ -85,7 +87,7 @@ class Runner:
 
         return self.failures
 
-    def _max_length(self, tests, level=0):
+    def _max_length(self, tests):
         length = 0
         for test in tests:
             length = max(test_name_length(test), length)
@@ -132,12 +134,15 @@ def version(ctx, param, value):
 @click.command()
 @click.argument('executable', required=False, type=click.Path(exists=True))
 @click.option('--version', is_flag=True, callback=version, help='Shows version')
+@click.option('-r', '--reverse', is_flag=True, callback=version, help='Reverse tests')
+@click.option('-e', '--max-error', type=int, default=-1, callback=version, help='Stop after N errors')
 @click.option('-v', '--verbose', count=True, help='Shows more details')
 @click.option('-l', '--limit', type=int, default=-1, help='Limit to N tests')
 @click.option('-t', '--config',
               type=click.Path(exists=True),
               help='Choose config file (.yml or .json)')
 def cli(verbose=0, executable=None, config=None, **kwargs):
+    """ Baygon unit test runner """
     runner = Runner(verbose, executable, config, **kwargs)
     failures = runner.run()
     click.echo('')

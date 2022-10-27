@@ -3,24 +3,14 @@ Inherit Description classes and provide a `run` method
 that eventually returns a list of errors.
 """
 from . import error, description, Executable
+from .filter import apply_filters
 
 
-def filter_value(value, options: dict = {}):
-    if 'uppercase' in options:
-        value = value.upper()
-    if 'lowercase' in options:
-        value = value.lower()
-    if 'trim' in options:
-        value = value.strip()
-    if 'ignorespaces' in options:
-        value = value.replace(' ', '')
-    return value
-
-
-def match(options, value, where=None, inverse=False):
+def match(options: list, value: str, where=None, inverse=False) -> list:
+    """ Match a value against a list of options. """
     issues = []
     for case in options:
-        value = filter_value(value, case)
+        value = apply_filters(value, case)
         if 'regex' in case:
             if (not value.grep(case['regex'])) ^ inverse:
                 issues += [error.InvalidRegex(value, case['regex'], on=where)]
@@ -40,7 +30,10 @@ def match(options, value, where=None, inverse=False):
 
 
 class TestCase(description.Test):
+    """ A test case. """
+
     def run(self):
+        """ Run the test case. """
         if self._skip:
             return None
 
@@ -78,13 +71,18 @@ class TestCase(description.Test):
 
 
 class TestGroup(description.Group):
+    """ A group of tests. """
+
     def run(self):
+        """ Run all tests in the group. """
         return [u.run() for u in self]
 
 
 class TestSuite(description.Tests):
+    """ A test suite is a collection of tests. """
     _unit_class = TestCase
     _group_class = TestGroup
 
     def run(self):
+        """ Run all tests in the suite. """
         return [u.run() for u in self]
