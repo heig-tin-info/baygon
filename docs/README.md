@@ -1,13 +1,8 @@
-# baygon
-
-> Python Functional Test Library
+# Baygon Documentation
 
 ## Development
 
-```bash
-yarn dev
-yarn build
+```console
+yarn install
+yarn run docs:dev
 ```
-
-For more details, please head VuePress's [documentation](https://v1.vuepress.vuejs.org/).
-

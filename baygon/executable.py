@@ -1,11 +1,9 @@
 """ Executable class. To be used with the Test class. """
 import os
-import re
 import shutil
 import typing
 import subprocess
 from collections import namedtuple
-from .filter import apply_filters
 
 Outputs = namedtuple('Outputs', ['exit_status', 'stdout', 'stderr'])
 
@@ -23,11 +21,9 @@ class Executable:
     def __new__(cls, filename):
         return super().__new__(cls) if filename else None
 
-    def __init__(self, filename, encoding='utf-8', filters=None, env=None):
+    def __init__(self, filename, encoding='utf-8'):
         self.filename = filename
         self.encoding = encoding
-        self.env = get_env(env)
-        self.filters = filters or {}
 
         if not self._is_executable(filename):
             if '/' not in filename and shutil.which(filename) is not None:
@@ -37,12 +33,12 @@ class Executable:
             else:
                 raise ValueError(f"Program '{filename}' is not an executable!")
 
-    def run(self, *args, stdin=None):
+    def run(self, *args, stdin=None, env=None):
         """ Run the program and grab all the outputs. """
         with subprocess.Popen([self.filename, *[str(a) for a in args]],
                               stdout=subprocess.PIPE,
                               stdin=subprocess.PIPE,
-                              stderr=subprocess.PIPE, env=self.env) as proc:
+                              stderr=subprocess.PIPE, env=env) as proc:
 
             if stdin is not None:
                 stdin = stdin.encode(self.encoding)
@@ -54,13 +50,10 @@ class Executable:
             if stderr is not None:
                 stderr = stderr.decode(self.encoding)
 
-            stdout = self._filter(self.filters, stdout)
-            stderr = self._filter(self.filters, stderr)
-
             return Outputs(
                 proc.returncode,
-                GreppableString(stdout),
-                GreppableString(stderr))
+                stdout,
+                stderr)
 
     def __call__(self, *args, **kwargs):
         return self.run(*args, **kwargs)
@@ -68,18 +61,3 @@ class Executable:
     @staticmethod
     def _is_executable(filename):
         return os.path.isfile(filename) and os.access(filename, os.X_OK)
-
-    def _filter(self, filters: typing.Dict, value: str) -> str:
-        return apply_filters(value, filters)
-
-
-class GreppableString(str):
-    """ A string that can be parsed with regular expressions. """
-
-    def grep(self, pattern: str) -> bool:
-        """ Return True if the pattern is found in the string. """
-        return re.findall(pattern, self)
-
-    def contains(self, value: str) -> bool:
-        """ Return True if the value is found in the string. """
-        return value in self

@@ -2,6 +2,8 @@
 
 
 class InvalidCondition:
+    """ Invalid condition error. """
+
     def __init__(self, value, expected, message=None, on=None):
         self.value = value
         self.expected = expected
@@ -13,6 +15,8 @@ class InvalidCondition:
 
 
 class InvalidExitStatus(InvalidCondition):
+    """ Invalid exit status error. """
+
     def __str__(self):
         if hasattr(self.value, '__len__') and len(self.value) > 20:
             return f'Invalid exit status. Expected {self.expected}'
@@ -22,21 +26,25 @@ class InvalidExitStatus(InvalidCondition):
 
 
 class InvalidContains(InvalidCondition):
-    pass
+    """ Invalid contains error. """
 
 
 class InvalidRegex(InvalidCondition):
+    """ Invalid regex error. """
+
     def __str__(self):
         return (f'Invalid value on {self.on}. '
                 f'Expected to match regex /{self.expected}/')
 
 
 class InvalidEquals(InvalidCondition):
+    """ Invalid equals error. """
+
     def __str__(self):
         if hasattr(self.value, '__len__') and len(self.value) > 20:
             return (f'Invalid value on {self.on}. '
                     f'Expected exactly "{self.expected}"')
 
         return (f'Invalid value on {self.on}. '
-                f'Expected exactly "{self.expected}",'
-                f' but got "{self.value}"')
+                f'Expected exactly "{self.expected}", '
+                f'but got "{self.value}"')

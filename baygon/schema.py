@@ -1,16 +1,57 @@
 """ YAML Schema for Baygon test files. """
-from voluptuous import (Schema, ExactSequence,
+from voluptuous import (ExactSequence,
                         Coerce, Required,
-                        Any, All, Optional)
+                        Any, All, Optional, Self, Boolean)
+from voluptuous import Schema as VSchema
 
-value = Any(str, All(Any(int, float), Coerce(str)))
+from .id import Id
+
+
+class TrackId:
+    """ Keep the id of the test. """
+
+    def __init__(self):
+        self._id = Id()
+
+    def reset(self):
+        """ Reset the id. """
+        def _(v):
+            self._id = Id()
+            return v
+        return _
+
+    def down(self):
+        """ Return a new Id with the given id appended. """
+        def _(v):
+            self._id = self._id.down()
+            return v
+        return _
+
+    def up(self):
+        """ Return a new Id with the given id appended. """
+        def _(v):
+            self._id = self._id.up()
+            return v
+        return _
+
+    def next(self):
+        """ Return a new Id with the last id incremented. """
+        def _(v):
+            v['test_id'] = list(self._id)
+            self._id = self._id.next()
+            return v
+        return _
+
+
+Value = Any(str,
+            All(Any(int, float, All(Boolean, Coerce(int))), Coerce(str)))
 
 # Global test filters
 filters = {
-    Optional('uppercase'): bool,
-    Optional('lowercase'): bool,
-    Optional('trim'): bool,
-    Optional(Any('ignorespaces', 'ignore-spaces')): bool,
+    Optional('uppercase'): Boolean,
+    Optional('lowercase'): Boolean,
+    Optional('trim'): Boolean,
+    Optional(Any('ignorespaces', 'ignore-spaces')): Boolean,
     Optional('regex'): ExactSequence([str, str]),
     Optional('replace'): ExactSequence([str, str]),
 }
@@ -18,47 +59,56 @@ filters = {
 # Test case
 case = {
     Optional('filters', default={}): filters,
-    Any('equals', 'regex', 'contains'): value,
-    Optional('not'): [{Required(Any('equals', 'regex', 'contains')): value}],
+    Any('equals', 'regex', 'contains'): Value,
+    Optional('not'): [{Required(Any('equals', 'regex', 'contains')): Value}],
     Optional('expected',
-             description="Expected value when used with regex"): value,
+             description="Expected value when used with regex"): Value,
 }
 
 # Nested test cases
 match = Any(
-    All(value, lambda x: [{'equals': x}]),
+    All(Value, lambda x: [{'equals': x}]),
     [
-        All(value, lambda x: {'equals': x}),
+        All(Value, lambda x: {'equals': x}),
         case
     ],
     case,
 )
 
 common = {
-    Optional('name', default=''): str,
-    Optional('executable', default=None): Any(str, None),
+    Optional('name',
+             default='',
+             description='Test Name'): str,
+    Optional('executable',
+             default=None,
+             description='Path to the executable'): Any(str, None),
+    Optional('points',
+             default=0,
+             description="Points given for this test"): int,
 }
 
-# Test Suite
-test_suite = Schema({**common, **{
-    Optional('args', default=[]): [value],
-    Optional('stdin', default=None): Any(value, None),
+test = VSchema({
+    Optional('args', default=[]): [Value],
+    Optional('env', default={}): {str: Value},
+
+    Optional('stdin', default=''): Any(Value, None),
     Optional('stdout', default=[]): match,
     Optional('stderr', default=[]): match,
-    Optional('env', default={}): {str: value},
-    Optional('exit'): All(Any(int, bool), Coerce(int))
-}})
 
-subgroup = Schema({**common, **{
-    Required('tests'): [test_suite]
-}})
+    Optional('exit'): All(Any(int, Boolean), Coerce(int))
+}).extend(common)
 
-group = Schema({**common, **{
-    Required('tests'): [Any(subgroup, test_suite)]
-}})
+Num = TrackId()
 
-schema = Schema({**common, **{
-    Optional('version', default=1): 1,
+group = VSchema({
+    Required('tests'): All(Num.down(),
+                           [All(Any(Self, test), Num.next())],
+                           Num.up())
+}).extend(common)
+
+Schema = VSchema({
+    Optional('version', default=2): Any(1, 2),
     Optional('filters', default={}): filters,
-    Required('tests'): [Any(test_suite, group)]
-}})
+    Required('tests'): All(Num.reset(),
+                           [All(Any(test, group), Num.next())])
+}).extend(common)

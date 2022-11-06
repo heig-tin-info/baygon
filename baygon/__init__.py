@@ -10,4 +10,5 @@ try:
 except ImportError:
     __version__ = None
 
-__copyright__ = 'Copyright 2022 HEIG-VD'
+__year__ = 2022
+__copyright__ = f'Copyright {__year__} HEIG-VD'

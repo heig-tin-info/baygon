@@ -9,35 +9,6 @@ import yaml
 from . import schema, Executable
 
 
-def check_executable(executable: Executable, filters=None):
-    """ Check if the given executable is valid. """
-    if executable and not isinstance(executable, Executable):
-        raise AttributeError('Not an instance of Executable class')
-
-    executable.filters.update(filters or {})
-
-    return executable
-
-
-def find_testfile(path=None):
-    """Recursively find the tests description file."""
-    if not path:
-        path = os.path.dirname(os.path.realpath('.'))
-
-    if not os.path.isdir(path):
-        raise ValueError(f"Path name '{path}' is not a directory")
-
-    for filename in ['baygon', 't', 'test', 'tests']:
-        for ext in ['json', 'yml', 'yaml']:
-            f = os.path.join(path, f"{filename}.{ext}")
-            if os.path.exists(f):
-                return f
-
-    # Recursively search in parent directories
-    if os.path.dirname(path) != path:  # Test if root directory
-        return find_testfile(os.path.dirname(path))
-
-    return None
 
 
 class TestFile(Mapping):
@@ -110,7 +81,7 @@ class Test(Mapping, WithId):
         self.__dict__ = self
         self._id = id or []
         self._skip = skip
-        self.executable = check_executable(executable)
+        self.executable = check_executable(executable) if executable else None
 
     def __repr__(self):
         return self.__class__.__name__ + '(' + super().__repr__() + ')'

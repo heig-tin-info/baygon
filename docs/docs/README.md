@@ -1,8 +1,13 @@
 ---
 home: true
+title: Home
 heroImage: /baygon.svg
-tagline: Python Functional Tests Library for Agnostic Binaries
-actionText: Quick Start →
-actionLink: /guide/
-footer: Made by HEIG-VD with ❤️
+actions:
+  - text: Get Started
+    link: /guide
+    type: primary
+  - text: Syntax
+    link: /guide/syntax.md
+    type: secondary
+footer: MIT Licensed | Copyright © HEIG-VD 2021-present
 ---

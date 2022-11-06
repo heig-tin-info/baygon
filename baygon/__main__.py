@@ -2,6 +2,7 @@ import click
 import time
 import logging
 import os
+import sys
 
 from . import TestSuite, TestGroup, TestCase, Executable
 from . import __version__, __copyright__
@@ -26,6 +27,8 @@ def display_test_name(test):
 
 
 class OneLineExceptionFormatter(logging.Formatter):
+    """ A formatter that displays the exception on a single line. """
+
     def format_exception(self, exc_info):
         result = super().format_exception(exc_info)
         return repr(result)
@@ -49,6 +52,12 @@ class Runner:
         self.test_suite = TestSuite(
             path=config, executable=Executable(self.executable))
 
+        self.align_column = 0
+
+        self.failures = 0
+        self.successes = 0
+        self.skipped = 0
+
     def _init_logger(self, loglevel):
         handler = logging.StreamHandler()
         formatter = OneLineExceptionFormatter(logging.BASIC_FORMAT)
@@ -58,6 +67,7 @@ class Runner:
         root.addHandler(handler)
 
     def run(self):
+        """ Run the tests. """
         start_time = time.time()
         self.align_column = self._max_length(self.test_suite) + 10
 
@@ -67,23 +77,23 @@ class Runner:
 
         self._traverse_group(self.test_suite)
 
-        click.secho('\nRan %d tests in %ss.' % (
-            self.successes + self.failures,
-            round(time.time() - start_time, 2)
-        ), bold=True)
+        tests = self.failures + self.successes + self.skipped
+        seconds = round(time.time() - start_time, 2)
+        click.secho(f'\nRan {tests} tests in {seconds}s.', bold=True)
 
         if self.failures > 0:
-            click.secho('%d failed, %d passed (%d%% ok).' % (
-                self.failures, self.successes,
-                100 - round(self.failures / (self.failures + self.successes) * 100, 2)
-            ), fg='yellow', bold=True)
+            ratio = 100 - round(
+                self.failures / (self.failures + self.successes) * 100, 2)
+            click.secho((f'{self.failures} failed, {self.successes} '
+                         f'passed ({ratio}%% ok).'), fg='yellow', bold=True)
             click.secho('\nfail.', fg='red', bold=True)
         else:
             click.secho('\nok.', fg='green')
 
         if self.skipped > 0:
-            click.secho(
-                f'{self.skipped} test(s) skipped, some executables may be missing.', fg='yellow')
+            click.secho((
+                f'{self.skipped} test(s) skipped, '
+                'some executables may be missing.'), fg='yellow')
 
         return self.failures
 
@@ -125,22 +135,23 @@ class Runner:
 
 
 def version(ctx, param, value):
+    """ Display the version and exit. """
     if not value:
         return
     print(f"Baygon version {__version__} {__copyright__}")
-    exit(0)
+    sys.exit(0)
 
 
-@click.command()
-@click.argument('executable', required=False, type=click.Path(exists=True))
-@click.option('--version', is_flag=True, callback=version, help='Shows version')
-@click.option('-r', '--reverse', is_flag=True, callback=version, help='Reverse tests')
-@click.option('-e', '--max-error', type=int, default=-1, callback=version, help='Stop after N errors')
-@click.option('-v', '--verbose', count=True, help='Shows more details')
-@click.option('-l', '--limit', type=int, default=-1, help='Limit to N tests')
-@click.option('-t', '--config',
-              type=click.Path(exists=True),
-              help='Choose config file (.yml or .json)')
+@ click.command()
+@ click.argument('executable', required=False, type=click.Path(exists=True))
+@ click.option('--version', is_flag=True, callback=version, help='Shows version')
+@ click.option('-r', '--reverse', is_flag=True, callback=version, help='Reverse tests')
+@ click.option('-e', '--max-error', type=int, default=-1, callback=version, help='Stop after N errors')
+@ click.option('-v', '--verbose', count=True, help='Shows more details')
+@ click.option('-l', '--limit', type=int, default=-1, help='Limit to N tests')
+@ click.option('-t', '--config',
+               type=click.Path(exists=True),
+               help='Choose config file (.yml or .json)')
 def cli(verbose=0, executable=None, config=None, **kwargs):
     """ Baygon unit test runner """
     runner = Runner(verbose, executable, config, **kwargs)

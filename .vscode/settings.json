@@ -4,5 +4,5 @@
   "python.linting.pylintEnabled": true,
   "python.linting.flake8Enabled": true,
   "cSpell.words": ["baygon", "Greppable", "ignorespaces", "secho"],
-  "python.linting.pylintArgs": ["--good-names=i,j,k,f,on,fp,id"]
+  "python.linting.pylintArgs": ["--good-names=i,j,k,f,on,fp,id,up"]
 }

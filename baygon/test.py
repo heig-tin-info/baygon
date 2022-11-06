@@ -3,7 +3,6 @@ Inherit Description classes and provide a `run` method
 that eventually returns a list of errors.
 """
 from . import error, description, Executable
-from .filter import apply_filters
 
 
 def match(options: list, value: str, where=None, inverse=False) -> list:
