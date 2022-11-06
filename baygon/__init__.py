@@ -1,8 +1,9 @@
 """ Baygon is a tool to run tests on executables. """
 from .executable import Executable
-# from .test import TestCase, TestSuite, TestGroup
+from .suite import TestSuite, TestGroup, TestCase
+from .schema import Schema
 
-__all__ = ['TestCase', 'TestGroup', 'TestSuite', 'Executable']
+__all__ = ['TestCase', 'TestGroup', 'TestSuite', 'Executable', 'Schema']
 
 try:
     from . import version

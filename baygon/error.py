@@ -4,10 +4,12 @@
 class InvalidCondition:
     """ Invalid condition error. """
 
-    def __init__(self, value, expected, message=None, on=None):
+    def __init__(self, value, expected, message=None, on=None, **kwargs):
         self.value = value
         self.expected = expected
         self.message = message
+        self.name = kwargs.get('name', '')
+        self.id = kwargs.get('id', None)
         self.on = on
 
     def __str__(self):

@@ -7,6 +7,7 @@ from .filters import Filters
 from .id import Id
 from .executable import Executable
 from . import error
+from .str import GreppableString
 
 
 def find_testfile(path=None):
@@ -52,28 +53,6 @@ def load_config(path=None):
     return Schema(data)
 
 
-def match(options: list, value: str, where=None, inverse=False) -> list:
-    """ Match a value against a list of options. """
-    issues = []
-    for case in options:
-        if 'regex' in case:
-            if (not value.grep(case['regex'])) ^ inverse:
-                issues += [error.InvalidRegex(value, case['regex'], on=where)]
-        if 'contains' in case:
-            if (not value.contains(case['contains'])) ^ inverse:
-                issues += [
-                    error.InvalidContains(
-                        value, case['contains'], on=where)]
-        if 'equals' in case:
-            if (case['equals'] != value) ^ inverse:
-                issues += [
-                    error.InvalidEquals(value, case['equals'], on=where)]
-        if 'not' in case:
-            issues += match(case['not'], value, where, inverse=True)
-
-    return issues
-
-
 class TestFilterMixin:
     """ Mixin for tests that can have filters. """
 
@@ -93,7 +72,7 @@ class TestBaseMixin(TestFilterMixin):
         self.id = Id(config['test_id'])
         self.points = config['points']
 
-        if executable is not None and self.config['executable'] is not None:
+        if executable is not None and config['executable'] is not None:
             raise ValueError(
                 "Executable can't be overridden in the test configuration")
 
@@ -106,14 +85,15 @@ class TestBaseMixin(TestFilterMixin):
 class TestGroupMixin:
     """ Mixin for tests that can have sub-tests. """
 
-    def __init__(self, config, executable=None, *args, **kwargs):
+    def __init__(self, config, executable, *args, **kwargs):
+        """ Initialize the test group. """
         super().__init__(config, executable, *args, **kwargs)
         self.tests = []
         for test in config['tests']:
             if 'tests' in test:
                 self.tests.append(TestGroup(test, executable))
             else:
-                self.tests.append(Test(test, executable))
+                self.tests.append(TestCase(test, executable))
 
     def __len__(self):
         return len(self.tests)
@@ -123,15 +103,18 @@ class TestGroupMixin:
 
     def run(self):
         """ Run the tests. """
+        issues = []
         for test in self.tests:
-            test.run()
+            run = test.run()
+            issues += (run if isinstance(run, list) else [run])
+        return issues
 
     def get_points(self):
         """ Return the total number of points. """
         return sum(test.points for test in self.tests)
 
 
-class Test(TestBaseMixin):
+class TestCase(TestBaseMixin):
     """ A single test. """
 
     def __init__(self, config, *args, **kwargs):
@@ -146,31 +129,64 @@ class Test(TestBaseMixin):
 
         self.exit = config.get('exit', None)
 
+        self.output = None
+        self.issues = []
+
     def run(self):
         """ Run the tests. """
         if not isinstance(self.executable, Executable):
             raise ValueError('Not a valid executable')
 
-        output = self.executable.run(*self.args, stdin=self.stdin)
-
-        return [
+        self.output = output = self.executable.run(*self.args, stdin=self.stdin)
+        self.issues = [
             *self._check_exit_status(output.exit_status),
             *self._check_stdout(self.filters.filter(output.stdout)),
-            *self._check_stderr(self.filters.filter(output.stdout))
+            *self._check_stderr(self.filters.filter(output.stderr))
         ]
+        return self.issues
 
     def _check_exit_status(self, output):
-        if (output != self.exit):
-            return [error.InvalidExitStatus(output, self.exit)]
+        if self.exit is None:  # No exit status specified
+            return []
+        if output != self.exit:
+            return [error.InvalidExitStatus(output, self.exit,
+                                            name=self.name, id=self.id)]
         return []
 
     def _check_stdout(self, output):
-        return match(self.stdout, output, where='stdout')
+        return self._match(self.stdout, output, where='stdout')
 
     def _check_stderr(self, output):
         if self.stderr is None:
             return []
-        return match(self.stderr, output, where='stderr')
+        return self._match(self.stderr, output, where='stderr')
+
+    def _match(self, options: list, value: str,
+               where=None, inverse=False) -> list:
+        """ Match a value against a list of options. """
+        issues = []
+        value = GreppableString(value)
+        for case in options:
+            if 'regex' in case:
+                if (not value.grep(case['regex'])) ^ inverse:
+                    issues += [error.InvalidRegex(value, case['regex'],
+                                                  on=where, name=self.name,
+                                                  id=self.id)]
+            if 'contains' in case:
+                if (not value.contains(case['contains'])) ^ inverse:
+                    issues += [
+                        error.InvalidContains(
+                            value, case['contains'], on=where,
+                            name=self.name, id=self.id)]
+            if 'equals' in case:
+                if (case['equals'] != value) ^ inverse:
+                    issues += [
+                        error.InvalidEquals(value, case['equals'], on=where,
+                                            name=self.name, id=self.id)]
+            if 'not' in case:
+                issues += self._match(case['not'], value, where, inverse=True)
+
+        return issues
 
 
 class TestGroup(TestGroupMixin, TestBaseMixin):
@@ -178,7 +194,7 @@ class TestGroup(TestGroupMixin, TestBaseMixin):
 
     def __init__(self, config, executable, *args, **kwargs):
         super().__init__(config, executable, *args, **kwargs)
-        if executable is not None and self.config['executable'] is not None:
+        if executable is not None and config['executable'] is not None:
             raise ValueError(
                 "Executable can't be overridden in the test configuration")
 
@@ -194,7 +210,8 @@ class TestSuite(TestGroupMixin, TestFilterMixin):
         self.version = self.config.get('version')
         if executable is not None and self.config['executable'] is not None:
             raise ValueError(
-                "Executable can't be specified in both the config and the command line")
+                "Executable can't be specified in"
+                "both the config and the command line")
 
         self.executable = Executable(executable) if executable else None
 

@@ -3,7 +3,7 @@ import shutil
 from unittest import TestCase
 
 from baygon import Executable
-from baygon.executable import GreppableString
+from baygon.str import GreppableString
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 

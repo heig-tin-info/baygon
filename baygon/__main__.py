@@ -1,3 +1,4 @@
+""" Main CLI command. """
 import click
 import time
 import logging
@@ -15,13 +16,13 @@ def display_pad(pad=0):
 
 def test_name_length(test):
     """ Compute the length of test name. """
-    pad = '  ' * (len(test._id) - 1)
+    pad = '  ' * (len(test.id) - 1)
     return len(f'{pad}Test {test.id}: {test.name}')
 
 
 def display_test_name(test):
     """ Display the name of a test. """
-    pad = '  ' * (len(test._id) - 1)
+    pad = '  ' * (len(test.id) - 1)
     click.secho(f'{pad}Test {test.id}: ', nl=False, bold=True)
     click.secho(f'{test.name}', nl=False, bold=False)
 
@@ -30,10 +31,12 @@ class OneLineExceptionFormatter(logging.Formatter):
     """ A formatter that displays the exception on a single line. """
 
     def format_exception(self, exc_info):
+        """ Format an exception. """
         result = super().format_exception(exc_info)
         return repr(result)
 
     def format(self, record):
+        """ Format a log record. """
         result = super().format(record)
         if record.exc_text:
             result = result.replace("\n", "")
@@ -41,6 +44,8 @@ class OneLineExceptionFormatter(logging.Formatter):
 
 
 class Runner:
+    """ Test runner. """
+
     def __init__(self, verbose, executable=None, config=None, **kwargs):
         if verbose > 3:
             self._init_logger("DEBUG")
@@ -122,14 +127,14 @@ class Runner:
                     self.skipped += 1
                     continue
                 display_pad(self.align_column - test_name_length(test))
-                if not len(issues):
+                if not issues:
                     self.successes += 1
                     click.secho(' PASSED', fg='green')
                 else:
                     self.failures += 1
                     click.secho(' FAILED', fg='red', bold=True)
                     for issue in issues:
-                        click.secho('  ' * len(test._id) + '- ' + str(issue),
+                        click.secho('  ' * len(test.id) + '- ' + str(issue),
                                     fg='magenta', bold=True)
         return self.failures
 
@@ -144,9 +149,12 @@ def version(ctx, param, value):
 
 @ click.command()
 @ click.argument('executable', required=False, type=click.Path(exists=True))
-@ click.option('--version', is_flag=True, callback=version, help='Shows version')
-@ click.option('-r', '--reverse', is_flag=True, callback=version, help='Reverse tests')
-@ click.option('-e', '--max-error', type=int, default=-1, callback=version, help='Stop after N errors')
+@ click.option('--version', is_flag=True, callback=version,
+               help='Shows version')
+@ click.option('-r', '--reverse', is_flag=True,
+               callback=version, help='Reverse tests')
+@ click.option('-e', '--max-error', type=int, default=-1,
+               callback=version, help='Stop after N errors')
 @ click.option('-v', '--verbose', count=True, help='Shows more details')
 @ click.option('-l', '--limit', type=int, default=-1, help='Limit to N tests')
 @ click.option('-t', '--config',

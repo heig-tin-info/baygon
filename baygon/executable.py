@@ -1,10 +1,11 @@
 """ Executable class. To be used with the Test class. """
+
 import os
 import shutil
 import typing
 import subprocess
+from pathlib import Path
 from collections import namedtuple
-
 Outputs = namedtuple('Outputs', ['exit_status', 'stdout', 'stderr'])
 
 forbidden_binaries = ['rm', 'mv', 'dd', 'wget', 'mkfs']
@@ -19,13 +20,20 @@ class Executable:
     """ Allow to execute a program and conveniently read the output. """
 
     def __new__(cls, filename):
+        if isinstance(filename, cls):
+            return filename
+
         return super().__new__(cls) if filename else None
 
     def __init__(self, filename, encoding='utf-8'):
-        self.filename = filename
-        self.encoding = encoding
+        if isinstance(filename, self.__class__):
+            self.filename = filename.filename
+            self.encoding = filename.encoding
+        else:
+            self.filename = filename
+            self.encoding = encoding
 
-        if not self._is_executable(filename):
+        if not self._is_executable(self.filename):
             if '/' not in filename and shutil.which(filename) is not None:
                 if filename in forbidden_binaries:
                     raise ValueError(f"Program '{filename}' is forbidden!")
@@ -63,4 +71,5 @@ class Executable:
 
     @staticmethod
     def _is_executable(filename):
-        return os.path.isfile(filename) and os.access(filename, os.X_OK)
+        path = Path(filename)
+        return path.is_file() and os.access(path, os.X_OK)

@@ -1,10 +1,10 @@
 from unittest import TestCase
-from baygon.description import Tests
+from baygon.suite import TestSuite
 
 
 class TestDescription(TestCase):
     def get_sample(self, name='foobar'):
-        return Tests({
+        return TestSuite({
             'name': name,
             'version': 1,
             'tests': [

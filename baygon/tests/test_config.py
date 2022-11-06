@@ -1,14 +1,15 @@
-import os
+""" Test config file. """
+from pathlib import Path
 from unittest import TestCase
-from baygon.description import Tests
+from baygon.suite import TestSuite
 from baygon import Executable
 
-dir_path = os.path.dirname(os.path.realpath(__file__))
+dir_path = Path(__file__).parent.absolute().parent
 
 
 class TestConfig(TestCase):
-    def test_config_file(self, name='foobar'):
-        executable = os.path.join(dir_path, 'test_full', 'main.py')
-        config = os.path.join(dir_path, 'test_full', 'tests.yml')
+    def test_config_file(self):
+        executable = dir_path.joinpath('test_full', 'main.py')
+        config = dir_path.joinpath('test_full', 'tests.yml')
         print(executable)
-        Tests(path=config, executable=Executable(executable))
+        TestSuite(path=config, executable=Executable(executable))
