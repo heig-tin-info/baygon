@@ -1,11 +1,11 @@
-import os
+from pathlib import Path
 import shutil
 from unittest import TestCase
 
 from baygon import Executable
 from baygon.str import GreppableString
 
-dir_path = os.path.dirname(os.path.realpath(__file__))
+dir_path = Path(__file__).absolute().parent
 
 
 class TestExecutable(TestCase):
@@ -17,62 +17,62 @@ class TestExecutable(TestCase):
         test_string = 'Live as if you were to die tomorrow'
         output = e.run('-n', test_string)
         print(output)
-        self.assertEquals(output.stdout, test_string)
+        self.assertEqual(output.stdout, test_string)
 
     def test_stdout(self):
-        e = Executable(dir_path + '/dummy.py')
+        e = Executable(dir_path.joinpath('dummy.py'))
         output = e.run()
         print(output)
-        self.assertEquals(output.stdout, "an apple\n")
+        self.assertEqual(output.stdout, "an apple\n")
 
     def test_stderr(self):
-        e = Executable(dir_path + '/dummy.py')
+        e = Executable(dir_path.joinpath('dummy.py'))
         output = e.run()
         print(output)
-        self.assertEquals(output.stderr, "an orange\n")
+        self.assertEqual(output.stderr, "an orange\n")
 
     def test_stdin(self):
         e = Executable(shutil.which('cat'))
         test_string = 'Live as if you were to die tomorrow'
         output = e.run(stdin=test_string)
         print(output)
-        self.assertEquals(output.stdout, test_string)
+        self.assertEqual(output.stdout, test_string)
 
     def test_exit_status(self):
-        e = Executable(dir_path + '/dummy.py')
+        e = Executable(dir_path.joinpath('dummy.py'))
         output = e.run()
         print(output)
-        self.assertEquals(output.exit_status, 42)
+        self.assertEqual(output.exit_status, 42)
 
     def test_args(self):
-        e = Executable(dir_path + '/args.py')
+        e = Executable(dir_path.joinpath('args.py'))
         test_string = 'foobar'
         output = e.run(2, test_string)
         print(output)
-        self.assertEquals(output.stdout, test_string + '\n')
+        self.assertEqual(output.stdout, test_string + '\n')
 
     def test_grep(self):
         s = GreppableString('Live as if you were to die tomorrow')
         u = s.grep(r'\b[aeiouy]\w{2}\b')
         print(u)
-        self.assertEquals(u, ['you'])
+        self.assertEqual(u, ['you'])
 
     def test_echo(self):
         e = Executable('echo')
         test_string = 'Live as if you were to die tomorrow'
         output = e.run(test_string)
         print(output)
-        self.assertEquals(output.stdout, test_string + "\n")
+        self.assertEqual(output.stdout, test_string + "\n")
 
     def test_printf(self):
         e = Executable('printf')
         test_string = 'Live as if you were to die tomorrow'
         output = e.run(test_string)
         print(output)
-        self.assertEquals(output.stdout, test_string)
+        self.assertEqual(output.stdout, test_string)
 
     def test_cat(self):
         e = Executable('cat')
-        output = e.run(dir_path + '/test.txt')
+        output = e.run(dir_path.joinpath('test.txt'))
         print(output)
-        self.assertEquals(output.stdout, "Hello World\n")
+        self.assertEqual(output.stdout, "Hello World\n")

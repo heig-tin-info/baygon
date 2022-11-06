@@ -11,5 +11,6 @@ class TestConfig(TestCase):
     def test_config_file(self):
         executable = dir_path.joinpath('test_full', 'main.py')
         config = dir_path.joinpath('test_full', 'tests.yml')
-        print(executable)
-        TestSuite(path=config, executable=Executable(executable))
+        print(f"Executable: {executable}")
+        print(f"Config: {config}")
+        TestSuite(path=config, executable=executable)
