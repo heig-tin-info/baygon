@@ -3,7 +3,7 @@ from voluptuous import (ExactSequence,
                         Coerce, Required,
                         Any, All, Optional, Self, Boolean)
 from voluptuous import Schema as VSchema
-
+from voluptuous.humanize import validate_with_humanized_errors
 from .id import Id
 
 
@@ -106,9 +106,13 @@ group = VSchema({
                            Num.up())
 }).extend(common)
 
-Schema = VSchema({
-    Optional('version', default=2): Any(1, 2),
-    Optional('filters', default={}): filters,
-    Required('tests'): All(Num.reset(),
-                           [All(Any(test, group), Num.next())])
-}).extend(common)
+
+def Schema(data):
+    """ Validate the given data against the schema. """
+    schema = VSchema({
+        Optional('version', default=2): Any(1, 2),
+        Optional('filters', default={}): filters,
+        Required('tests'): All(Num.reset(),
+                               [All(Any(test, group), Num.next())])
+    }).extend(common)
+    return validate_with_humanized_errors(data, schema)

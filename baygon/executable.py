@@ -58,6 +58,9 @@ class Executable:
     def __call__(self, *args, **kwargs):
         return self.run(*args, **kwargs)
 
+    def __repr__(self):
+        return f"{self.__class__.__name__}<{self.filename}>"
+
     @staticmethod
     def _is_executable(filename):
         return os.path.isfile(filename) and os.access(filename, os.X_OK)
