@@ -1,7 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import sys
 
 print("an apple", file=sys.stdout)
 print("an orange", file=sys.stderr)
 
-exit(42)
+sys.exit(42)

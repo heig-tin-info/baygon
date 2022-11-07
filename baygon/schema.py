@@ -107,12 +107,15 @@ group = VSchema({
 }).extend(common)
 
 
-def Schema(data):
+def Schema(data, humanize=False):
     """ Validate the given data against the schema. """
     schema = VSchema({
+        Optional('name'): str,
         Optional('version', default=2): Any(1, 2),
         Optional('filters', default={}): filters,
         Required('tests'): All(Num.reset(),
                                [All(Any(test, group), Num.next())])
     }).extend(common)
-    return validate_with_humanized_errors(data, schema)
+    if humanize:
+        return validate_with_humanized_errors(data, schema)
+    return schema(data)

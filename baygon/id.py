@@ -75,3 +75,7 @@ class Id(Sequence):
 
     def __getitem__(self, item):
         return self.ids[item]
+
+    def pad(self, length='  '):
+        """ Return id with initial padding. """
+        return length * (len(self) - 1)

@@ -16,14 +16,12 @@ def display_pad(pad=0):
 
 def test_name_length(test):
     """ Compute the length of test name. """
-    pad = '  ' * (len(test.id) - 1)
-    return len(f'{pad}Test {test.id}: {test.name}')
+    return len(f'{test.id.pad()}Test {test.id}: {test.name}')
 
 
 def display_test_name(test):
     """ Display the name of a test. """
-    pad = '  ' * (len(test.id) - 1)
-    click.secho(f'{pad}Test {test.id}: ', nl=False, bold=True)
+    click.secho(f'{test.id.pad()}Test {test.id}: ', nl=False, bold=True)
     click.secho(f'{test.name}', nl=False, bold=False)
 
 
@@ -46,16 +44,16 @@ class OneLineExceptionFormatter(logging.Formatter):
 class Runner:
     """ Test runner. """
 
-    def __init__(self, verbose, executable=None, config=None, **kwargs):
-        if verbose > 3:
+    def __init__(self, executable=None, config=None, **kwargs):
+        self.verbose = kwargs.get('verbose', 0)
+        if self.verbose > 3:
             self._init_logger("DEBUG")
 
-        self.verbose = verbose
         self.executable = executable
-        self.limit = -1 if 'limit' not in kwargs else kwargs['limit']
+        self.limit = kwargs.get('limit', -1)
+
         click.secho(config, fg='yellow')
-        self.test_suite = TestSuite(
-            path=config, executable=Executable(self.executable))
+        self.test_suite = TestSuite(path=config, executable=self.executable)
 
         self.align_column = 0
 
@@ -139,31 +137,31 @@ class Runner:
         return self.failures
 
 
-def version(ctx, param, value):
-    """ Display the version and exit. """
-    if not value:
-        return
+def version():
+    """ Display the version. """
     print(f"Baygon version {__version__} {__copyright__}")
-    sys.exit(0)
 
 
 @ click.command()
 @ click.argument('executable', required=False, type=click.Path(exists=True))
-@ click.option('--version', is_flag=True, callback=version,
+@ click.option('--version', is_flag=True,
                help='Shows version')
-@ click.option('-r', '--reverse', is_flag=True,
-               callback=version, help='Reverse tests')
-@ click.option('-e', '--max-error', type=int, default=-1,
-               callback=version, help='Stop after N errors')
+# @ click.option('-r', '--reverse', is_flag=True,
+#                callback=version, help='Reverse tests')
+# @ click.option('-e', '--max-error', type=int, default=-1,
+#                callback=version, help='Stop after N errors')
 @ click.option('-v', '--verbose', count=True, help='Shows more details')
 @ click.option('-l', '--limit', type=int, default=-1, help='Limit to N tests')
 @ click.option('-t', '--config',
                type=click.Path(exists=True),
                help='Choose config file (.yml or .json)')
 def cli(verbose=0, executable=None, config=None, **kwargs):
-    """ Baygon unit test runner """
-    runner = Runner(verbose, executable, config, **kwargs)
-    failures = runner.run()
+    """ Baygon functional test runner. """
+    if kwargs.get('version'):
+        version()
+        sys.exit(0)
+
+    failures = Runner(executable, config, verbose=verbose, **kwargs).run()
     click.echo('')
     return failures
 

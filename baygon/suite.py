@@ -17,8 +17,8 @@ def find_testfile(path=None):
     elif isinstance(path, str):
         path = Path(path)
 
-    if not path.is_dir():
-        raise ValueError(f"Path name '{path}' is not a directory")
+    if path.is_file():
+        return path
 
     for filename in ['baygon', 't', 'test', 'tests']:
         for ext in ['json', 'yml', 'yaml']:
@@ -35,7 +35,7 @@ def find_testfile(path=None):
 
 def load_config(path=None):
     """Load a configuration file (can be YAML or JSON)."""
-    path = path or find_testfile(path)
+    path = find_testfile(path)
 
     if not path.exists():
         raise ValueError(
@@ -48,7 +48,7 @@ def load_config(path=None):
         with open(path, 'rt', encoding="utf-8") as fp:
             data = json.load(fp)
     else:
-        raise ValueError(f"Unknown file extension: {path.suffix}")
+        raise ValueError(f"Unknown file extension: {path}, {path.suffix}")
 
     return Schema(data)
 
@@ -101,12 +101,15 @@ class TestGroupMixin:
     def __getitem__(self, item):
         return self.tests[item]
 
-    def run(self):
+    def run(self, flatten=False):
         """ Run the tests. """
-        issues = []
-        for test in self.tests:
-            run = test.run()
-            issues += (run if isinstance(run, list) else [run])
+        if flatten:
+            issues = []
+            for test in self.tests:
+                run = test.run()
+                issues += (run if isinstance(run, list) else [run])
+        else:
+            issues = [test.run() for test in self.tests]
         return issues
 
     def get_points(self):
@@ -135,7 +138,7 @@ class TestCase(TestBaseMixin):
     def run(self):
         """ Run the tests. """
         if not isinstance(self.executable, Executable):
-            raise ValueError('Not a valid executable')
+            raise ValueError(f"Not a valid executable for test {self.id} : {self.executable}")
 
         self.output = output = self.executable.run(*self.args, stdin=self.stdin)
         self.issues = [
@@ -204,9 +207,14 @@ class TestGroup(TestGroupMixin, TestBaseMixin):
 class TestSuite(TestGroupMixin, TestFilterMixin):
     """ Test suite. """
 
-    def __init__(self, path=None, executable=None):
-        self.path = find_testfile(path)
-        self.config = load_config(self.path)
+    def __init__(self, data: dict = None, path=None, executable=None):
+        if isinstance(data, dict):
+            self.config = Schema(data)
+        else:
+            self.path = find_testfile(path)
+            self.config = load_config(self.path)
+
+        self.name = self.config.get('name', 'Test Suite')
         self.version = self.config.get('version')
         if executable is not None and self.config['executable'] is not None:
             raise ValueError(
