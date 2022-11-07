@@ -14,7 +14,7 @@ class Filter(ABC):
         """ Return True if the value matches the filter. """
         return value
 
-    def __init__(self, /, name: str = None):
+    def __init__(self, name: str = None):
         self.name = name
 
     def __repr__(self):

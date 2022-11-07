@@ -27,7 +27,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@master
       - name: Install and Build
-        run: cd docs && yarn install && yarn doc:build
+        run: cd docs && yarn install && yarn docs:build
       - name: Build and Deploy
         uses: JamesIves/github-pages-deploy-action@3.7.1
         with:
