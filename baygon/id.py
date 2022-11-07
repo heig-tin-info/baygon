@@ -10,19 +10,21 @@ class Id(Sequence):
     Example:
 
     >>> i = Id()
-    Id(1)
     >>> i = i.down()
+    >>> i
     Id(1.1)
     >>> i += 1
+    >>> i
     Id(1.2)
     >>> i += 2
+    >>> i
     Id(1.4)
     >>> str(i)
-    1.4
+    '1.4'
     >>> i.up()
     Id(1)
     >>> ((i + 1).down() + 1).down()
-    Id(2.2.1)
+    Id(1.5.2.1)
     >>> tuple(Id().down().next().down().next().down().next())
     (1, 2, 2, 2)
     """

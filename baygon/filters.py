@@ -35,7 +35,7 @@ class FilterUppercase(Filter):
     """ Filter for uppercase strings.
     >>> f = FilterUppercase()
     >>> f('hello')
-    HELLO
+    'HELLO'
     """
     type = 'uppercase'
 
@@ -47,7 +47,7 @@ class FilterLowercase(Filter):
     """ Filter for lowercase strings.
     >>> f = FilterLowercase()
     >>> f('HELLO')
-    hello
+    'hello'
     """
 
     type = 'lowercase'
@@ -60,7 +60,7 @@ class FilterTrim(Filter):
     """ Filter for trimmed strings.
     >>> f = FilterTrim()
     >>> f(' hello   ')
-    hello
+    'hello'
     """
     type = 'trim'
 
@@ -72,7 +72,7 @@ class FilterIgnoreSpaces(Filter):
     """ Filter for strings with no spaces.
     >>> f = FilterIgnoreSpaces()
     >>> f('hello   world')
-    helloworld
+    'helloworld'
     """
     type = 'ignorespaces'
 
@@ -84,7 +84,7 @@ class FilterReplace(Filter):
     """ Filter for strings with simple replacements.
     >>> f = FilterReplace('hello', 'world')
     >>> f('hello world')
-    world world
+    'world world'
     """
     type = 'replace'
 
@@ -101,7 +101,7 @@ class FilterRegex(Filter):
     """ Filter for strings using regular expressions.
     >>> f = FilterRegex('[aeiou]', '-')
     >>> f('hello world')
-    h-ll- w-rld
+    'h-ll- w-rld'
     """
     type = 'regex'
 
