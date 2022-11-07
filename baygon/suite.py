@@ -206,9 +206,9 @@ class TestCase(NamedMixin, ExecutableMixin, FilterMixin):
                where=None, inverse=False) -> list:
         """ Match a value against a list of options. """
         issues = []
-        value = GreppableString(value)
         for case in options:
-            value = self.filters(value)
+            value = GreppableString(self.filters.extend(case.get('filters', {}))(value))
+
             if 'regex' in case:
                 if (not value.grep(case['regex'])) ^ inverse:
                     issues += [error.InvalidRegex(value, case['regex'],

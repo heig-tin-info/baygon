@@ -1,9 +1,9 @@
 """ Main CLI command. """
-import click
-import time
-import logging
 import os
 import sys
+import time
+import logging
+import click
 
 from . import TestSuite, TestGroup, TestCase
 from . import __version__, __copyright__
