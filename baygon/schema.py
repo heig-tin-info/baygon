@@ -107,7 +107,7 @@ group = VSchema({
 }).extend(common)
 
 
-def Schema(data, humanize=False):
+def Schema(data, humanize=False):  # noqa: N802
     """ Validate the given data against the schema. """
     schema = VSchema({
         Optional('name'): str,

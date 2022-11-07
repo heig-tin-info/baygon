@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 import sys
 
 if len(sys.argv) > 1 and sys.argv[1] == '--version':

@@ -146,6 +146,7 @@ class Filters(Filter, Sequence):
     def extend(self, filters):
         """ Extend the filters with another Filters object. """
         self._filters.extend(self._parse_filter(filters))
+        return self
 
     def filter(self, value: str) -> str:
         for filter_ in self._filters:

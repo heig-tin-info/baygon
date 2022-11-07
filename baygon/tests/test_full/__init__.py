@@ -4,7 +4,7 @@ from pathlib import Path
 import baygon
 from baygon import error
 
-dir_path = Path(__file__).absolute().parent
+dir_path = Path(__file__).resolve(strict=True).parent
 
 
 class TestDemo(TestCase):

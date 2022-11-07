@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 import sys
 
 print("an apple", file=sys.stdout)

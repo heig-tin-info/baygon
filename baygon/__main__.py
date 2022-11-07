@@ -5,7 +5,7 @@ import logging
 import os
 import sys
 
-from . import TestSuite, TestGroup, TestCase, Executable
+from . import TestSuite, TestGroup, TestCase
 from . import __version__, __copyright__
 
 

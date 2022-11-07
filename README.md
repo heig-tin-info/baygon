@@ -73,10 +73,10 @@ yarn docs:dev
 ## Contributing ?
 
 ```console
-sudo apt update python3-venv
+sudo apt update python-venv
 git clone https://github.com/heig-tin-info/baygon.git
 cd baygon
-python3 -m venv env
+python -m venv env
 source env/bin/activate
 pip install -e .
 ```

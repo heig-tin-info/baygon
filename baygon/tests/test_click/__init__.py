@@ -17,7 +17,7 @@ class TestVersion(TestCase):
 class TestDemo(TestCase):
     @property
     def directory(self):
-        return Path(__file__).absolute().parent
+        return Path(__file__).resolve(strict=True).parent
 
     @property
     def executable(self):
@@ -33,6 +33,8 @@ class TestDemo(TestCase):
             self.executable, '-v'])
 
         print(f"Output: {result}")
+        print(f"Executed: {self.executable}")
+        print(f"Config: {self.get_config('success.yml')}")
 
         self.assertEqual(result.exit_code, 0)
         self.assertIn('Ran 4 tests in', result.output)

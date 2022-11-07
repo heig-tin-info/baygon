@@ -5,7 +5,7 @@ from unittest import TestCase
 from baygon import Executable
 from baygon.str import GreppableString
 
-dir_path = Path(__file__).absolute().parent
+dir_path = Path(__file__).resolve(strict=True).parent
 
 
 class TestExecutable(TestCase):

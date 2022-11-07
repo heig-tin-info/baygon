@@ -13,7 +13,7 @@ from .str import GreppableString
 def find_testfile(path=None):
     """Recursively find the tests description file."""
     if not path:
-        path = Path('.').absolute()
+        path = Path('.').resolve(strict=True)
     elif isinstance(path, str):
         path = Path(path)
 
@@ -39,7 +39,7 @@ def load_config(path=None):
 
     if not path.exists():
         raise ValueError(
-            f"Couldn't find and configuration file in '{path.absolute()}'")
+            f"Couldn't find and configuration file in '{path.resolve()}'")
 
     with open(path, 'rt', encoding="utf-8") as fp:
         if path.suffix in ['.yml', '.yaml']:
@@ -80,6 +80,7 @@ class ExecutableMixin(BaseMixin):
 
     def __init__(self, *args, **kwargs):
         config = args[0]
+        self.cwd = kwargs['parent'].cwd
 
         if hasattr(kwargs['parent'], 'executable'):
             executable = kwargs['parent'].executable
@@ -91,7 +92,8 @@ class ExecutableMixin(BaseMixin):
                 "Executable can't be overridden")
 
         if config['executable'] is not None:
-            self.executable = Executable(config['executable'])
+            exec = self.cwd.joinpath(config['executable']).resolve(strict=True)
+            self.executable = Executable(exec)
         else:
             self.executable = Executable(executable)
 
@@ -179,8 +181,8 @@ class TestCase(NamedMixin, ExecutableMixin, FilterMixin):
 
         self.issues = [
             *self._check_exit_status(output.exit_status),
-            *self._check_stdout(self.filters.filter(output.stdout)),
-            *self._check_stderr(self.filters.filter(output.stderr))
+            *self._check_stdout(output.stdout),
+            *self._check_stderr(output.stderr)
         ]
         return self.issues
 
@@ -206,6 +208,7 @@ class TestCase(NamedMixin, ExecutableMixin, FilterMixin):
         issues = []
         value = GreppableString(value)
         for case in options:
+            value = self.filters(value)
             if 'regex' in case:
                 if (not value.grep(case['regex'])) ^ inverse:
                     issues += [error.InvalidRegex(value, case['regex'],
@@ -238,8 +241,10 @@ class TestSuite(ExecutableMixin, FilterMixin, GroupMixin):
     def __init__(self, data: dict = None, path=None, executable=None):
         if isinstance(data, dict):
             self.config = Schema(data)
+            cwd = Path.cwd()
         else:
             self.path = find_testfile(path)
+            cwd = self.path
             self.config = load_config(self.path)
 
         self.name = self.config.get('name', 'Test Suite')
@@ -247,6 +252,7 @@ class TestSuite(ExecutableMixin, FilterMixin, GroupMixin):
 
         class Root:
             def __init__(self, executable):
-                self.executable = executable
+                self.executable = Executable(executable)
+                self.cwd = cwd.resolve(strict=True).parent
 
         super().__init__(self.config, parent=Root(executable))

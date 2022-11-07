@@ -4,6 +4,6 @@ filters:
 tests:
   - name: Stdout is the spaces are removed
     args: [4, 5]
-    executable: main2.py
+    executable: add.py
     stdout:
       - contains: "a+b=4+5"

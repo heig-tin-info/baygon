@@ -2,9 +2,8 @@
 from pathlib import Path
 from unittest import TestCase
 from baygon.suite import TestSuite
-from baygon import Executable
 
-dir_path = Path(__file__).absolute().parent
+dir_path = Path(__file__).resolve(strict=True).parent
 
 
 class TestConfig(TestCase):
