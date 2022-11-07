@@ -1,4 +1,4 @@
-# Syntax
+# Config File Syntax
 
 ## Base
 
@@ -112,7 +112,16 @@ tests:
         exit: 0
 ```
 
-The executable is propagated through the test tree and can be overwritten at any level. Of couse, the executable can also be defined on the main header:
+The executable is propagated through the test tree. But you cannot override an existing executable. The following is invalid:
+
+```yaml
+tests:
+  - executable: ./foo
+    tests:
+      - executable: ./bar
+```
+
+One approach is name the executable at the top level:
 
 ```yaml
 version: 1
@@ -127,6 +136,8 @@ Or even from the shell:
 ```console
 baygon ./foobar
 ```
+
+Note that the working directory is the directory of the config file, except if you specify the executable from the shell. In this case the working directory is the current directory.
 
 ## Configuration file
 

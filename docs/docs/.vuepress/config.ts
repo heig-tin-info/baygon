@@ -1,10 +1,6 @@
 import { defineUserConfig } from 'vuepress'
 import { defaultTheme } from '@vuepress/theme-default'
 
-import { backToTopPlugin } from '@vuepress/plugin-back-to-top'
-import { mediumZoomPlugin } from '@vuepress/plugin-medium-zoom'
-// import { docsearchPlugin } from '@vuepress/plugin-docsearch'
-
 export default defineUserConfig({
   base: '/baygon/',
   lang: 'en-US',
@@ -12,7 +8,7 @@ export default defineUserConfig({
   description: "Minimalistic functional test framework",
   markdown: {
     code: {
-        lineNumbers: false
+      lineNumbers: false
     }
   },
   theme: defaultTheme({
@@ -24,35 +20,29 @@ export default defineUserConfig({
     lastUpdated: false,
     smoothScroll: true,
     navbar: [
+      {
+        text: 'Guide',
+        link: '/guide/',
+      },
+      {
+        text: 'Baygon',
+        link: 'https://pypi.org/project/baygon/'
+      }
+    ],
+    sidebar: [{
+      text: 'Guide',
+      link: '/guide/',
+      children: [
         {
-          text: 'Guide',
-          link: '/guide/',
+          text: 'Getting Started',
+          link: '/guide/README.md',
         },
-        {
-          text: 'Baygon',
-          link: 'https://pypi.org/project/baygon/'
-        }
-      ],
-      // sidebar: {
-      //   '/guide/': [
-      //     {
-      //       title: 'Guide',
-      //       collapsable: true,
-      //       children: [
-      //         '',
-      //         'Syntax',
-      //         'Advanced',
-      //       ]
-      //     }
-      //   ],
-      // },
+        'Syntax',
+        'Scripting',
+        'Advanced',
+      ]
+    }]
   }),
   plugins: [
-    // backToTopPlugin(),
-    // mediumZoomPlugin(),
-    // docsearchPlugin({
-
-    // })
-
   ]
 })

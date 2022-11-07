@@ -6,6 +6,14 @@ Baygon is a minimalistic test framework for any types of executables. It provide
 Baygon v1 is currently in `beta` stage. It's ready to be used for building functional tests, but the config and API are not stable enough, which is likely to have breaking changes between minor releases.
 :::
 
+## How it works
+
+Baygon is a CLI tool that runs tests described in a JSON or YAML file. It can be used to test any kind of executable, including binaries, scripts, and even web applications. It's designed to be used for student assignments.
+
+Based on the description file, a `TestSuite` is built. A `TestSuite` is a collection of `TestCases` that are executed sequentially. Each `TestCase` is a collection of `TestSteps` that are executed sequentially.
+
+By default Baygon will run all the tests in the description file.
+
 ## Get started
 
 Let's say you have a C program you want to test:
