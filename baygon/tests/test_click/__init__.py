@@ -15,21 +15,24 @@ class TestVersion(TestCase):
 
 
 class TestDemo(TestCase):
-    def dir_path(self):
+    @property
+    def directory(self):
         return Path(__file__).absolute().parent
+
+    @property
+    def executable(self):
+        return str(self.directory.joinpath('main.py'))
+
+    def get_config(self, name):
+        return self.directory.joinpath(name)
 
     def test_success(self):
         runner = CliRunner()
-        dir_path = self.dir_path()
-        config = dir_path.joinpath('success.yml')
-        executable = dir_path.joinpath('main.py')
-        print(f"dir_path: {dir_path}")
-        print(f"config: {config}")
-        result = runner.invoke(cli, [f"--config={config}", executable, '-v'])
+        result = runner.invoke(cli, [
+            f"--config={self.get_config('success.yml')}",
+            self.executable, '-v'])
 
         print(f"Output: {result}")
-        print(f"Stdout: {result.stdout}")
-        print(f"Stderr: {result.stderr}")
 
         self.assertEqual(result.exit_code, 0)
         self.assertIn('Ran 4 tests in', result.output)
@@ -37,11 +40,9 @@ class TestDemo(TestCase):
 
     def test_failure(self):
         runner = CliRunner()
-        dir_path = self.dir_path()
-        result = runner.invoke(
-            cli, [
-                f"--config={dir_path.joinpath('fail.yml')}",
-                dir_path.joinpath('main.py'), '-v'])
+        result = runner.invoke(cli, [
+            f"--config={self.get_config('fail.yml')}",
+            self.executable, '-v'])
 
         print(result)
         self.assertEqual(result.exit_code, 0)
@@ -51,11 +52,9 @@ class TestDemo(TestCase):
 
     def test_inverse(self):
         runner = CliRunner()
-        dir_path = self.dir_path()
-        result = runner.invoke(
-            cli, [
-                f"--config={dir_path.joinpath('inverse.yml')}",
-                dir_path.joinpath('main.py'), '-v'])
+        result = runner.invoke(cli, [
+            f"--config={self.get_config('inverse.yml')}",
+            self.executable, '-v'])
 
         print(result, result.output)
 
@@ -64,12 +63,8 @@ class TestDemo(TestCase):
 
     def test_ignorespaces(self):
         runner = CliRunner()
-        dir_path = self.dir_path()
-        result = runner.invoke(
-            cli, [
-                f"--config={dir_path.joinpath('ignorespaces.yml')}",
-                '--verbose',
-                dir_path.joinpath('main2.py'), '-v'])
+        result = runner.invoke(cli, [
+            f"--config={self.get_config('ignorespaces.yml')}", '-vv'])
 
         print(result, result.output)
 

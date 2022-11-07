@@ -51,7 +51,6 @@ class Runner:
 
         self.executable = executable
         self.limit = kwargs.get('limit', -1)
-
         click.secho(config, fg='yellow')
         self.test_suite = TestSuite(path=config, executable=self.executable)
 

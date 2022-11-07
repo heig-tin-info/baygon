@@ -152,6 +152,9 @@ class Filters(Filter, Sequence):
             value = filter_.filter(value)
         return value
 
+    def __repr__(self):
+        return f'{self.__class__.__name__}<{self._filters}>'
+
 
 filter_map = {
     'uppercase': FilterUppercase,

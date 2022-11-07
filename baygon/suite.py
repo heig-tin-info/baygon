@@ -41,59 +41,91 @@ def load_config(path=None):
         raise ValueError(
             f"Couldn't find and configuration file in '{path.absolute()}'")
 
-    if path.suffix in ['.yml', '.yaml']:
-        with open(path, 'rt', encoding="utf-8") as fp:
-            data = yaml.safe_load(fp)
-    elif path.suffix in ['.json']:
-        with open(path, 'rt', encoding="utf-8") as fp:
-            data = json.load(fp)
-    else:
-        raise ValueError(f"Unknown file extension: {path}, {path.suffix}")
+    with open(path, 'rt', encoding="utf-8") as fp:
+        if path.suffix in ['.yml', '.yaml']:
+            return Schema(yaml.safe_load(fp))
+        if path.suffix in ['.json']:
+            return Schema(json.load(fp))
 
-    return Schema(data)
+    raise ValueError(f"Unknown file extension '{path.suffix}' for '{path}'")
 
 
-class TestFilterMixin:
+class BaseMixin:
+    """ Base mixin to prevent super() failure.
+    Ensure it will be the last MRO (Method Resolution Order)."""
+
+    def __init__(self, *args, **kwargs):
+        pass
+
+
+class FilterMixin(BaseMixin):
     """ Mixin for tests that can have filters. """
 
-    def __init__(self, config, *args, **kwargs):
-        self.filters = Filters()
+    def __init__(self, *args, **kwargs):
+        config = args[0]
+
+        if 'parent' in kwargs and hasattr(kwargs['parent'], 'filters'):
+            self.filters = kwargs['parent'].filters
+        else:
+            self.filters = Filters()
 
         if 'filters' in config:
             self.filters.extend(config['filters'])
 
+        super().__init__(*args, **kwargs)
 
-class TestBaseMixin(TestFilterMixin):
-    """ Base class for tests. """
 
-    def __init__(self, config, executable=None):
-        super().__init__(config, executable)
+class ExecutableMixin(BaseMixin):
+    """ Mixin for tests that have an executable. """
+
+    def __init__(self, *args, **kwargs):
+        config = args[0]
+
+        if hasattr(kwargs['parent'], 'executable'):
+            executable = kwargs['parent'].executable
+        else:
+            executable = None
+
+        if executable is not None and config['executable'] is not None:
+            raise ValueError(
+                "Executable can't be overridden")
+
+        if config['executable'] is not None:
+            self.executable = Executable(config['executable'])
+        else:
+            self.executable = Executable(executable)
+
+        super().__init__(*args, **kwargs)
+
+
+class NamedMixin(BaseMixin):
+    """ Mixin for tests having a name. """
+
+    def __init__(self, *args, **kwargs):
+        config = args[0]
+
         self.name = config['name']
         self.id = Id(config['test_id'])
         self.points = config['points']
 
-        if executable is not None and config['executable'] is not None:
-            raise ValueError(
-                "Executable can't be overridden in the test configuration")
-
-        self.executable = Executable(executable) if executable else None
+        super().__init__(*args, **kwargs)
 
     def __repr__(self):
         return f"{self.__class__.__name__}<{self.id}. {self.name}>"
 
 
-class TestGroupMixin:
+class GroupMixin(BaseMixin):
     """ Mixin for tests that can have sub-tests. """
 
-    def __init__(self, config, executable, *args, **kwargs):
-        """ Initialize the test group. """
-        super().__init__(config, executable, *args, **kwargs)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        config = args[0]
         self.tests = []
         for test in config['tests']:
             if 'tests' in test:
-                self.tests.append(TestGroup(test, executable))
+                self.tests.append(TestGroup(test, parent=self))
             else:
-                self.tests.append(TestCase(test, executable))
+                self.tests.append(TestCase(test, parent=self))
 
     def __len__(self):
         return len(self.tests)
@@ -117,11 +149,12 @@ class TestGroupMixin:
         return sum(test.points for test in self.tests)
 
 
-class TestCase(TestBaseMixin):
+class TestCase(NamedMixin, ExecutableMixin, FilterMixin):
     """ A single test. """
 
-    def __init__(self, config, *args, **kwargs):
-        super().__init__(config, *args, **kwargs)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        config = args[0]
 
         self.args = config.get('args', [])
         self.env = config.get('env', {})
@@ -131,16 +164,19 @@ class TestCase(TestBaseMixin):
         self.stderr = config.get('stderr', [])
 
         self.exit = config.get('exit', None)
-
+        self.config = config
         self.output = None
         self.issues = []
 
     def run(self):
         """ Run the tests. """
         if not isinstance(self.executable, Executable):
-            raise ValueError(f"Not a valid executable for test {self.id} : {self.executable}")
+            raise ValueError(
+                f"Not a valid executable {self.id} : {self.executable}")
 
-        self.output = output = self.executable.run(*self.args, stdin=self.stdin)
+        self.output = output = self.executable.run(*self.args,
+                                                   stdin=self.stdin)
+
         self.issues = [
             *self._check_exit_status(output.exit_status),
             *self._check_stdout(self.filters.filter(output.stdout)),
@@ -192,19 +228,11 @@ class TestCase(TestBaseMixin):
         return issues
 
 
-class TestGroup(TestGroupMixin, TestBaseMixin):
+class TestGroup(NamedMixin, ExecutableMixin, FilterMixin, GroupMixin):
     """ A group of tests. """
 
-    def __init__(self, config, executable, *args, **kwargs):
-        super().__init__(config, executable, *args, **kwargs)
-        if executable is not None and config['executable'] is not None:
-            raise ValueError(
-                "Executable can't be overridden in the test configuration")
 
-        self.executable = Executable(executable) if executable else None
-
-
-class TestSuite(TestGroupMixin, TestFilterMixin):
+class TestSuite(ExecutableMixin, FilterMixin, GroupMixin):
     """ Test suite. """
 
     def __init__(self, data: dict = None, path=None, executable=None):
@@ -216,11 +244,9 @@ class TestSuite(TestGroupMixin, TestFilterMixin):
 
         self.name = self.config.get('name', 'Test Suite')
         self.version = self.config.get('version')
-        if executable is not None and self.config['executable'] is not None:
-            raise ValueError(
-                "Executable can't be specified in"
-                "both the config and the command line")
 
-        self.executable = Executable(executable) if executable else None
+        class Root:
+            def __init__(self, executable):
+                self.executable = executable
 
-        super().__init__(config=self.config, executable=self.executable)
+        super().__init__(self.config, parent=Root(executable))

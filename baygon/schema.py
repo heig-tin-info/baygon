@@ -44,14 +44,14 @@ class TrackId:
 
 
 Value = Any(str,
-            All(Any(int, float, All(Boolean, Coerce(int))), Coerce(str)))
+            All(Any(int, float, All(bool, Coerce(int))), Coerce(str)))
 
 # Global test filters
 filters = {
-    Optional('uppercase'): Boolean,
-    Optional('lowercase'): Boolean,
-    Optional('trim'): Boolean,
-    Optional(Any('ignorespaces', 'ignore-spaces')): Boolean,
+    Optional('uppercase'): Boolean(),
+    Optional('lowercase'): Boolean(),
+    Optional('trim'): Boolean(),
+    Optional(Any('ignorespaces', 'ignore-spaces')): Boolean(),
     Optional('regex'): ExactSequence([str, str]),
     Optional('replace'): ExactSequence([str, str]),
 }
@@ -95,7 +95,7 @@ test = VSchema({
     Optional('stdout', default=[]): match,
     Optional('stderr', default=[]): match,
 
-    Optional('exit'): All(Any(int, Boolean), Coerce(int))
+    Optional('exit'): All(Any(int, Boolean()), Coerce(int))
 }).extend(common)
 
 Num = TrackId()
