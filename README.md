@@ -5,7 +5,6 @@
 ![Build and Deploy](https://github.com/heig-tin-info/baygon/workflows/Build%20and%20Deploy/badge.svg)
 ![Python](https://img.shields.io/pypi/pyversions/baygon)
 
-
 **K**ills **B**ugs **D**ead!
 
 <img src="https://github.com/heig-tin-info/baygon/raw/master/docs/docs/.vuepress/public/baygon.svg" data-canonical-src="https://github.com/heig-tin-info/baygon/docs/docs/.vuepress/public/baygon.svg" width="400"/>
@@ -56,17 +55,28 @@ ok.
 
 ## How to install?
 
-```
+```console
 pip3 install -U baygon
+```
+
+## Build documentation
+
+The documentation is build upon VuePress.
+
+```console
+cd docs
+yarn install
+yarn docs:build
+yarn docs:dev
 ```
 
 ## Contributing ?
 
-```
-sudo apt update python3-venv
+```console
+sudo apt update python-venv
 git clone https://github.com/heig-tin-info/baygon.git
 cd baygon
-python3 -m venv env
+python -m venv env
 source env/bin/activate
 pip install -e .
 ```

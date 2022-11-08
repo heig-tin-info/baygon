@@ -1,15 +1,15 @@
-import os
-from unittest import TestCase
 
+from unittest import TestCase
+from pathlib import Path
 import baygon
 from baygon import error
 
-dir_path = os.path.dirname(os.path.realpath(__file__))
+dir_path = Path(__file__).resolve(strict=True).parent
 
 
 class TestDemo(TestCase):
     def setUp(self):
-        self.exe = baygon.Executable(os.path.join(dir_path, 'main.py'))
+        self.exe = baygon.Executable(dir_path.joinpath('main.py'))
 
     def test_minimal(self):
         print(dir_path)

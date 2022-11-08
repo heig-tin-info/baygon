@@ -1,8 +1,15 @@
+""" Errors for Baygon """
+
+
 class InvalidCondition:
-    def __init__(self, value, expected, message=None, on=None):
+    """ Invalid condition error. """
+
+    def __init__(self, value, expected, message=None, on=None, **kwargs):
         self.value = value
         self.expected = expected
         self.message = message
+        self.name = kwargs.get('name', '')
+        self.id = kwargs.get('id', None)
         self.on = on
 
     def __str__(self):
@@ -10,28 +17,36 @@ class InvalidCondition:
 
 
 class InvalidExitStatus(InvalidCondition):
+    """ Invalid exit status error. """
+
     def __str__(self):
         if hasattr(self.value, '__len__') and len(self.value) > 20:
             return f'Invalid exit status. Expected {self.expected}'
-        else:
-            return f'Invalid exit status. Expected {self.expected}, but got {self.value}'
+
+        return (f'Invalid exit status. '
+                f'Expected {self.expected}, but got {self.value}')
 
 
 class InvalidContains(InvalidCondition):
-    pass
+    """ Invalid contains error. """
 
 
 class InvalidRegex(InvalidCondition):
+    """ Invalid regex error. """
+
     def __str__(self):
-        return f'Invalid value on {self.on}. Expected to match regex /{self.expected}/'
+        return (f'Invalid value on {self.on}. '
+                f'Expected to match regex /{self.expected}/')
 
 
 class InvalidEquals(InvalidCondition):
+    """ Invalid equals error. """
+
     def __str__(self):
         if hasattr(self.value, '__len__') and len(self.value) > 20:
-            return f'Invalid value on {self.on}. '
-            'Expected exactly "{self.expected}"'
-        else:
-            return f'Invalid value on {self.on}. '
-            f'Expected exactly "{self.expected}",'
-            f' but got "{self.value}"'
+            return (f'Invalid value on {self.on}. '
+                    f'Expected exactly "{self.expected}"')
+
+        return (f'Invalid value on {self.on}. '
+                f'Expected exactly "{self.expected}", '
+                f'but got "{self.value}"')

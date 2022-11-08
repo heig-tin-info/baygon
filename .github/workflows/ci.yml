@@ -5,7 +5,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.6', '3.7', '3.8', '3.9', '3.10']
+        python-version: ["3.6", "3.7", "3.8", "3.9", "3.10"]
     steps:
       - uses: actions/checkout@v2
       - run: git fetch --prune --unshallow
@@ -16,7 +16,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install flake8 tox tox-gh-actions setuptools setuptools_scm
+          pip install coverage pytest pytest-cov flake8 tox tox-gh-actions setuptools setuptools_scm
       - name: Lint with flake8
         run: flake8 baygon --count --show-source --statistics
       - name: Test with tox
@@ -27,7 +27,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@master
       - name: Install and Build
-        run: cd docs && npm install && npm run build
+        run: cd docs && yarn install && yarn docs:build
       - name: Build and Deploy
         uses: JamesIves/github-pages-deploy-action@3.7.1
         with:
@@ -44,13 +44,13 @@ jobs:
       - run: git fetch --prune --unshallow
       - uses: actions/setup-python@v2
         with:
-          python-version: '3.x'
+          python-version: "3.x"
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install flake8 setuptools setuptools_scm
       - name: Create Dist
-        run: python3 setup.py sdist
+        run: python setup.py sdist
       - uses: actions/upload-artifact@v2
         with:
           name: release

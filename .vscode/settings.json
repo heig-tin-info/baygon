@@ -1,7 +1,9 @@
 {
-    "files.exclude": {},
-    "python.linting.enabled": true,
-    "python.linting.pylintEnabled": false,
-    "python.linting.flake8Enabled": true,
-    "python.pythonPath": "/usr/bin/python3"
+  "files.exclude": {},
+  "python.linting.enabled": true,
+  "python.linting.pylintEnabled": true,
+  "python.linting.flake8Enabled": true,
+  "cSpell.words": ["baygon", "Greppable", "ignorespaces", "secho"],
+  "python.linting.pylintArgs": ["--good-names=i,j,k,f,on,fp,id,up"],
+  "esbonio.sphinx.confDir": ""
 }

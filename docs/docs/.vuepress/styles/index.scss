@@ -1,0 +1,14 @@
+:root {
+    scroll-behavior: smooth;
+    --c-brand: #5B3433;
+    --c-brand-light: #5B3433;
+    --c-text-accent: var(--c-brand);
+    --c-text-light: #2c3e50;
+    --code-bg-color: #373c46;
+    --c-warning-bg: #fffbea;
+    --c-warning-title: #cab444;
+}
+
+.home .hero img {
+    max-width: 450px !important;
+}

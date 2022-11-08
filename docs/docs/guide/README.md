@@ -2,9 +2,21 @@
 
 Baygon is a minimalistic test framework for any types of executables. It provides a simple way of testing code with a [JSON](https://en.wikipedia.org/wiki/JSON) or a [YAML](https://en.wikipedia.org/wiki/YAML) description of tests.
 
-## Getting started
+::: warning
+Baygon v1 is currently in `beta` stage. It's ready to be used for building functional tests, but the config and API are not stable enough, which is likely to have breaking changes between minor releases.
+:::
 
-Let's say you have this C program that you want to test:
+## How it works
+
+Baygon is a CLI tool that runs tests described in a JSON or YAML file. It can be used to test any kind of executable, including binaries, scripts, and even web applications. It's designed to be used for student assignments.
+
+Based on the description file, a `TestSuite` is built. A `TestSuite` is a collection of `TestCases` that are executed sequentially. Each `TestCase` is a collection of `TestSteps` that are executed sequentially.
+
+By default Baygon will run all the tests in the description file.
+
+## Get started
+
+Let's say you have a C program you want to test:
 
 ```c
 #include <stdio.h>
@@ -53,8 +65,8 @@ pip install baygon
 Then build and test you application:
 
 ```
-cc app.c -o a.out
-baygon -v ./a.out
+$ cc app.c -o a.out
+$ baygon -v ./a.out
 Test 1: Arguments check
   Test 1.1: No errors if two arguments.......... PASSED
   Test 1.2: Error if less than two arguments.... PASSED
@@ -65,3 +77,7 @@ Ran 4 tests in 0.01s.
 
 ok.
 ```
+
+::: tip
+You may need to use `pip3` instead of `pip` depending on your system.
+:::

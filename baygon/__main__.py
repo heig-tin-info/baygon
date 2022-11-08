@@ -1,36 +1,40 @@
-import click
+""" Main CLI command. """
+import os
+import sys
 import time
 import logging
-import os
+import click
 
-from . import TestSuite, TestGroup, TestCase, Executable
+from . import TestSuite, TestGroup, TestCase
 from . import __version__, __copyright__
 
 
 def display_pad(pad=0):
-    if pad == 0:
-        click.secho('  ', nl=False)
-    else:
-        click.secho('.' * pad, nl=False, dim=True)
+    """ Display a pad of spaces to align nested output. """
+    click.secho('.' * pad if pad > 0 else '  ', nl=False, dim=pad == 0)
 
 
 def test_name_length(test):
-    pad = '  ' * (len(test._id) - 1)
-    return len(f'{pad}Test {test.id}: {test.name}')
+    """ Compute the length of test name. """
+    return len(f'{test.id.pad()}Test {test.id}: {test.name}')
 
 
 def display_test_name(test):
-    pad = '  ' * (len(test._id) - 1)
-    click.secho(f'{pad}Test {test.id}: ', nl=False, bold=True)
+    """ Display the name of a test. """
+    click.secho(f'{test.id.pad()}Test {test.id}: ', nl=False, bold=True)
     click.secho(f'{test.name}', nl=False, bold=False)
 
 
 class OneLineExceptionFormatter(logging.Formatter):
+    """ A formatter that displays the exception on a single line. """
+
     def format_exception(self, exc_info):
+        """ Format an exception. """
         result = super().format_exception(exc_info)
         return repr(result)
 
     def format(self, record):
+        """ Format a log record. """
         result = super().format(record)
         if record.exc_text:
             result = result.replace("\n", "")
@@ -38,14 +42,23 @@ class OneLineExceptionFormatter(logging.Formatter):
 
 
 class Runner:
-    def __init__(self, verbose, executable=None, config=None, **kwargs):
-        if verbose > 3:
+    """ Test runner. """
+
+    def __init__(self, executable=None, config=None, **kwargs):
+        self.verbose = kwargs.get('verbose', 0)
+        if self.verbose > 3:
             self._init_logger("DEBUG")
 
-        self.verbose = verbose
         self.executable = executable
-        self.limit = -1 if 'limit' not in kwargs else kwargs['limit']
-        self.test_suite = TestSuite(path=config, executable=Executable(self.executable))
+        self.limit = kwargs.get('limit', -1)
+        click.secho(config, fg='yellow')
+        self.test_suite = TestSuite(path=config, executable=self.executable)
+
+        self.align_column = 0
+
+        self.failures = 0
+        self.successes = 0
+        self.skipped = 0
 
     def _init_logger(self, loglevel):
         handler = logging.StreamHandler()
@@ -56,6 +69,7 @@ class Runner:
         root.addHandler(handler)
 
     def run(self):
+        """ Run the tests. """
         start_time = time.time()
         self.align_column = self._max_length(self.test_suite) + 10
 
@@ -65,27 +79,27 @@ class Runner:
 
         self._traverse_group(self.test_suite)
 
-        click.secho('\nRan %d tests in %ss.' % (
-            self.successes + self.failures,
-            round(time.time() - start_time, 2)
-        ), bold=True)
+        tests = self.failures + self.successes + self.skipped
+        seconds = round(time.time() - start_time, 2)
+        click.secho(f'\nRan {tests} tests in {seconds}s.', bold=True)
 
         if self.failures > 0:
-            click.secho('%d failed, %d passed (%d%% ok).' % (
-                self.failures, self.successes,
-                100 - round(self.failures / (self.failures + self.successes) * 100, 2)
-            ), fg='yellow', bold=True)
+            ratio = 100 - round(
+                self.failures / (self.failures + self.successes) * 100, 2)
+            click.secho((f'{self.failures} failed, {self.successes} '
+                         f'passed ({ratio}%% ok).'), fg='yellow', bold=True)
             click.secho('\nfail.', fg='red', bold=True)
         else:
             click.secho('\nok.', fg='green')
 
         if self.skipped > 0:
-            click.secho(
-                f'{self.skipped} test(s) skipped, some executables may be missing.', fg='yellow')
+            click.secho((
+                f'{self.skipped} test(s) skipped, '
+                'some executables may be missing.'), fg='yellow')
 
         return self.failures
 
-    def _max_length(self, tests, level=0):
+    def _max_length(self, tests):
         length = 0
         for test in tests:
             length = max(test_name_length(test), length)
@@ -110,36 +124,43 @@ class Runner:
                     self.skipped += 1
                     continue
                 display_pad(self.align_column - test_name_length(test))
-                if not len(issues):
+                if not issues:
                     self.successes += 1
                     click.secho(' PASSED', fg='green')
                 else:
                     self.failures += 1
                     click.secho(' FAILED', fg='red', bold=True)
                     for issue in issues:
-                        click.secho('  ' * len(test._id) + '- ' + str(issue),
+                        click.secho('  ' * len(test.id) + '- ' + str(issue),
                                     fg='magenta', bold=True)
         return self.failures
 
 
-def version(ctx, param, value):
-    if not value:
-        return
+def version():
+    """ Display the version. """
     print(f"Baygon version {__version__} {__copyright__}")
-    exit(0)
 
 
-@click.command()
-@click.argument('executable', required=False, type=click.Path(exists=True))
-@click.option('--version', is_flag=True, callback=version, help='Shows version')
-@click.option('-v', '--verbose', count=True, help='Shows more details')
-@click.option('-l', '--limit', type=int, default=-1, help='Limit to N tests')
-@click.option('-t', '--config',
-              type=click.Path(exists=True),
-              help='Choose config file (.yml or .json)')
+@ click.command()
+@ click.argument('executable', required=False, type=click.Path(exists=True))
+@ click.option('--version', is_flag=True,
+               help='Shows version')
+# @ click.option('-r', '--reverse', is_flag=True,
+#                callback=version, help='Reverse tests')
+# @ click.option('-e', '--max-error', type=int, default=-1,
+#                callback=version, help='Stop after N errors')
+@ click.option('-v', '--verbose', count=True, help='Shows more details')
+@ click.option('-l', '--limit', type=int, default=-1, help='Limit to N tests')
+@ click.option('-t', '--config',
+               type=click.Path(exists=True),
+               help='Choose config file (.yml or .json)')
 def cli(verbose=0, executable=None, config=None, **kwargs):
-    runner = Runner(verbose, executable, config, **kwargs)
-    failures = runner.run()
+    """ Baygon functional test runner. """
+    if kwargs.get('version'):
+        version()
+        sys.exit(0)
+
+    failures = Runner(executable, config, verbose=verbose, **kwargs).run()
     click.echo('')
     return failures
 

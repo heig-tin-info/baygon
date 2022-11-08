@@ -98,3 +98,5 @@ a.out
 *.o
 
 baygon/version.py
+.temp
+node_modules

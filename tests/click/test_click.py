@@ -1,7 +1,8 @@
-from click.testing import CliRunner
+""" Test CLI. """
 from unittest import TestCase
+from pathlib import Path
+from click.testing import CliRunner
 from baygon.__main__ import cli
-import os
 
 
 class TestVersion(TestCase):
@@ -14,15 +15,26 @@ class TestVersion(TestCase):
 
 
 class TestDemo(TestCase):
+    @property
+    def directory(self):
+        return Path(__file__).resolve(strict=True).parent
+
+    @property
+    def executable(self):
+        return str(self.directory.joinpath('main.py'))
+
+    def get_config(self, name):
+        return self.directory.joinpath(name)
+
     def test_success(self):
         runner = CliRunner()
-        dir_path = os.path.dirname(os.path.realpath(__file__))
-        result = runner.invoke(
-            cli, [
-                '--config=' + os.path.join(dir_path, 'success.yml'),
-                os.path.join(dir_path, 'main.py'), '-v'])
+        result = runner.invoke(cli, [
+            f"--config={self.get_config('success.yml')}",
+            self.executable, '-v'])
 
-        print(result.output)
+        print(f"Output: {result}")
+        print(f"Executed: {self.executable}")
+        print(f"Config: {self.get_config('success.yml')}")
 
         self.assertEqual(result.exit_code, 0)
         self.assertIn('Ran 4 tests in', result.output)
@@ -30,13 +42,11 @@ class TestDemo(TestCase):
 
     def test_failure(self):
         runner = CliRunner()
-        dir_path = os.path.dirname(os.path.realpath(__file__))
-        result = runner.invoke(
-            cli, [
-                '--config=' + os.path.join(dir_path, 'fail.yml'),
-                os.path.join(dir_path, 'main.py'), '-v'])
+        result = runner.invoke(cli, [
+            f"--config={self.get_config('fail.yml')}",
+            self.executable, '-v'])
 
-        print(result.output)
+        print(result)
         self.assertEqual(result.exit_code, 0)
         self.assertIn('Invalid exit status', result.output)
         self.assertIn('Invalid value on stdout', result.output)
@@ -44,11 +54,9 @@ class TestDemo(TestCase):
 
     def test_inverse(self):
         runner = CliRunner()
-        dir_path = os.path.dirname(os.path.realpath(__file__))
-        result = runner.invoke(
-            cli, [
-                '--config=' + os.path.join(dir_path, 'inverse.yml'),
-                os.path.join(dir_path, 'main.py'), '-v'])
+        result = runner.invoke(cli, [
+            f"--config={self.get_config('inverse.yml')}",
+            self.executable, '-v'])
 
         print(result, result.output)
 
@@ -57,12 +65,8 @@ class TestDemo(TestCase):
 
     def test_ignorespaces(self):
         runner = CliRunner()
-        dir_path = os.path.dirname(os.path.realpath(__file__))
-        result = runner.invoke(
-            cli, [
-                '--config=' + os.path.join(dir_path, 'ignorespaces.yml'),
-                '--verbose',
-                os.path.join(dir_path, 'main2.py'), '-v'])
+        result = runner.invoke(cli, [
+            f"--config={self.get_config('ignorespaces.yml')}", '-vv'])
 
         print(result, result.output)
 

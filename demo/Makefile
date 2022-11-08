@@ -15,4 +15,4 @@ test: $(EXEC)
 clean:
 	$(RM) $(EXEC) *.o
 
-.PHONY: test all format build
+.PHONY: test all clean
