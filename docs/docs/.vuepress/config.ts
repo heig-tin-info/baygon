@@ -14,11 +14,9 @@ export default defineUserConfig({
   theme: defaultTheme({
     repo: 'heig-tin-info/baygon',
     repoLabel: 'Contribute!',
-    editLinks: false,
     docsDir: 'docs',
     editLinkText: '',
     lastUpdated: false,
-    smoothScroll: true,
     navbar: [
       {
         text: 'Guide',
@@ -33,13 +31,10 @@ export default defineUserConfig({
       text: 'Guide',
       link: '/guide/',
       children: [
-        {
-          text: 'Getting Started',
-          link: '/guide/README.md',
-        },
-        'Syntax',
-        'Scripting',
-        'Advanced',
+        { text: 'Getting Started', link: '/guide/README.md' },
+        { text: 'Syntax', link: '/guide/syntax.md' },
+        { text: 'Scripting', link: '/guide/scripting.md' },
+        { text: 'Advanced', link: '/guide/advanced.md' },
       ]
     }]
   }),

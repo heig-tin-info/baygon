@@ -1,6 +1,7 @@
 """ Test config file. """
 from pathlib import Path
 from unittest import TestCase
+
 from baygon.suite import TestSuite
 
 dir_path = Path(__file__).resolve(strict=True).parent

@@ -1,5 +1,7 @@
 from unittest import TestCase
+
 from voluptuous.error import MultipleInvalid
+
 from baygon import Schema
 
 

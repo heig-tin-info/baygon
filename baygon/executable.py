@@ -2,10 +2,12 @@
 
 import os
 import shutil
-import typing
 import subprocess
-from pathlib import Path
+import typing
 from collections import namedtuple
+from pathlib import Path
+from .error import InvalidExecutableError
+
 Outputs = namedtuple('Outputs', ['exit_status', 'stdout', 'stderr'])
 
 forbidden_binaries = ['rm', 'mv', 'dd', 'wget', 'mkfs']
@@ -17,7 +19,23 @@ def get_env(env: typing.Optional[str] = None) -> dict:
 
 
 class Executable:
-    """ Allow to execute a program and conveniently read the output. """
+    """ An executable program.
+
+    Convenient execution and access to program outputs such as:
+
+        - Exit status
+        - Standard output
+        - Standard error
+
+    For example:
+
+        >>> e = Executable('echo')
+        Executable<echo>
+        >>> e('-n', 'Hello World')
+        Outputs(exit_status=0, stdout='Hello World', stderr='')
+        >>> e('-n', 'Hello World').stdout
+        'Hello World!'
+    """
 
     def __new__(cls, filename):
         if isinstance(filename, cls):
@@ -26,6 +44,11 @@ class Executable:
         return super().__new__(cls) if filename else None
 
     def __init__(self, filename, encoding='utf-8'):
+        """ Create an executable object.
+
+        :param filename: The path of the executable.
+        :param encoding: The encoding to be used for the outputs, default is UTF-8.
+        """
         if isinstance(filename, self.__class__):
             self.filename = filename.filename
             self.encoding = filename.encoding
@@ -36,10 +59,10 @@ class Executable:
         if not self._is_executable(self.filename):
             if '/' not in filename and shutil.which(filename) is not None:
                 if filename in forbidden_binaries:
-                    raise ValueError(f"Program '{filename}' is forbidden!")
+                    raise InvalidExecutableError(f"Program '{filename}' is forbidden!")
                 filename = shutil.which(filename)
             else:
-                raise ValueError(f"Program '{filename}' is not an executable!")
+                raise InvalidExecutableError(f"Program '{filename}' is not an executable!")
 
     def run(self, *args, stdin=None, env=None):
         """ Run the program and grab all the outputs. """

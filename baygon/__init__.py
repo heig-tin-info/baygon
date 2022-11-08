@@ -1,7 +1,7 @@
 """ Baygon is a tool to run tests on executables. """
 from .executable import Executable
-from .suite import TestSuite, TestGroup, TestCase
 from .schema import Schema
+from .suite import TestCase, TestGroup, TestSuite
 
 __all__ = ['TestCase', 'TestGroup', 'TestSuite', 'Executable', 'Schema']
 
