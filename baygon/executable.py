@@ -19,7 +19,23 @@ def get_env(env: typing.Optional[str] = None) -> dict:
 
 
 class Executable:
-    """ Allow to execute a program and conveniently read the output. """
+    """ An executable program.
+
+    Convenient execution and access to program outputs such as:
+
+        - Exit status
+        - Standard output
+        - Standard error
+
+    For example:
+
+        >>> e = Executable('echo')
+        Executable<echo>
+        >>> e('-n', 'Hello World')
+        Outputs(exit_status=0, stdout='Hello World', stderr='')
+        >>> e('-n', 'Hello World').stdout
+        'Hello World!'
+    """
 
     def __new__(cls, filename):
         if isinstance(filename, cls):
@@ -28,6 +44,11 @@ class Executable:
         return super().__new__(cls) if filename else None
 
     def __init__(self, filename, encoding='utf-8'):
+        """ Create an executable object.
+
+        :param filename: The path of the executable.
+        :param encoding: The encoding to be used for the outputs, default is UTF-8.
+        """
         if isinstance(filename, self.__class__):
             self.filename = filename.filename
             self.encoding = filename.encoding
