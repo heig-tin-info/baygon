@@ -6,6 +6,7 @@ import subprocess
 import typing
 from collections import namedtuple
 from pathlib import Path
+
 from .error import InvalidExecutableError
 
 Outputs = namedtuple('Outputs', ['exit_status', 'stdout', 'stderr'])

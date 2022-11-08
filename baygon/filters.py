@@ -5,6 +5,7 @@ A filter is used to modify `stdout` and `stderr` before they are tested.
 import re
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
+
 from .error import InvalidFilterError
 
 
@@ -15,11 +16,11 @@ class Filter(ABC):
         """ Return True if the value matches the filter. """
         return value
 
-    def __init__(self, name: str = None):
-        self.name = name
+    def __init__(self, *args, **kwargs):
+        ...
 
     def __repr__(self):
-        return f'{self.__class__.__name__}<{self.name}>'
+        return f'{self.__class__.__name__}'
 
     def __call__(self, value: str) -> str:
         return self.filter(value)
@@ -133,8 +134,12 @@ class Filters(Filter, Sequence):
         if isinstance(filters, Filters):
             return filters._filters
         if isinstance(filters, dict):
-            return [filter_map[name](args)
-                    for name, args in filters.items()]
+            instances = []
+            for name, args in filters.items():
+                if not isinstance(args, list):
+                    args = [args]
+                instances.append(filter_map[name](*args))
+            return instances
 
         raise InvalidFilterError(f'Invalid type for filters: {type(filters)}')
 

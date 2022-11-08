@@ -3,8 +3,8 @@ from pathlib import Path
 from unittest import TestCase
 
 from baygon import Executable
-from baygon.str import GreppableString
 from baygon.error import InvalidExecutableError
+from baygon.str import GreppableString
 
 dir_path = Path(__file__).resolve(strict=True).parent
 

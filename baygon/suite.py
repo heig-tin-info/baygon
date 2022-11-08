@@ -1,10 +1,11 @@
 """ Test suite. """
 import json
 from pathlib import Path
-from .error import InvalidExecutableError, ConfigError
+
 import yaml
 
 from . import error
+from .error import ConfigError, InvalidExecutableError
 from .executable import Executable
 from .filters import Filters
 from .id import Id
