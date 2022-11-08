@@ -241,6 +241,7 @@ class TestGroup(NamedMixin, ExecutableMixin, FilterMixin, GroupMixin):
 
 class TestSuite(ExecutableMixin, FilterMixin, GroupMixin):
     """ Test suite. """
+    __test__ = False  # Don't run this class as a test
 
     def __init__(self, data: dict = None, path=None, executable=None, cwd=None):
         if isinstance(data, dict):

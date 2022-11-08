@@ -4,13 +4,14 @@ from unittest import TestCase
 
 from baygon import Executable
 from baygon.str import GreppableString
+from baygon.error import InvalidExecutableError
 
 dir_path = Path(__file__).resolve(strict=True).parent
 
 
 class TestExecutable(TestCase):
     def test_not_a_file(self):
-        self.assertRaises(ValueError, Executable, 'not-a-file')
+        self.assertRaises(InvalidExecutableError, Executable, 'not-a-file')
 
     def test_arg(self):
         e = Executable(shutil.which('echo'))
