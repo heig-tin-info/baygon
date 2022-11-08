@@ -1,1 +1,0 @@
-const e=JSON.parse('{"key":"v-d7fa887a","path":"/guide/contributing.html","title":"","lang":"en-US","frontmatter":{},"excerpt":"","headers":[],"git":{"contributors":[{"name":"Yves Chevallier","email":"yves.chevallier@heig-vd.ch","commits":1}]},"filePathRelative":"guide/contributing.md"}');export{e as data};
