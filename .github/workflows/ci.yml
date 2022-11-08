@@ -21,6 +21,8 @@ jobs:
         run: flake8 baygon --count --show-source --statistics
       - name: Test with tox
         run: tox
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
   documentation:
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags')
