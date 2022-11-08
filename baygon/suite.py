@@ -13,9 +13,11 @@ from .str import GreppableString
 def find_testfile(path=None):
     """Recursively find the tests description file."""
     if not path:
-        path = Path('.').resolve(strict=True)
+        path = Path('.')
     elif isinstance(path, str):
         path = Path(path)
+
+    path = path.resolve(strict=True)
 
     if path.is_file():
         return path
@@ -238,7 +240,7 @@ class TestGroup(NamedMixin, ExecutableMixin, FilterMixin, GroupMixin):
 class TestSuite(ExecutableMixin, FilterMixin, GroupMixin):
     """ Test suite. """
 
-    def __init__(self, data: dict = None, path=None, executable=None):
+    def __init__(self, data: dict = None, path=None, executable=None, cwd=None):
         if isinstance(data, dict):
             self.config = Schema(data)
             cwd = Path.cwd()
