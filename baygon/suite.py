@@ -1,7 +1,7 @@
 """ Test suite. """
 import json
 from pathlib import Path
-
+from .error import InvalidExecutableError, ConfigError
 import yaml
 
 from . import error
@@ -42,7 +42,7 @@ def load_config(path=None):
     path = find_testfile(path)
 
     if not path.exists():
-        raise ValueError(
+        raise ConfigError(
             f"Couldn't find and configuration file in '{path.resolve()}'")
 
     with open(path, 'rt', encoding="utf-8") as fp:
@@ -51,7 +51,7 @@ def load_config(path=None):
         if path.suffix in ['.json']:
             return Schema(json.load(fp))
 
-    raise ValueError(f"Unknown file extension '{path.suffix}' for '{path}'")
+    raise ConfigError(f"Unknown file extension '{path.suffix}' for '{path}'")
 
 
 class BaseMixin:
@@ -92,12 +92,12 @@ class ExecutableMixin(BaseMixin):
             executable = None
 
         if executable is not None and config['executable'] is not None:
-            raise ValueError(
+            raise InvalidExecutableError(
                 "Executable can't be overridden")
 
         if config['executable'] is not None:
-            exec = self.cwd.joinpath(config['executable']).resolve(strict=True)
-            self.executable = Executable(exec)
+            exe = self.cwd.joinpath(config['executable']).resolve(strict=True)
+            self.executable = Executable(exe)
         else:
             self.executable = Executable(executable)
 
@@ -177,8 +177,8 @@ class TestCase(NamedMixin, ExecutableMixin, FilterMixin):
     def run(self):
         """ Run the tests. """
         if not isinstance(self.executable, Executable):
-            raise ValueError(
-                f"Not a valid executable {self.id} : {self.executable}")
+            raise InvalidExecutableError(
+                f"Test {self.id}, not a valid executable: {self.executable}")
 
         self.output = output = self.executable.run(*self.args,
                                                    stdin=self.stdin)

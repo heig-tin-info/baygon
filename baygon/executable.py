@@ -6,6 +6,7 @@ import subprocess
 import typing
 from collections import namedtuple
 from pathlib import Path
+from .error import InvalidExecutableError
 
 Outputs = namedtuple('Outputs', ['exit_status', 'stdout', 'stderr'])
 
@@ -37,10 +38,10 @@ class Executable:
         if not self._is_executable(self.filename):
             if '/' not in filename and shutil.which(filename) is not None:
                 if filename in forbidden_binaries:
-                    raise ValueError(f"Program '{filename}' is forbidden!")
+                    raise InvalidExecutableError(f"Program '{filename}' is forbidden!")
                 filename = shutil.which(filename)
             else:
-                raise ValueError(f"Program '{filename}' is not an executable!")
+                raise InvalidExecutableError(f"Program '{filename}' is not an executable!")
 
     def run(self, *args, stdin=None, env=None):
         """ Run the program and grab all the outputs. """

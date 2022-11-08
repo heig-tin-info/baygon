@@ -7,6 +7,7 @@ import time
 import click
 
 from . import TestCase, TestGroup, TestSuite, __copyright__, __version__
+from .error import InvalidExecutableError
 
 
 def display_pad(pad=0):
@@ -132,7 +133,7 @@ class Runner:
                     click.secho(' FAILED', fg='red', bold=True)
                     for issue in issues:
                         click.secho('  ' * len(test.id) + '- ' + str(issue),
-                                    fg='magenta', bold=True)
+                                    fg='magenta')
         return self.failures
 
 
@@ -141,26 +142,30 @@ def version():
     print(f"Baygon version {__version__} {__copyright__}")
 
 
-@ click.command()
-@ click.argument('executable', required=False, type=click.Path(exists=True))
-@ click.option('--version', is_flag=True,
-               help='Shows version')
-# @ click.option('-r', '--reverse', is_flag=True,
-#                callback=version, help='Reverse tests')
-# @ click.option('-e', '--max-error', type=int, default=-1,
-#                callback=version, help='Stop after N errors')
-@ click.option('-v', '--verbose', count=True, help='Shows more details')
-@ click.option('-l', '--limit', type=int, default=-1, help='Limit to N tests')
-@ click.option('-t', '--config',
-               type=click.Path(exists=True),
-               help='Choose config file (.yml or .json)')
-def cli(verbose=0, executable=None, config=None, **kwargs):
+@click.command()
+@click.argument('executable', required=False, type=click.Path(exists=True))
+@click.option('--version', is_flag=True, help='Shows version')
+@click.option('-v', '--verbose', count=True, help='Shows more details')
+@click.option('-l', '--limit', type=int, default=-1, help='Limit errors to N')
+@click.option('-d', '--debug', is_flag=True, default=0, help='Debug mode')
+@click.option('-t', '--config',
+              type=click.Path(exists=True),
+              help='Choose config file (.yml or .json)')
+def cli(debug, verbose=0, executable=None, config=None, **kwargs):
     """ Baygon functional test runner. """
     if kwargs.get('version'):
         version()
         sys.exit(0)
 
-    failures = Runner(executable, config, verbose=verbose, **kwargs).run()
+    if debug:
+        failures = Runner(executable, config, verbose=verbose, **kwargs).run()
+    else:
+        try:
+            failures = Runner(executable, config, verbose=verbose, **kwargs).run()
+        except InvalidExecutableError as error:
+            click.secho(f"\nError: {error}", fg='red', bold=True, err=True)
+            sys.exit(1)
+
     click.echo('')
     return failures
 

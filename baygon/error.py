@@ -1,6 +1,26 @@
 """ Errors for Baygon """
 
 
+class BaygonError(Exception):
+    """ Base class for Baygon errors """
+    pass
+
+
+class ConfigError(BaygonError):
+    """ Raised when a config value is not valid """
+    pass
+
+
+class InvalidExecutableError(BaygonError):
+    """ Raised when an executable is not found """
+    pass
+
+
+class InvalidFilterError(BaygonError):
+    """ Raised when a filter is not found """
+    pass
+
+
 class InvalidCondition:
     """ Invalid condition error. """
 
