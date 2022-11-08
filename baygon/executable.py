@@ -2,10 +2,11 @@
 
 import os
 import shutil
-import typing
 import subprocess
-from pathlib import Path
+import typing
 from collections import namedtuple
+from pathlib import Path
+
 Outputs = namedtuple('Outputs', ['exit_status', 'stdout', 'stderr'])
 
 forbidden_binaries = ['rm', 'mv', 'dd', 'wget', 'mkfs']

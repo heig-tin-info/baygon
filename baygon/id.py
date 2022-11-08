@@ -1,7 +1,7 @@
 """ Hierarchical Id class to identify nested sequences """
-from typing import List
-from collections.abc import Sequence
 import re
+from collections.abc import Sequence
+from typing import List
 
 
 class Id(Sequence):

@@ -1,6 +1,7 @@
 
-from unittest import TestCase
 from pathlib import Path
+from unittest import TestCase
+
 import baygon
 from baygon import error
 

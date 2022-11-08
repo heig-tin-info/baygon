@@ -1,8 +1,9 @@
 """ Test CLI. """
-from unittest import TestCase
 from pathlib import Path
-from click.testing import CliRunner
+from unittest import TestCase
+
 from baygon.__main__ import cli
+from click.testing import CliRunner
 
 
 class TestVersion(TestCase):

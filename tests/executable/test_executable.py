@@ -1,5 +1,5 @@
-from pathlib import Path
 import shutil
+from pathlib import Path
 from unittest import TestCase
 
 from baygon import Executable

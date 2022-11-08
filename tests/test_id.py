@@ -1,5 +1,6 @@
 
 from unittest import TestCase
+
 from baygon.id import Id
 
 

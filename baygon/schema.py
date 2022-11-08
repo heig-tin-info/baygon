@@ -1,9 +1,9 @@
 """ YAML Schema for Baygon test files. """
-from voluptuous import (ExactSequence,
-                        Coerce, Required,
-                        Any, All, Optional, Self, Boolean)
+from voluptuous import All, Any, Boolean, Coerce, ExactSequence, Optional, Required
 from voluptuous import Schema as VSchema
+from voluptuous import Self
 from voluptuous.humanize import validate_with_humanized_errors
+
 from .id import Id
 
 

@@ -11,3 +11,10 @@ python_files = "test_*.py"
 python_classes = "Test*"
 norecursedirs = [".git", "_build"]
 addopts = "--cov=baygon --cov-report html"
+
+[tool.isort]
+profile = "hug"
+src_paths = ["baygon", "tests"]
+
+[tool.check-manifest]
+ignore = ["node_modules/*"]

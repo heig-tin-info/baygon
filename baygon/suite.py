@@ -1,12 +1,14 @@
 """ Test suite. """
 import json
 from pathlib import Path
+
 import yaml
-from .schema import Schema
+
+from . import error
+from .executable import Executable
 from .filters import Filters
 from .id import Id
-from .executable import Executable
-from . import error
+from .schema import Schema
 from .str import GreppableString
 
 
