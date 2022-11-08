@@ -4,6 +4,7 @@
 [![GitHub last commit](https://img.shields.io/github/last-commit/heig-tin-info/baygon.svg)](https://github.com/heig-tin-info/baygon/commits/master)
 ![Build and Deploy](https://github.com/heig-tin-info/baygon/workflows/Build%20and%20Deploy/badge.svg)
 ![Python](https://img.shields.io/pypi/pyversions/baygon)
+[![codecov](https://codecov.io/github/heig-tin-info/baygon/branch/master/graph/badge.svg?token=hFuVW5z784)](https://codecov.io/github/heig-tin-info/baygon)
 
 **K**ills **B**ugs **D**ead!
 
