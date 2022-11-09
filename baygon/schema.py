@@ -4,8 +4,7 @@ from voluptuous import Schema as VSchema
 from voluptuous import Self
 from voluptuous.humanize import validate_with_humanized_errors
 
-from .id import Id, TrackId
-
+from .id import TrackId
 
 Value = Any(str,
             All(Any(int, float, All(bool, Coerce(int))), Coerce(str)))
