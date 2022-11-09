@@ -4,47 +4,29 @@ from voluptuous import Schema as VSchema
 from voluptuous import Self
 from voluptuous.humanize import validate_with_humanized_errors
 
-from .id import Id
-
-
-class TrackId:
-    """ Keep the id of the test. """
-
-    def __init__(self):
-        self._id = Id()
-
-    def reset(self):
-        """ Reset the id. """
-        def _(v):
-            self._id = Id()
-            return v
-        return _
-
-    def down(self):
-        """ Return a new Id with the given id appended. """
-        def _(v):
-            self._id = self._id.down()
-            return v
-        return _
-
-    def up(self):
-        """ Return a new Id with the given id appended. """
-        def _(v):
-            self._id = self._id.up()
-            return v
-        return _
-
-    def next(self):
-        """ Return a new Id with the last id incremented. """
-        def _(v):
-            v['test_id'] = list(self._id)
-            self._id = self._id.next()
-            return v
-        return _
+from .id import Id, TrackId
 
 
 Value = Any(str,
             All(Any(int, float, All(bool, Coerce(int))), Coerce(str)))
+
+
+class ToList():
+    """ Convert the given value to a list. """
+
+    def __call__(self, v):
+        return [v]
+
+
+class ToDict():
+    """ Convert the given value to a dict. """
+
+    def __init__(self, key):
+        self.key = key
+
+    def __call__(self, v):
+        return {self.key: v}
+
 
 # Global test filters
 filters = {
@@ -67,12 +49,12 @@ case = {
 
 # Nested test cases
 match = Any(
-    All(Value, lambda x: [{'equals': x}]),
+    All(Value, ToDict('equals'), ToList()),
+    All(case, ToList()),
     [
-        All(Value, lambda x: {'equals': x}),
+        All(Value, lambda x: ToDict('equals')),
         case
     ],
-    case,
 )
 
 common = {

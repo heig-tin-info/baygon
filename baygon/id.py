@@ -81,3 +81,39 @@ class Id(Sequence):
     def pad(self, length='  '):
         """ Return id with initial padding. """
         return length * (len(self) - 1)
+
+
+class TrackId:
+    """ Keep the id of the test. """
+
+    def __init__(self):
+        self._id = Id()
+
+    def reset(self):
+        """ Reset the id. """
+        def _(v=None):
+            self._id = Id()
+            return v
+        return _
+
+    def down(self):
+        """ Return a new Id with the given id appended. """
+        def _(v=None):
+            self._id = self._id.down()
+            return v
+        return _
+
+    def up(self):
+        """ Return a new Id with the given id appended. """
+        def _(v=None):
+            self._id = self._id.up()
+            return v
+        return _
+
+    def next(self):
+        """ Return a new Id with the last id incremented. """
+        def _(v: dict):
+            v['test_id'] = list(self._id)
+            self._id = self._id.next()
+            return v
+        return _
