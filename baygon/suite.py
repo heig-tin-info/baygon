@@ -171,6 +171,9 @@ class TestCase(NamedMixin, ExecutableMixin, FilterMixin):
         self.stderr = config.get('stderr', [])
 
         self.exit = config.get('exit', None)
+
+        self.repeat = config.get('repeat', 1)
+
         self.config = config
         self.output = None
         self.issues = []
@@ -181,14 +184,16 @@ class TestCase(NamedMixin, ExecutableMixin, FilterMixin):
             raise InvalidExecutableError(
                 f"Test {self.id}, not a valid executable: {self.executable}")
 
-        self.output = output = self.executable.run(*self.args,
-                                                   stdin=self.stdin)
+        self.issues = []
+        for _ in range(self.repeat):
+            self.output = output = self.executable.run(*self.args,
+                                                       stdin=self.stdin)
 
-        self.issues = [
-            *self._check_exit_status(output.exit_status),
-            *self._check_stdout(output.stdout),
-            *self._check_stderr(output.stderr)
-        ]
+            self.issues += [
+                *self._check_exit_status(output.exit_status),
+                *self._check_stdout(output.stdout),
+                *self._check_stderr(output.stderr)
+            ]
         return self.issues
 
     def _check_exit_status(self, output):

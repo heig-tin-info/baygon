@@ -76,6 +76,8 @@ test = VSchema({
     Optional('stdout', default=[]): match,
     Optional('stderr', default=[]): match,
 
+    Optional('repeat', default=1): int,
+
     Optional('exit'): All(Any(int, Boolean()), Coerce(int))
 }).extend(common)
 
