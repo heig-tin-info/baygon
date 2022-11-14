@@ -158,17 +158,16 @@ def cli(debug, verbose=0, executable=None, config=None, **kwargs):
         sys.exit(0)
 
     if debug:
-        failures = Runner(executable, config, verbose=verbose, **kwargs).run()
+        Runner(executable, config, verbose=verbose, **kwargs).run()
     else:
         try:
-            failures = Runner(executable, config, verbose=verbose, **kwargs).run()
+            Runner(executable, config, verbose=verbose, **kwargs).run()
         except InvalidExecutableError as error:
             click.secho(f"\nError: {error}", fg='red', bold=True, err=True)
             sys.exit(1)
 
     click.echo('')
-    return failures
 
 
 if __name__ == '__main__':
-    cli()
+    cli(False)

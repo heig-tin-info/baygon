@@ -1,0 +1,41 @@
+# Example with the eval module
+%YAML 1.2
+---
+eval:
+  start: "{{" # Optional (default: "{{")
+  end: "}}" # Optional (default: "}}")
+  init: "from datetime import datetime" # Optional
+executable: "/usr/bin/perl"
+tests:
+  - name: Use of random variables
+    args:
+      - -e
+      - exit $ARGV[0] + 42
+      - "{{ i = randint(0, 100) }}"
+    exit: "{{i + 42}}"
+  - name: Repetition with random values
+    repeat: 10 # Repeat that test case N times
+    args:
+      - -e
+      - exit $ARGV[0] + $ARGV[1]
+      - "{{ i = randint(0, 100) }}"
+      - "{{ j = randint(0, 100) }}"
+    exit: "{{i + j}}"
+  - name: Repetition with iteration
+    repeat: 100
+    args:
+      - -e
+      - exit $ARGV[0] + $ARGV[1]
+      - "{{ i = iter(0,1) }}"
+      - "{{ j = iter(100,-2) }}"
+    exit: "{{i + j}}"
+  - name: Complex operations
+    repeat: 42
+    args:
+      - -e
+      - print -($ARGV[1] * sqrt($ARGV[1] * $ARGV[1] - 4 * $ARGV[0] * $ARGV[2])) / (2 * $ARGV[0])
+      - "{{ a = uniform(0, 100) }}"
+      - "{{ b = uniform(0, 100) }}"
+      - "{{ c = uniform(0, -100) }}"
+    stdout:
+      - contains: "{{ -b + sqrt(b * b - 4 * a * c) / (2 * a) }}"

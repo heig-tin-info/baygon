@@ -7,7 +7,7 @@ import yaml
 from . import error
 from .error import ConfigError, InvalidExecutableError
 from .executable import Executable
-from .filters import Filters
+from .filters import FilterEval, FilterNone, Filters
 from .id import Id
 from .schema import Schema
 from .str import GreppableString
@@ -69,6 +69,7 @@ class FilterMixin(BaseMixin):
     def __init__(self, *args, **kwargs):
         config = args[0]
 
+        # Configure filters
         if 'parent' in kwargs and hasattr(kwargs['parent'], 'filters'):
             self.filters = kwargs['parent'].filters
         else:
@@ -76,6 +77,15 @@ class FilterMixin(BaseMixin):
 
         if 'filters' in config:
             self.filters.extend(config['filters'])
+
+        # Eval
+        if 'parent' in kwargs and hasattr(kwargs['parent'], 'eval'):
+            self.eval = kwargs['parent'].eval
+        else:
+            self.eval = FilterNone()
+
+        if config.get('eval'):
+            self.eval = FilterEval(**config['eval'])
 
         super().__init__(*args, **kwargs)
 
@@ -186,8 +196,10 @@ class TestCase(NamedMixin, ExecutableMixin, FilterMixin):
 
         self.issues = []
         for _ in range(self.repeat):
-            self.output = output = self.executable.run(*self.args,
-                                                       stdin=self.stdin)
+            args = self._eval(self.args)
+            stdin = self._eval(self.stdin)
+
+            self.output = output = self.executable.run(*args, stdin=stdin)
 
             self.issues += [
                 *self._check_exit_status(output.exit_status),
@@ -199,8 +211,10 @@ class TestCase(NamedMixin, ExecutableMixin, FilterMixin):
     def _check_exit_status(self, output):
         if self.exit is None:  # No exit status specified
             return []
-        if output != self.exit:
-            return [error.InvalidExitStatus(output, self.exit,
+        expected = int(self._eval(self.exit) if isinstance(self.exit, str) else self.exit)
+
+        if output != expected:
+            return [error.InvalidExitStatus(output, expected,
                                             name=self.name, id=self.id)]
         return []
 
@@ -212,28 +226,40 @@ class TestCase(NamedMixin, ExecutableMixin, FilterMixin):
             return []
         return self._match(self.stderr, output, where='stderr')
 
+    def _eval(self, data):
+        if not self.eval:
+            return data
+        if isinstance(data, list):
+            return [self.eval(arg) for arg in data]
+        return self.eval(data)
+
     def _match(self, options: list, value: str,
                where=None, inverse=False) -> list:
         """ Match a value against a list of options. """
         issues = []
         for case in options:
-            value = GreppableString(self.filters.extend(case.get('filters', {}))(value))
+            value = GreppableString(
+                self.filters.extend(case.get('filters', {}))(value)
+            )
 
             if 'regex' in case:
-                if (not value.grep(case['regex'])) ^ inverse:
-                    issues += [error.InvalidRegex(value, case['regex'],
+                test = self._eval(case['regex'])
+                if (not value.grep(test)) ^ inverse:
+                    issues += [error.InvalidRegex(value, test,
                                                   on=where, name=self.name,
                                                   id=self.id)]
             if 'contains' in case:
-                if (not value.contains(case['contains'])) ^ inverse:
+                test = self._eval(case['contains'])
+                if (not value.contains(test)) ^ inverse:
                     issues += [
                         error.InvalidContains(
-                            value, case['contains'], on=where,
+                            value, test, on=where,
                             name=self.name, id=self.id)]
             if 'equals' in case:
-                if (case['equals'] != value) ^ inverse:
+                test = self._eval(case['equals'])
+                if (test != value) ^ inverse:
                     issues += [
-                        error.InvalidEquals(value, case['equals'], on=where,
+                        error.InvalidEquals(value, test, on=where,
                                             name=self.name, id=self.id)]
             if 'not' in case:
                 issues += self._match(case['not'], value, where, inverse=True)
