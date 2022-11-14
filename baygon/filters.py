@@ -156,6 +156,7 @@ class FilterEval(Filter):
             ret += value[pos:match.start()]
             ret += str(self.exec(match.group(1)))
             pos = match.end()
+        ret += value[pos:]
         return ret
 
     def exec(self, code: str):

@@ -39,14 +39,14 @@ class Join():
 
 # Eval module
 evaluate = {
-    Optional('eval', description='Eval mustaches'): {
+    Optional('eval', description='Eval mustaches'): Any({
         Optional('start', default='{{'): str,
         Optional('end', default='}}'): str,
         Optional('init', str): Any(
             All(str, ToList()),
             [str]
         )
-    }
+    }, All(Any(Boolean(), None), lambda x: {'init': []}))
 }
 
 # Global test filters

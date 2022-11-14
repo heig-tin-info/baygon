@@ -84,7 +84,7 @@ class FilterMixin(BaseMixin):
         else:
             self.eval = FilterNone()
 
-        if config.get('eval'):
+        if isinstance(config.get('eval'), dict):
             self.eval = FilterEval(**config['eval'])
 
         super().__init__(*args, **kwargs)
@@ -198,9 +198,7 @@ class TestCase(NamedMixin, ExecutableMixin, FilterMixin):
         for _ in range(self.repeat):
             args = self._eval(self.args)
             stdin = self._eval(self.stdin)
-
             self.output = output = self.executable.run(*args, stdin=stdin)
-
             self.issues += [
                 *self._check_exit_status(output.exit_status),
                 *self._check_stdout(output.stdout),
