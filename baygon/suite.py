@@ -4,13 +4,12 @@ from pathlib import Path
 
 import yaml
 
-from . import error
 from .error import ConfigError, InvalidExecutableError
 from .executable import Executable
 from .filters import FilterEval, FilterNone, Filters
 from .id import Id
 from .schema import Schema
-from .str import GreppableString
+from .matchers import MatcherFactory
 
 
 def find_testfile(path=None):
@@ -188,6 +187,13 @@ class TestCase(NamedMixin, ExecutableMixin, FilterMixin):
         self.output = None
         self.issues = []
 
+    def _eval(self, data):
+        if not self.eval:
+            return data
+        if isinstance(data, list):
+            return [self.eval(arg) for arg in data]
+        return self.eval(data)
+
     def run(self):
         """ Run the tests. """
         if not isinstance(self.executable, Executable):
@@ -196,73 +202,31 @@ class TestCase(NamedMixin, ExecutableMixin, FilterMixin):
 
         self.issues = []
         for _ in range(self.repeat):
-            args = self._eval(self.args)
-            stdin = self._eval(self.stdin)
-            self.output = output = self.executable.run(*args, stdin=stdin)
-            self.issues += [
-                *self._check_exit_status(output.exit_status),
-                *self._check_stdout(output.stdout),
-                *self._check_stderr(output.stderr)
-            ]
+            self.filtered_args = self._eval(self.args)
+            self.filtered_stdin = self._eval(self.stdin)
+            self.filtered_exit = self._eval(self.exit)
+
+            self.output = output = self.executable.run(*self.filtered_args,
+                                                       stdin=self.filtered_stdin)
+
+            for on in ['stdout', 'stderr']:
+                for case in getattr(self, on):
+                    for key, value in case.items():
+                        matcher = MatcherFactory(key, self._eval(value))
+                        self.issues += [
+                            matcher(getattr(output, on), test_case=self, on=on)
+                        ]
+
+            if self.filtered_exit is not None and self.filtered_exit != output.exit:
+                self.issues += [
+                    InvalidExitStatus(self.filtered_exit, output.exit, self)
+                ]
+
         return self.issues
 
-    def _check_exit_status(self, output):
-        if self.exit is None:  # No exit status specified
-            return []
-        expected = int(self._eval(self.exit) if isinstance(self.exit, str) else self.exit)
 
-        if output != expected:
-            return [error.InvalidExitStatus(output, expected,
-                                            name=self.name, id=self.id)]
-        return []
-
-    def _check_stdout(self, output):
-        return self._match(self.stdout, output, where='stdout')
-
-    def _check_stderr(self, output):
-        if self.stderr is None:
-            return []
-        return self._match(self.stderr, output, where='stderr')
-
-    def _eval(self, data):
-        if not self.eval:
-            return data
-        if isinstance(data, list):
-            return [self.eval(arg) for arg in data]
-        return self.eval(data)
-
-    def _match(self, options: list, value: str,
-               where=None, inverse=False) -> list:
-        """ Match a value against a list of options. """
-        issues = []
-        for case in options:
-            value = GreppableString(
-                self.filters.extend(case.get('filters', {}))(value)
-            )
-
-            if 'regex' in case:
-                test = self._eval(case['regex'])
-                if (not value.grep(test)) ^ inverse:
-                    issues += [error.InvalidRegex(value, test,
-                                                  on=where, name=self.name,
-                                                  id=self.id)]
-            if 'contains' in case:
-                test = self._eval(case['contains'])
-                if (not value.contains(test)) ^ inverse:
-                    issues += [
-                        error.InvalidContains(
-                            value, test, on=where,
-                            name=self.name, id=self.id)]
-            if 'equals' in case:
-                test = self._eval(case['equals'])
-                if (test != value) ^ inverse:
-                    issues += [
-                        error.InvalidEquals(value, test, on=where,
-                                            name=self.name, id=self.id)]
-            if 'not' in case:
-                issues += self._match(case['not'], value, where, inverse=True)
-
-        return issues
+    #         if 'not' in case:
+    #             issues += self._match(case['not'], value, where, inverse=True)
 
 
 class TestGroup(NamedMixin, ExecutableMixin, FilterMixin, GroupMixin):
