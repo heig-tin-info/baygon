@@ -8,8 +8,8 @@ from .error import ConfigError, InvalidExecutableError
 from .executable import Executable
 from .filters import FilterEval, FilterNone, Filters
 from .id import Id
-from .schema import Schema
 from .matchers import MatcherFactory
+from .schema import Schema
 
 
 def find_testfile(path=None):
@@ -223,7 +223,6 @@ class TestCase(NamedMixin, ExecutableMixin, FilterMixin):
                 ]
 
         return self.issues
-
 
     #         if 'not' in case:
     #             issues += self._match(case['not'], value, where, inverse=True)

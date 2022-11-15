@@ -1,9 +1,9 @@
 
+import inspect
 import re
 import sys
-import inspect
-import functools
 from abc import ABC, abstractmethod
+from functools import lru_cache
 
 
 class InvalidCondition:
@@ -67,6 +67,7 @@ class InvalidEquals(InvalidCondition):
 
 class MatchBase(ABC):
     """ Base class for all matchers. """
+
     def __init__(self, inverse=False, **kwargs):
         """ Initialize the matcher. """
         self.inverse = inverse
@@ -127,20 +128,19 @@ class MatchEquals(MatchBase):
 class MatcherFactory:
     """ Factory for matchers. """
     @classmethod
-    @property
-    @functools.cache
+    @lru_cache
     def matchers(cls):
         """ Helper to get all matchers by their name. """
         fmap = {}
-        for name, cls in inspect.getmembers(sys.modules[__name__]):
-            if not inspect.isclass(cls) or not name.startswith('Match'):
+        for _, member in inspect.getmembers(sys.modules[__name__]):
+            if not inspect.isclass(member) or not hasattr(member, 'name'):
                 continue
-            if cls.name() == 'base':
+            if member.name() == 'base':
                 continue
-            fmap[cls.name()] = cls
+            fmap[member.name()] = member
         return fmap
 
     def __new__(cls, name, *args, **kwargs) -> MatchBase:
-        if name not in cls.matchers:
+        if name not in cls.matchers():
             raise ValueError(f'Unknown matcher: {name}')
-        return cls.matchers[name](*args, **kwargs)
+        return cls.matchers()[name](*args, **kwargs)
