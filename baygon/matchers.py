@@ -128,7 +128,7 @@ class MatchEquals(MatchBase):
 class MatcherFactory:
     """ Factory for matchers. """
     @classmethod
-    @lru_cache
+    @lru_cache()
     def matchers(cls):
         """ Helper to get all matchers by their name. """
         fmap = {}

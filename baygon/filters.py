@@ -226,7 +226,7 @@ class Filters(Filter, Sequence):
 class FilterFactory:
     """ Factory for filters. """
     @classmethod
-    @lru_cache
+    @lru_cache()
     def filters(cls):
         """ Helper to get all filters by their name. """
         fmap = {}
