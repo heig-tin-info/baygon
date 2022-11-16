@@ -2,9 +2,14 @@
 Each filter is a class that implements a filter method.
 A filter is used to modify `stdout` and `stderr` before they are tested.
 """
+import inspect
 import re
+import sys
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
+from functools import lru_cache
+
+from tinykernel import TinyKernel
 
 from .error import InvalidFilterError
 
@@ -12,12 +17,21 @@ from .error import InvalidFilterError
 class Filter(ABC):
     """ Base class for filters. """
     @abstractmethod
-    def filter(self, value: str) -> str:
-        """ Return True if the value matches the filter. """
+    def apply(self, value: str) -> str:
+        """ Apply the filter to a value. """
         return value
 
+    def filter(self, value: str) -> str:
+        """ Apply the filter to a value. """
+        return self.apply(value)
+
     def __init__(self, *args, **kwargs):
-        ...
+        """ Initialize the filter.
+        Keyword arguments:
+
+        input: Boolean Is the filter applied to the input?
+        """
+        self.input = kwargs.get('input', False)
 
     def __repr__(self):
         return f'{self.__class__.__name__}'
@@ -25,11 +39,16 @@ class Filter(ABC):
     def __call__(self, value: str) -> str:
         return self.filter(value)
 
+    @classmethod
+    def name(cls):
+        """ Return the name of the filter. """
+        return cls.__name__.split('Filter', maxsplit=1)[1].lower()
+
 
 class FilterNone(Filter):
     """ Filter that does nothing. """
 
-    def filter(self, value: str) -> str:
+    def apply(self, value: str) -> str:
         return value
 
 
@@ -39,9 +58,8 @@ class FilterUppercase(Filter):
     >>> f('hello')
     'HELLO'
     """
-    type = 'uppercase'
 
-    def filter(self, value: str) -> str:
+    def apply(self, value: str) -> str:
         return value.upper()
 
 
@@ -52,9 +70,7 @@ class FilterLowercase(Filter):
     'hello'
     """
 
-    type = 'lowercase'
-
-    def filter(self, value: str) -> str:
+    def apply(self, value: str) -> str:
         return value.lower()
 
 
@@ -64,9 +80,9 @@ class FilterTrim(Filter):
     >>> f(' hello   ')
     'hello'
     """
-    type = 'trim'
+    __output__ = True
 
-    def filter(self, value: str) -> str:
+    def apply(self, value: str) -> str:
         return value.strip()
 
 
@@ -76,9 +92,8 @@ class FilterIgnoreSpaces(Filter):
     >>> f('hello   world')
     'helloworld'
     """
-    type = 'ignorespaces'
 
-    def filter(self, value: str) -> str:
+    def apply(self, value: str) -> str:
         return value.replace(' ', '')
 
 
@@ -88,14 +103,13 @@ class FilterReplace(Filter):
     >>> f('hello world')
     'world world'
     """
-    type = 'replace'
 
     def __init__(self, pattern: str, replacement: str):
         super().__init__()
         self.pattern = pattern
         self.replacement = replacement
 
-    def filter(self, value: str) -> str:
+    def apply(self, value: str) -> str:
         return value.replace(self.pattern, self.replacement)
 
 
@@ -105,7 +119,6 @@ class FilterRegex(Filter):
     >>> f('hello world')
     'h-ll- w-rld'
     """
-    type = 'regex'
 
     def __init__(self, pattern: str, replacement: str):
         super().__init__()
@@ -113,13 +126,60 @@ class FilterRegex(Filter):
         self.replacement = replacement
         self.regex = re.compile(pattern)
 
-    def filter(self, value: str) -> str:
+    def apply(self, value: str) -> str:
         return self.regex.sub(self.replacement, value)
+
+
+class FilterEval(Filter):
+    """ Filter for evaluating mustaches in strings.
+    """
+
+    def __init__(self, start: str = '{{', end: str = '}}', init: list = None):
+        super().__init__()
+        self._mustache = re.compile(f'{start}(.*?){end}')
+        self._kernel = TinyKernel()
+
+        init += [
+            'from math import *',
+            'from random import *',
+            'from statistics import *',
+            'from baygon.eval import iter',
+        ]
+
+        for item in init:
+            self._kernel(item)
+
+    def apply(self, value: str) -> str:
+        """ Evaluate mustaches in a string. """
+        pos = 0
+        ret = ''
+        for match in self._mustache.finditer(value):
+            ret += value[pos:match.start()]
+            ret += str(self.exec(match.group(1)))
+            pos = match.end()
+        ret += value[pos:]
+        return ret
+
+    def exec(self, code: str):
+        """ Execute code in the kernel. """
+
+        # Inject context to custom functions
+        code = re.sub(r'((?<=\b)iter\(.*?)(\))',
+                      f'\\1,ctx={hash(code)}\\2', code)
+
+        # Workaround to get the value of assignments
+        try:
+            self._kernel('_ = ' + code)
+            return self._kernel.glb['_']
+        except SyntaxError:
+            return self._kernel(code)
+
+    def __repr__(self):
+        return f'{self.__class__.__name__}({self._mustache.pattern})'
 
 
 class Filters(Filter, Sequence):
     """ A sequence of filters. """
-    type = 'filters'
 
     def __init__(self, filters=None):
         super().__init__()
@@ -138,7 +198,7 @@ class Filters(Filter, Sequence):
             for name, args in filters.items():
                 if not isinstance(args, list):
                     args = [args]
-                instances.append(filter_map[name](*args))
+                instances.append(FilterFactory(name, *args))
             return instances
 
         raise InvalidFilterError(f'Invalid type for filters: {type(filters)}')
@@ -154,7 +214,7 @@ class Filters(Filter, Sequence):
         self._filters.extend(self._parse_filter(filters))
         return self
 
-    def filter(self, value: str) -> str:
+    def apply(self, value: str) -> str:
         for filter_ in self._filters:
             value = filter_.filter(value)
         return value
@@ -163,11 +223,22 @@ class Filters(Filter, Sequence):
         return f'{self.__class__.__name__}<{self._filters}>'
 
 
-filter_map = {
-    'uppercase': FilterUppercase,
-    'lowercase': FilterLowercase,
-    'trim': FilterTrim,
-    'ignorespaces': FilterIgnoreSpaces,
-    'replace': FilterReplace,
-    'regex': FilterRegex,
-}
+class FilterFactory:
+    """ Factory for filters. """
+    @classmethod
+    @lru_cache()
+    def filters(cls):
+        """ Helper to get all filters by their name. """
+        fmap = {}
+        for _, member in inspect.getmembers(sys.modules[__name__]):
+            if not inspect.isclass(member) or not hasattr(member, 'name'):
+                continue
+            if member.name() == 'base' or len(member.name()) < 2:
+                continue
+            fmap[member.name()] = member
+        return fmap
+
+    def __new__(cls, name, *args, **kwargs) -> Filter:
+        if name not in cls.filters():
+            raise ValueError(f'Unknown matcher: {name}')
+        return cls.filters()[name](*args, **kwargs)

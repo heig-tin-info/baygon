@@ -4,13 +4,12 @@ from pathlib import Path
 
 import yaml
 
-from . import error
 from .error import ConfigError, InvalidExecutableError
 from .executable import Executable
-from .filters import Filters
+from .filters import FilterEval, FilterNone, Filters
 from .id import Id
+from .matchers import InvalidExitStatus, MatcherFactory
 from .schema import Schema
-from .str import GreppableString
 
 
 def find_testfile(path=None):
@@ -69,6 +68,7 @@ class FilterMixin(BaseMixin):
     def __init__(self, *args, **kwargs):
         config = args[0]
 
+        # Configure filters
         if 'parent' in kwargs and hasattr(kwargs['parent'], 'filters'):
             self.filters = kwargs['parent'].filters
         else:
@@ -76,6 +76,15 @@ class FilterMixin(BaseMixin):
 
         if 'filters' in config:
             self.filters.extend(config['filters'])
+
+        # Eval
+        if 'parent' in kwargs and hasattr(kwargs['parent'], 'eval'):
+            self.eval = kwargs['parent'].eval
+        else:
+            self.eval = FilterNone()
+
+        if isinstance(config.get('eval'), dict):
+            self.eval = FilterEval(**config['eval'])
 
         super().__init__(*args, **kwargs)
 
@@ -171,9 +180,23 @@ class TestCase(NamedMixin, ExecutableMixin, FilterMixin):
         self.stderr = config.get('stderr', [])
 
         self.exit = config.get('exit', None)
+
+        self.repeat = config.get('repeat', 1)
+
         self.config = config
         self.output = None
         self.issues = []
+
+        self.filtered_args = None
+        self.filtered_exit = None
+        self.filtered_stdin = None
+
+    def _eval(self, data):
+        if not self.eval:
+            return data
+        if isinstance(data, list):
+            return [self.eval(arg) for arg in data]
+        return self.eval(data)
 
     def run(self):
         """ Run the tests. """
@@ -181,59 +204,42 @@ class TestCase(NamedMixin, ExecutableMixin, FilterMixin):
             raise InvalidExecutableError(
                 f"Test {self.id}, not a valid executable: {self.executable}")
 
-        self.output = output = self.executable.run(*self.args,
-                                                   stdin=self.stdin)
+        self.issues = []
+        for _ in range(self.repeat):
+            self.filtered_args = self._eval(self.args)
+            self.filtered_stdin = self._eval(self.stdin)
+            self.filtered_exit = int(self._eval(str(self.exit))) if self.exit is not None else None
 
-        self.issues = [
-            *self._check_exit_status(output.exit_status),
-            *self._check_stdout(output.stdout),
-            *self._check_stderr(output.stderr)
-        ]
+            self.output = output = self.executable.run(
+                *self.filtered_args, stdin=self.filtered_stdin)
+
+            for on in ['stdout', 'stderr']:
+                for case in getattr(self, on):
+                    self._match(on, case, output)
+                    if 'not' in case:  # Check for negative match
+                        self._match(on, case['not'], output, inverse=True)
+
+            if self.filtered_exit is not None and self.filtered_exit != output.exit_status:
+                self.issues.append(
+                    InvalidExitStatus(
+                        self.filtered_exit, output.exit_status, on='exit', test=self))
+
         return self.issues
 
-    def _check_exit_status(self, output):
-        if self.exit is None:  # No exit status specified
-            return []
-        if output != self.exit:
-            return [error.InvalidExitStatus(output, self.exit,
-                                            name=self.name, id=self.id)]
-        return []
+    def _match(self, on, case, output, inverse=False):
+        """ Match the output. """
+        if 'filters' in case:
+            filters = self.filters.extend(case['filters'])
+        else:
+            filters = FilterNone
 
-    def _check_stdout(self, output):
-        return self._match(self.stdout, output, where='stdout')
-
-    def _check_stderr(self, output):
-        if self.stderr is None:
-            return []
-        return self._match(self.stderr, output, where='stderr')
-
-    def _match(self, options: list, value: str,
-               where=None, inverse=False) -> list:
-        """ Match a value against a list of options. """
-        issues = []
-        for case in options:
-            value = GreppableString(self.filters.extend(case.get('filters', {}))(value))
-
-            if 'regex' in case:
-                if (not value.grep(case['regex'])) ^ inverse:
-                    issues += [error.InvalidRegex(value, case['regex'],
-                                                  on=where, name=self.name,
-                                                  id=self.id)]
-            if 'contains' in case:
-                if (not value.contains(case['contains'])) ^ inverse:
-                    issues += [
-                        error.InvalidContains(
-                            value, case['contains'], on=where,
-                            name=self.name, id=self.id)]
-            if 'equals' in case:
-                if (case['equals'] != value) ^ inverse:
-                    issues += [
-                        error.InvalidEquals(value, case['equals'], on=where,
-                                            name=self.name, id=self.id)]
-            if 'not' in case:
-                issues += self._match(case['not'], value, where, inverse=True)
-
-        return issues
+        for key in MatcherFactory.matchers():
+            if key in case:
+                out = filters(getattr(output, on))
+                matcher = MatcherFactory(key, self._eval(case[key]), inverse=inverse)
+                issue = matcher(out, on=on, test=self)
+                if issue:
+                    self.issues.append(issue)
 
 
 class TestGroup(NamedMixin, ExecutableMixin, FilterMixin, GroupMixin):

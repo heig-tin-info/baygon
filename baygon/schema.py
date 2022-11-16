@@ -27,6 +27,28 @@ class ToDict():
         return {self.key: v}
 
 
+class Join():
+    """ Join the given values. """
+
+    def __init__(self, sep):
+        self.sep = sep
+
+    def __call__(self, v):
+        return self.sep.join(v)
+
+
+# Eval module
+evaluate = {
+    Optional('eval', description='Eval mustaches'): Any({
+        Optional('start', default='{{'): str,
+        Optional('end', default='}}'): str,
+        Optional('init', str): Any(
+            All(str, ToList()),
+            [str]
+        )
+    }, All(Any(Boolean(), None), lambda x: {'init': []}))
+}
+
 # Global test filters
 filters = {
     Optional('uppercase'): Boolean(),
@@ -38,13 +60,13 @@ filters = {
 }
 
 # Test case
-case = {
+case = VSchema({
     Optional('filters', default={}): filters,
     Any('equals', 'regex', 'contains'): Value,
     Optional('not'): [{Required(Any('equals', 'regex', 'contains')): Value}],
     Optional('expected',
              description="Expected value when used with regex"): Value,
-}
+})
 
 # Nested test cases
 match = Any(
@@ -55,6 +77,7 @@ match = Any(
         case
     ],
 )
+
 
 common = {
     Optional('name',
@@ -76,7 +99,9 @@ test = VSchema({
     Optional('stdout', default=[]): match,
     Optional('stderr', default=[]): match,
 
-    Optional('exit'): All(Any(int, Boolean()), Coerce(int))
+    Optional('repeat', default=1): int,
+
+    Optional('exit'): Any(int, str, bool)
 }).extend(common)
 
 Num = TrackId()
@@ -96,7 +121,7 @@ def Schema(data, humanize=False):  # noqa: N802
         Optional('filters', default={}): filters,
         Required('tests'): All(Num.reset(),
                                [All(Any(test, group), Num.next())])
-    }).extend(common)
+    }).extend(common).extend(evaluate)
     if humanize:
         return validate_with_humanized_errors(data, schema)
     return schema(data)

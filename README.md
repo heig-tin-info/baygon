@@ -57,7 +57,7 @@ ok.
 ## How to install?
 
 ```console
-pip3 install -U baygon
+pip3 install baygon
 ```
 
 ## Build documentation
