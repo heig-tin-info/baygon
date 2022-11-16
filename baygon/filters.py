@@ -8,10 +8,10 @@ import sys
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from functools import lru_cache
+
 from tinykernel import TinyKernel
 
 from .error import InvalidFilterError
-from .matchers import InvalidExitStatus, MatcherFactory
 
 
 class Filter(ABC):

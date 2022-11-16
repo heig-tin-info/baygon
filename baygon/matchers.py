@@ -106,7 +106,7 @@ class MatchContains(MatchBase):
         super().__init__(**kwargs)
 
     def __call__(self, value, **kwargs):
-        if (not self.contains in value) ^ self.inverse:
+        if (self.contains not in value) ^ self.inverse:
             return InvalidContains(value, self.contains, **kwargs)
         return None
 
