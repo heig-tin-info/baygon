@@ -47,10 +47,11 @@ class TestDemo(TestCase):
             f"--config={self.get_config('fail.yml')}",
             self.executable, '-v'])
 
-        print(result)
+        print(result.output)
         self.assertEqual(result.exit_code, 0)
         self.assertIn('Invalid exit status', result.output)
-        self.assertIn('Invalid value on stdout', result.output)
+        self.assertIn('Output 3 not equals 5 on stdout', result.output)
+        self.assertIn('Output stderr does not contain tarton', result.output)
         self.assertIn('fail.', result.output)
 
     def test_inverse(self):

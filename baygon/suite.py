@@ -8,7 +8,7 @@ from .error import ConfigError, InvalidExecutableError
 from .executable import Executable
 from .filters import FilterEval, FilterNone, Filters
 from .id import Id
-from .matchers import MatcherFactory
+from .matchers import InvalidExitStatus, MatcherFactory
 from .schema import Schema
 
 
@@ -187,6 +187,10 @@ class TestCase(NamedMixin, ExecutableMixin, FilterMixin):
         self.output = None
         self.issues = []
 
+        self.filtered_args = None
+        self.filtered_exit = None
+        self.filtered_stdin = None
+
     def _eval(self, data):
         if not self.eval:
             return data
@@ -204,28 +208,38 @@ class TestCase(NamedMixin, ExecutableMixin, FilterMixin):
         for _ in range(self.repeat):
             self.filtered_args = self._eval(self.args)
             self.filtered_stdin = self._eval(self.stdin)
-            self.filtered_exit = self._eval(self.exit)
+            self.filtered_exit = int(self._eval(str(self.exit))) if self.exit is not None else None
 
-            self.output = output = self.executable.run(*self.filtered_args,
-                                                       stdin=self.filtered_stdin)
+            self.output = output = self.executable.run(
+                *self.filtered_args, stdin=self.filtered_stdin)
 
             for on in ['stdout', 'stderr']:
                 for case in getattr(self, on):
-                    for key, value in case.items():
-                        matcher = MatcherFactory(key, self._eval(value))
-                        self.issues += [
-                            matcher(getattr(output, on), test_case=self, on=on)
-                        ]
+                    self._match(on, case, output)
+                    if 'not' in case:  # Check for negative match
+                        self._match(on, case['not'], output, inverse=True)
 
-            if self.filtered_exit is not None and self.filtered_exit != output.exit:
-                self.issues += [
-                    InvalidExitStatus(self.filtered_exit, output.exit, self)
-                ]
+            if self.filtered_exit is not None and self.filtered_exit != output.exit_status:
+                self.issues.append(
+                    InvalidExitStatus(
+                        self.filtered_exit, output.exit_status, on='exit', test=self))
 
         return self.issues
 
-    #         if 'not' in case:
-    #             issues += self._match(case['not'], value, where, inverse=True)
+    def _match(self, on, case, output, inverse=False):
+        """ Match the output. """
+        if 'filters' in case:
+            filters = self.filters.extend(case['filters'])
+        else:
+            filters = FilterNone
+
+        for key in MatcherFactory.matchers():
+            if key in case:
+                out = filters(getattr(output, on))
+                matcher = MatcherFactory(key, self._eval(case[key]), inverse=inverse)
+                issue = matcher(out, on=on, test=self)
+                if issue:
+                    self.issues.append(issue)
 
 
 class TestGroup(NamedMixin, ExecutableMixin, FilterMixin, GroupMixin):

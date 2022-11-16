@@ -92,7 +92,7 @@ class MatchRegex(MatchBase):
         super().__init__(**kwargs)
 
     def __call__(self, value, **kwargs):
-        if bool(self.pattern.findall(value)) ^ self.inverse:
+        if (not self.pattern.findall(value)) ^ self.inverse:
             return InvalidRegex(value, self.pattern.pattern, **kwargs)
         return None
 
@@ -106,7 +106,7 @@ class MatchContains(MatchBase):
         super().__init__(**kwargs)
 
     def __call__(self, value, **kwargs):
-        if self.contains in value ^ self.inverse:
+        if (not self.contains in value) ^ self.inverse:
             return InvalidContains(value, self.contains, **kwargs)
         return None
 
@@ -120,7 +120,7 @@ class MatchEquals(MatchBase):
         super().__init__(**kwargs)
 
     def __call__(self, value, **kwargs):
-        if self.equal == value ^ self.inverse:
+        if (self.equal != value) ^ self.inverse:
             return InvalidEquals(value, self.equal, **kwargs)
         return None
 

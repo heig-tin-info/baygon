@@ -7,10 +7,11 @@ import re
 import sys
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
-
+from functools import lru_cache
 from tinykernel import TinyKernel
 
 from .error import InvalidFilterError
+from .matchers import InvalidExitStatus, MatcherFactory
 
 
 class Filter(ABC):
@@ -197,7 +198,7 @@ class Filters(Filter, Sequence):
             for name, args in filters.items():
                 if not isinstance(args, list):
                     args = [args]
-                instances.append(filter_map[name](*args))
+                instances.append(FilterFactory(name, *args))
             return instances
 
         raise InvalidFilterError(f'Invalid type for filters: {type(filters)}')
@@ -222,16 +223,22 @@ class Filters(Filter, Sequence):
         return f'{self.__class__.__name__}<{self._filters}>'
 
 
-def get_filters():
-    """ Helper to get all filters by their name. """
-    fmap = {}
-    for name, cls in inspect.getmembers(sys.modules[__name__]):
-        if not inspect.isclass(cls) or not name.startswith('Filter'):
-            continue
-        if len(cls.name()) < 2:  # Ignore `Filters`
-            continue
-        fmap[cls.name()] = cls
-    return fmap
+class FilterFactory:
+    """ Factory for filters. """
+    @classmethod
+    @lru_cache
+    def filters(cls):
+        """ Helper to get all filters by their name. """
+        fmap = {}
+        for _, member in inspect.getmembers(sys.modules[__name__]):
+            if not inspect.isclass(member) or not hasattr(member, 'name'):
+                continue
+            if member.name() == 'base' or len(member.name()) < 2:
+                continue
+            fmap[member.name()] = member
+        return fmap
 
-
-filter_map = get_filters()
+    def __new__(cls, name, *args, **kwargs) -> Filter:
+        if name not in cls.filters():
+            raise ValueError(f'Unknown matcher: {name}')
+        return cls.filters()[name](*args, **kwargs)

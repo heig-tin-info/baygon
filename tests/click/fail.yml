@@ -15,4 +15,4 @@ tests:
     args: ["--version"]
     stderr:
       - regex: '\b\d\.\d\.\d\b'
-      - contains: "Version"
+      - contains: "tarton"
