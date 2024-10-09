@@ -89,7 +89,6 @@ line-length = 88
 
 [tool.pytest.ini_options]
 testpaths = "baygon tests"
-timeout = 2
 python_files = "test_*.py"
 python_classes = "Test*"
 norecursedirs = [".git", "_build"]
@@ -98,5 +97,5 @@ addopts = '''
     --ignore-glob='*.exe.py'
     --cov=baygon --cov-report
     term --cov-report
-    xml --cov-fail-under=85
+    xml --cov-fail-under=85 -vvv
 '''

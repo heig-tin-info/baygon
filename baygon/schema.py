@@ -8,6 +8,7 @@ from voluptuous import (
     ExactSequence,
     Optional,
     Required,
+    Exclusive,
     Self,
 )
 from voluptuous import Schema as VSchema
@@ -90,7 +91,15 @@ common = {
     Optional("executable", default=None, description="Path to the executable"): Any(
         str, None
     ),
-    Optional("points", default=0, description="Points given for this test"): int,
+    Optional(
+        Exclusive(
+            "points", "points_or_weight", description="Points given for this test"
+        )
+    ): Any(float, int),
+    Optional(
+        Exclusive("weight", "points_or_weight", description="Weight of the test")
+    ): Any(float, int),
+    Optional("min-points", default=0.1): Any(float, int),
 }
 
 test = VSchema(
@@ -123,6 +132,8 @@ def Schema(data, humanize=False):  # noqa: N802
                 Required("tests"): All(
                     Num.reset(), [All(Any(test, group), Num.next())]
                 ),
+                Optional("points"): Any(float, int),
+                Optional("min-points", default=0.1): Any(float, int),
             }
         )
         .extend(common)
