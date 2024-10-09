@@ -9,7 +9,7 @@ dir_path = Path(__file__).resolve(strict=True).parent
 
 class TestDemo(TestCase):
     def setUp(self):
-        self.exe = baygon.Executable(dir_path.joinpath("main.py"))
+        self.exe = baygon.Executable(dir_path.joinpath("main.exe.py"))
 
     def test_minimal(self):
         print(dir_path)

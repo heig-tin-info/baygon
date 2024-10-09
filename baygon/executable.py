@@ -34,11 +34,12 @@ class Executable:
     For example:
 
         >>> e = Executable('echo')
+        >>> e
         Executable<echo>
         >>> e('-n', 'Hello World')
         Outputs(exit_status=0, stdout='Hello World', stderr='')
         >>> e('-n', 'Hello World').stdout
-        'Hello World!'
+        'Hello World'
     """
 
     def __new__(cls, filename):

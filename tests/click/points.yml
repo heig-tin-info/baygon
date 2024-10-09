@@ -1,0 +1,21 @@
+version: 1
+executable: ./main.exe.py
+filters:
+  trim: true
+tests:
+  - name: Foo
+    args: [4, 0]
+    stdout: [ equals: 4 ]
+    points: 1
+  - name: Bar
+    args: [8, 0]
+    stdout: [ equals: 2 ]
+    points: 2
+  - name: Baz
+    args: [15, 0]
+    stdout: [ equals: 15 ]
+    points: 3
+  - name: Qux
+    args: [16, 0]
+    stdout: [ equals: 42 ]
+    points: 4

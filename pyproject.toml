@@ -35,9 +35,21 @@ classifiers = [
     "Topic :: Software Development :: Testing",
     "Topic :: Software Development :: Libraries",
 ]
-exclude = [".editorconfig", "baygon/version.py", ".gitignore",
-    ".eggs", ".env", ".tox", ".vscode", ".vscode/settings.json",
-    "*.pyc", "*~", ".DS_Store", "__pycache__", "*.pyo", "node_modules"
+exclude = [
+    ".editorconfig",
+    "baygon/version.py",
+    ".gitignore",
+    ".eggs",
+    ".env",
+    ".tox",
+    ".vscode",
+    ".vscode/settings.json",
+    "*.pyc",
+    "*~",
+    ".DS_Store",
+    "__pycache__",
+    "*.pyo",
+    "node_modules",
 ]
 
 [tool.poetry.urls]
@@ -60,7 +72,7 @@ black = "^24.10.0"
 tox = "^4.21.2"
 
 [tool.check-manifest]
-ignore = [ "node_modules/*",]
+ignore = ["node_modules/*"]
 
 [tool.poetry.scripts]
 baygon = "baygon.__main__:cli"
@@ -76,8 +88,15 @@ select = ["E", "F", "W", "C", "I"]
 line-length = 88
 
 [tool.pytest.ini_options]
-testpaths = "tests"
+testpaths = "baygon tests"
+timeout = 2
 python_files = "test_*.py"
 python_classes = "Test*"
-norecursedirs = [ ".git", "_build",]
-addopts = "--cov=baygon --cov-report term --cov-report xml --cov-fail-under=85"
+norecursedirs = [".git", "_build"]
+addopts = '''
+    --doctest-modules
+    --ignore-glob='*.exe.py'
+    --cov=baygon --cov-report
+    term --cov-report
+    xml --cov-fail-under=85
+'''

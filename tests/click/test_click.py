@@ -25,7 +25,7 @@ class TestDemo(TestCase):
 
     @property
     def executable(self):
-        return str(self.directory.joinpath("main.py"))
+        return str(self.directory.joinpath("main.exe.py"))
 
     def get_config(self, name):
         return self.directory.joinpath(name)

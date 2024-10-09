@@ -4,7 +4,7 @@ from unittest import TestCase
 
 from baygon import Executable
 from baygon.error import InvalidExecutableError
-from baygon.str import GreppableString
+from baygon.helpers import GreppableString
 
 dir_path = Path(__file__).resolve(strict=True).parent
 
@@ -21,13 +21,13 @@ class TestExecutable(TestCase):
         self.assertEqual(output.stdout, test_string)
 
     def test_stdout(self):
-        e = Executable(dir_path.joinpath("dummy.py"))
+        e = Executable(dir_path.joinpath("dummy.exe.py"))
         output = e.run()
         print(output)
         self.assertEqual(output.stdout, "an apple\n")
 
     def test_stderr(self):
-        e = Executable(dir_path.joinpath("dummy.py"))
+        e = Executable(dir_path.joinpath("dummy.exe.py"))
         output = e.run()
         print(output)
         self.assertEqual(output.stderr, "an orange\n")
@@ -40,13 +40,13 @@ class TestExecutable(TestCase):
         self.assertEqual(output.stdout, test_string)
 
     def test_exit_status(self):
-        e = Executable(dir_path.joinpath("dummy.py"))
+        e = Executable(dir_path.joinpath("dummy.exe.py"))
         output = e.run()
         print(output)
         self.assertEqual(output.exit_status, 42)
 
     def test_args(self):
-        e = Executable(dir_path.joinpath("args.py"))
+        e = Executable(dir_path.joinpath("args.exe.py"))
         test_string = "foobar"
         output = e.run(2, test_string)
         print(output)
