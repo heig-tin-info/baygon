@@ -22,7 +22,7 @@ jobs:
       - name: Check formatting
         run: poetry run black --check .
       - name: Lint with Ruff
-        run: poetry run ruff --check .
+        run: poetry run ruff check .
       - name: Test with tox
         run: tox
       - name: Upload coverage to Codecov
