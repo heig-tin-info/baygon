@@ -26,6 +26,7 @@ export default defineUserConfig({
           { text: 'Getting Started', link: '/guide/' },
           { text: 'Syntax', link: '/guide/syntax.md' },
           { text: 'Scripting', link: '/guide/scripting.md' },
+          { text: 'Academic Use', link: '/guide/score.md' },
           { text: 'Advanced', link: '/guide/advanced.md' },
         ],
       },

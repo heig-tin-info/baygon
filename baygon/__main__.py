@@ -171,31 +171,34 @@ class Runner:
                 self.points_total += test.points
                 if issues is None:  # Skipped
                     click.secho(" SKIPPED", fg="yellow")
-                    click.secho(
-                        "".join([f"  $ {cmd}\n" for cmd in self.ran_commands]),
-                        fg="blue",
-                        dim=True,
-                    )
+                    if self.ran_commands:
+                        click.secho(
+                            "".join([f"  $ {cmd}\n" for cmd in self.ran_commands]),
+                            fg="blue",
+                            dim=True,
+                        )
                     self.skipped += 1
                     continue
                 display_pad(self.align_column - test_name_length(test))
                 if not issues:
                     self.successes += 1
                     click.secho(" PASSED", fg="green")
-                    click.secho(
-                        "".join([f"  $ {cmd}\n" for cmd in self.ran_commands]),
-                        fg="blue",
-                        dim=True,
-                    )
+                    if self.ran_commands:
+                        click.secho(
+                            "".join([f"  $ {cmd}\n" for cmd in self.ran_commands]),
+                            fg="blue",
+                            dim=True,
+                        )
                     self.points_earned += test.points
                 else:
                     self.failures += 1
                     click.secho(" FAILED", fg="red", bold=True)
-                    click.secho(
-                        "".join([f"  $ {cmd}\n" for cmd in self.ran_commands]),
-                        fg="blue",
-                        dim=True,
-                    )
+                    if self.ran_commands:
+                        click.secho(
+                            "".join([f"  $ {cmd}\n" for cmd in self.ran_commands]),
+                            fg="blue",
+                            dim=True,
+                        )
                     for issue in issues:
                         click.secho(
                             "  " * len(test.id) + "- " + str(issue), fg="magenta"

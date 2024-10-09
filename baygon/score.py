@@ -2,7 +2,7 @@
   Used in academic.
 """
 
-from decimal import Decimal, getcontext, ROUND_HALF_UP
+from decimal import Decimal, getcontext, ROUND_HALF_UP, ROUND_DOWN
 
 
 def float_or_int(value):
