@@ -6,7 +6,12 @@ from decimal import ROUND_DOWN, ROUND_HALF_UP, Decimal, getcontext
 
 
 def float_or_int(value):
-    """Return a float or an integer."""
+    """Return a float or an integer.
+    >>> float_or_int(1.0)
+    1
+    >>> float_or_int(1.1)
+    1.1
+    """
     if value == int(value):
         return int(value)
     return float(value)
@@ -145,7 +150,10 @@ def assign_points(test, parent=None):  # noqa: C901
 
 
 def has_weights_or_points(test):
-    """Check if there are weights or points in the test or its subtests."""
+    """Check if there are weights or points in the test or its subtests.
+    >>> has_weights_or_points({"weight": 10})
+    True
+    """
     if "weight" in test or "points" in test:
         return True
     if "tests" in test:

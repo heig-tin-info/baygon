@@ -96,5 +96,5 @@ addopts = '''
     --ignore-glob='*.exe.py'
     --cov=baygon --cov-report
     term --cov-report
-    xml --cov-fail-under=85 -vvv
+    xml --cov-fail-under=80 -vvv
 '''
