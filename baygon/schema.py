@@ -6,9 +6,9 @@ from voluptuous import (
     Boolean,
     Coerce,
     ExactSequence,
+    Exclusive,
     Optional,
     Required,
-    Exclusive,
     Self,
 )
 from voluptuous import Schema as VSchema

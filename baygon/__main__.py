@@ -4,7 +4,7 @@ import logging
 import os
 import sys
 import time
-import logging
+
 import click
 
 from . import TestCase, TestGroup, TestSuite, __copyright__, __version__
@@ -154,6 +154,44 @@ class Runner:
         cin = f' <<< "{stdin.decode("utf-8")}"' if stdin else ""
         self.ran_commands.append(f"{cmdline}{cin} (exit: {exit_status})")
 
+    def _run_test(self, test):
+        self.ran_commands = []
+        hook = self.hook_ran_command if self.verbose > 2 else None
+        issues = test.run(hook)
+        self.points_total += test.points
+        if issues is None:  # Skipped
+            click.secho(" SKIPPED", fg="yellow")
+            if self.ran_commands:
+                click.secho(
+                    "".join([f"  $ {cmd}\n" for cmd in self.ran_commands]),
+                    fg="blue",
+                    dim=True,
+                )
+            self.skipped += 1
+            return
+        display_pad(self.align_column - test_name_length(test))
+        if not issues:
+            self.successes += 1
+            click.secho(" PASSED", fg="green")
+            if self.ran_commands:
+                click.secho(
+                    "".join([f"  $ {cmd}\n" for cmd in self.ran_commands]),
+                    fg="blue",
+                    dim=True,
+                )
+            self.points_earned += test.points
+        else:
+            self.failures += 1
+            click.secho(" FAILED", fg="red", bold=True)
+            if self.ran_commands:
+                click.secho(
+                    "".join([f"  $ {cmd}\n" for cmd in self.ran_commands]),
+                    fg="blue",
+                    dim=True,
+                )
+            for issue in issues:
+                click.secho("  " * len(test.id) + "- " + str(issue), fg="magenta")
+
     def _traverse_group(self, tests):
         for test in tests:
             if self.limit > 0 and self.failures > self.limit:
@@ -165,44 +203,7 @@ class Runner:
                 self._traverse_group(test)
             elif isinstance(test, TestCase):
                 display_test_name(test)
-                self.ran_commands = []
-                hook = self.hook_ran_command if self.verbose > 2 else None
-                issues = test.run(hook)
-                self.points_total += test.points
-                if issues is None:  # Skipped
-                    click.secho(" SKIPPED", fg="yellow")
-                    if self.ran_commands:
-                        click.secho(
-                            "".join([f"  $ {cmd}\n" for cmd in self.ran_commands]),
-                            fg="blue",
-                            dim=True,
-                        )
-                    self.skipped += 1
-                    continue
-                display_pad(self.align_column - test_name_length(test))
-                if not issues:
-                    self.successes += 1
-                    click.secho(" PASSED", fg="green")
-                    if self.ran_commands:
-                        click.secho(
-                            "".join([f"  $ {cmd}\n" for cmd in self.ran_commands]),
-                            fg="blue",
-                            dim=True,
-                        )
-                    self.points_earned += test.points
-                else:
-                    self.failures += 1
-                    click.secho(" FAILED", fg="red", bold=True)
-                    if self.ran_commands:
-                        click.secho(
-                            "".join([f"  $ {cmd}\n" for cmd in self.ran_commands]),
-                            fg="blue",
-                            dim=True,
-                        )
-                    for issue in issues:
-                        click.secho(
-                            "  " * len(test.id) + "- " + str(issue), fg="magenta"
-                        )
+                self._run_test(test)
         return self.failures
 
 

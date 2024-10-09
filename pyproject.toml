@@ -80,8 +80,7 @@ baygon = "baygon.__main__:cli"
 [tool.poetry.extras]
 test = ["ruff", "black", "tox"]
 
-[tool.ruff]
-line-length = 88
+[tool.ruff.lint]
 select = ["E", "F", "W", "C", "I"]
 
 [tool.black]

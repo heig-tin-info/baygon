@@ -2,7 +2,7 @@
   Used in academic.
 """
 
-from decimal import Decimal, getcontext, ROUND_HALF_UP, ROUND_DOWN
+from decimal import ROUND_DOWN, ROUND_HALF_UP, Decimal, getcontext
 
 
 def float_or_int(value):
@@ -69,7 +69,7 @@ def distribute(values, total, min_value):
     return [float_or_int(a) for a in allocations_rounded]
 
 
-def assign_points(test, parent=None):
+def assign_points(test, parent=None):  # noqa: C901
     """Assign points recursively to each test in the structure."""
     min_point = test.get("min-points", parent.get("min-points", 1) if parent else 1)
 

@@ -1,5 +1,6 @@
 """Executable class. To be used with the Test class."""
 
+import logging
 import os
 import shutil
 import subprocess
@@ -8,7 +9,6 @@ from collections import namedtuple
 from pathlib import Path
 
 from .error import InvalidExecutableError
-import logging
 
 logger = logging.getLogger("baygon")
 

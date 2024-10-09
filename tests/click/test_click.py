@@ -1,8 +1,9 @@
 """Test CLI."""
 
+import json
 from pathlib import Path
 from unittest import TestCase
-import json
+
 import yaml
 from click.testing import CliRunner
 

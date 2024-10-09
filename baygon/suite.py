@@ -11,7 +11,6 @@ from .filters import FilterEval, FilterNone, Filters
 from .id import Id
 from .matchers import InvalidExitStatus, MatcherFactory
 from .schema import Schema
-from .score import compute_points
 
 
 def find_testfile(path=None):
