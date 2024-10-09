@@ -12,12 +12,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support for Python 3.13
 - Adds `--report=filename` to generate a test report
 - Adds `--format=[json|yaml]` to specify the report format
+- Points are reported in the test report and on the output
 
 ### Changed
 
 - Upgrade dependencies
 - Migration to Poetry, Ruff and Black
 - Adopted keepachangelog format
+
+### Fixed
+
+- '4 failed, 0 passed (0.0%% ok).' remove the duplicated pecentage sign
+- Fix output by adding quotes and `(empty)` for empty strings
 
 ### Deprecated
 

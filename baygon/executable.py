@@ -8,6 +8,9 @@ from collections import namedtuple
 from pathlib import Path
 
 from .error import InvalidExecutableError
+import logging
+
+logger = logging.getLogger("baygon")
 
 Outputs = namedtuple("Outputs", ["exit_status", "stdout", "stderr"])
 
@@ -67,10 +70,13 @@ class Executable:
                     f"Program '{filename}' is not an executable!"
                 )
 
-    def run(self, *args, stdin=None, env=None):
+    def run(self, *args, stdin=None, env=None, hook=None):
         """Run the program and grab all the outputs."""
+
+        cmd = [self.filename, *[str(a) for a in args]]
+
         with subprocess.Popen(
-            [self.filename, *[str(a) for a in args]],
+            cmd,
             stdout=subprocess.PIPE,
             stdin=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -86,6 +92,15 @@ class Executable:
                 stdout = stdout.decode(self.encoding)
             if stderr is not None:
                 stderr = stderr.decode(self.encoding)
+
+            if hook and callable(hook):
+                hook(
+                    cmd=cmd,
+                    stdin=stdin,
+                    stdout=stdout,
+                    stderr=stderr,
+                    exit_status=proc.returncode,
+                )
 
             return Outputs(proc.returncode, stdout, stderr)
 

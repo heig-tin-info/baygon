@@ -53,7 +53,7 @@ class TestDemo(TestCase):
         print(result.output)
         self.assertEqual(result.exit_code, 0)
         self.assertIn("Invalid exit status", result.output)
-        self.assertIn("Output 3 not equals 5 on stdout", result.output)
+        self.assertIn("Output '3' does not equal '5' on stdout", result.output)
         self.assertIn("Output stderr does not contain tarton", result.output)
         self.assertIn("fail.", result.output)
 
@@ -85,25 +85,25 @@ class TestDemo(TestCase):
         result = runner.invoke(
             cli,
             [
-                f"--config={self.get_config('success.yml')}",
+                f"--config={self.get_config('points.yml')}",
                 f"--report={self.directory.joinpath(name)}",
-                self.executable,
                 "-v",
             ],
         )
 
         print(result, result.output)
+        print(f"Report in {self.directory.joinpath(name)}")
 
-        self.assertEqual(result.exit_code, 0)
-        self.assertIn("ok.", result.output)
         self.assertTrue(self.directory.joinpath(name).exists())
 
         report = json.loads(self.directory.joinpath(name).read_text())
 
         self.assertEqual(report["total"], 4)
-        self.assertEqual(report["successes"], 4)
-        self.assertEqual(report["failures"], 0)
+        self.assertEqual(report["successes"], 2)
+        self.assertEqual(report["failures"], 2)
         self.assertEqual(report["skipped"], 0)
+        self.assertEqual(report["points"]["total"], 10)
+        self.assertEqual(report["points"]["earned"], 4)
 
         self.directory.joinpath(name).unlink()
 

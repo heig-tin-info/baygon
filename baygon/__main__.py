@@ -4,10 +4,15 @@ import logging
 import os
 import sys
 import time
+import logging
 import click
 
 from . import TestCase, TestGroup, TestSuite, __copyright__, __version__
 from .error import InvalidExecutableError
+from .helpers import create_command_line
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("baygon")
 
 
 def display_pad(pad=0):
@@ -74,6 +79,7 @@ class Runner:
         root.addHandler(handler)
 
     def get_report(self):
+        self.test_suite.get_points()
         return {
             "failures": self.failures,
             "successes": self.successes,
@@ -102,15 +108,18 @@ class Runner:
         self.run_time = seconds
         click.secho(f"\nRan {tests} tests in {seconds}s.", bold=True)
 
+        if self.points_total > 0:
+            click.secho(
+                f"Points: {self.points_earned}/{self.points_total}",
+                bold=True,
+            )
+
         if self.failures > 0:
             ratio = 100 - round(
                 self.failures / (self.failures + self.successes) * 100, 2
             )
             click.secho(
-                (
-                    f"{self.failures} failed, {self.successes} "
-                    f"passed ({ratio}%% ok)."
-                ),
+                (f"{self.failures} failed, {self.successes} " f"passed ({ratio}% ok)."),
                 fg="yellow",
                 bold=True,
             )
@@ -137,6 +146,14 @@ class Runner:
                 length = max(self._max_length(test), length)
         return length
 
+    def hook_ran_command(self, cmd, stdin, stdout, exit_status, **kwargs):
+        """Capture executed command for logging purpose."""
+        # If element have a space, wrap it with quotes
+
+        cmdline = create_command_line(cmd)
+        cin = f' <<< "{stdin.decode("utf-8")}"' if stdin else ""
+        self.ran_commands.append(f"{cmdline}{cin} (exit: {exit_status})")
+
     def _traverse_group(self, tests):
         for test in tests:
             if self.limit > 0 and self.failures > self.limit:
@@ -148,18 +165,37 @@ class Runner:
                 self._traverse_group(test)
             elif isinstance(test, TestCase):
                 display_test_name(test)
-                issues = test.run()
+                self.ran_commands = []
+                hook = self.hook_ran_command if self.verbose > 2 else None
+                issues = test.run(hook)
+                self.points_total += test.points
                 if issues is None:  # Skipped
                     click.secho(" SKIPPED", fg="yellow")
+                    click.secho(
+                        "".join([f"  $ {cmd}\n" for cmd in self.ran_commands]),
+                        fg="blue",
+                        dim=True,
+                    )
                     self.skipped += 1
                     continue
                 display_pad(self.align_column - test_name_length(test))
                 if not issues:
                     self.successes += 1
                     click.secho(" PASSED", fg="green")
+                    click.secho(
+                        "".join([f"  $ {cmd}\n" for cmd in self.ran_commands]),
+                        fg="blue",
+                        dim=True,
+                    )
+                    self.points_earned += test.points
                 else:
                     self.failures += 1
                     click.secho(" FAILED", fg="red", bold=True)
+                    click.secho(
+                        "".join([f"  $ {cmd}\n" for cmd in self.ran_commands]),
+                        fg="blue",
+                        dim=True,
+                    )
                     for issue in issues:
                         click.secho(
                             "  " * len(test.id) + "- " + str(issue), fg="magenta"
@@ -209,6 +245,8 @@ def cli(debug, verbose, executable, config, report, format, **kwargs):
         sys.exit(0)
 
     if debug:
+        logger.setLevel(logging.DEBUG)
+        logger.debug("Debug mode enabled.")
         runner = Runner(executable, config, verbose=verbose, **kwargs)
         runner.run()
     else:

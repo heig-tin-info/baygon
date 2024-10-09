@@ -46,7 +46,8 @@ class InvalidRegex(InvalidCondition):
 
     def __str__(self):
         return (
-            f"Output {self.on} does not match /{self.expected}/ " f'on "{self.value}".'
+            f"Output '{self.on}' does not match /{self.expected}/ "
+            f'on "{self.value}".'
         )
 
 
@@ -54,7 +55,8 @@ class InvalidEquals(InvalidCondition):
     """Invalid equals error."""
 
     def __str__(self):
-        return f"Output {self.value} not equals {self.expected} on " f"{self.on}."
+        value = "(empty)" if not self.value else f"'{self.value}'"
+        return f"Output {value} does not equal '{self.expected}' on " f"{self.on}."
 
 
 class MatchBase(ABC):

@@ -36,6 +36,25 @@ tests:
     stdout: 3
 ```
 
+Filters can also be applied to a single test:
+
+```yaml
+version: 1
+tests:
+  - args: [1, 2]
+    stdout:
+      - contains: foo
+      - regex: f(oo|aa|uu)
+    filters:
+      lowercase: true
+```
+
+Or even at a stream output level:
+
+```yaml
+stdout: [{ filters: { trim: true }, equals: 3 }]
+```
+
 ## Naming
 
 All tests can be optionally named:

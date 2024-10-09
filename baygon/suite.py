@@ -197,7 +197,7 @@ class TestCase(NamedMixin, ExecutableMixin, FilterMixin):
             return [self.eval(arg) for arg in data]
         return self.eval(data)
 
-    def run(self):
+    def run(self, hook=None):
         """Run the tests."""
         if not isinstance(self.executable, Executable):
             raise InvalidExecutableError(
@@ -213,7 +213,7 @@ class TestCase(NamedMixin, ExecutableMixin, FilterMixin):
             )
 
             self.output = output = self.executable.run(
-                *self.filtered_args, stdin=self.filtered_stdin
+                *self.filtered_args, stdin=self.filtered_stdin, hook=hook
             )
 
             for on in ["stdout", "stderr"]:
