@@ -2,7 +2,8 @@
 
 from pathlib import Path
 from unittest import TestCase
-
+import json
+import yaml
 from click.testing import CliRunner
 
 from baygon.__main__ import cli
@@ -77,3 +78,59 @@ class TestDemo(TestCase):
 
         self.assertEqual(result.exit_code, 0)
         self.assertIn("ok.", result.output)
+
+    def test_report_json(self):
+        name = "report.json"
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            [
+                f"--config={self.get_config('success.yml')}",
+                f"--report={self.directory.joinpath(name)}",
+                self.executable,
+                "-v",
+            ],
+        )
+
+        print(result, result.output)
+
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn("ok.", result.output)
+        self.assertTrue(self.directory.joinpath(name).exists())
+
+        report = json.loads(self.directory.joinpath(name).read_text())
+
+        self.assertEqual(report["total"], 4)
+        self.assertEqual(report["successes"], 4)
+        self.assertEqual(report["failures"], 0)
+        self.assertEqual(report["skipped"], 0)
+
+        self.directory.joinpath(name).unlink()
+
+    def test_report_yaml(self):
+        name = "report.yaml"
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            [
+                f"--config={self.get_config('success.yml')}",
+                f"--report={self.directory.joinpath(name)}",
+                self.executable,
+                "-v",
+            ],
+        )
+
+        print(result, result.output)
+
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn("ok.", result.output)
+        self.assertTrue(self.directory.joinpath(name).exists())
+
+        report = yaml.safe_load(self.directory.joinpath(name).read_text())
+
+        self.assertEqual(report["total"], 4)
+        self.assertEqual(report["successes"], 4)
+        self.assertEqual(report["failures"], 0)
+        self.assertEqual(report["skipped"], 0)
+
+        self.directory.joinpath(name).unlink()

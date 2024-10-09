@@ -4,7 +4,6 @@ import logging
 import os
 import sys
 import time
-
 import click
 
 from . import TestCase, TestGroup, TestSuite, __copyright__, __version__
@@ -61,6 +60,10 @@ class Runner:
         self.failures = 0
         self.successes = 0
         self.skipped = 0
+        self.run_time = 0
+
+        self.points_earned = 0
+        self.points_total = 0
 
     def _init_logger(self, loglevel):
         handler = logging.StreamHandler()
@@ -69,6 +72,19 @@ class Runner:
         root = logging.getLogger()
         root.setLevel(os.environ.get("LOGLEVEL", loglevel))
         root.addHandler(handler)
+
+    def get_report(self):
+        return {
+            "failures": self.failures,
+            "successes": self.successes,
+            "skipped": self.skipped,
+            "total": self.failures + self.successes + self.skipped,
+            "time": self.run_time,
+            "points": {
+                "total": self.points_total,
+                "earned": self.points_earned,
+            },
+        }
 
     def run(self):
         """Run the tests."""
@@ -83,6 +99,7 @@ class Runner:
 
         tests = self.failures + self.successes + self.skipped
         seconds = round(time.time() - start_time, 2)
+        self.run_time = seconds
         click.secho(f"\nRan {tests} tests in {seconds}s.", bold=True)
 
         if self.failures > 0:
@@ -150,6 +167,20 @@ class Runner:
         return self.failures
 
 
+def save_report(data, filename, format):
+    """Save the report to a file."""
+    if format == "json":
+        import json
+
+        with open(filename, "w") as fp:
+            json.dump(data, fp, indent=2, sort_keys=True)
+    elif format == "yaml":
+        import yaml
+
+        with open(filename, "w") as fp:
+            yaml.dump(data, fp)
+
+
 def version():
     """Display the version."""
     print(f"Baygon version {__version__} {__copyright__}")
@@ -161,26 +192,40 @@ def version():
 @click.option("-v", "--verbose", count=True, help="Shows more details")
 @click.option("-l", "--limit", type=int, default=-1, help="Limit errors to N")
 @click.option("-d", "--debug", is_flag=True, default=0, help="Debug mode")
+@click.option("-r", "--report", type=click.Path(), help="Report file")
+@click.option(
+    "-f", "--format", type=click.Choice(["json", "yaml"]), help="Report format"
+)
 @click.option(
     "-t",
     "--config",
     type=click.Path(exists=True),
     help="Choose config file (.yml or .json)",
 )
-def cli(debug, verbose=0, executable=None, config=None, **kwargs):
+def cli(debug, verbose, executable, config, report, format, **kwargs):
     """Baygon functional test runner."""
     if kwargs.get("version"):
         version()
         sys.exit(0)
 
     if debug:
-        Runner(executable, config, verbose=verbose, **kwargs).run()
+        runner = Runner(executable, config, verbose=verbose, **kwargs)
+        runner.run()
     else:
         try:
-            Runner(executable, config, verbose=verbose, **kwargs).run()
+            runner = Runner(executable, config, verbose=verbose, **kwargs)
+            runner.run()
         except InvalidExecutableError as error:
             click.secho(f"\nError: {error}", fg="red", bold=True, err=True)
             sys.exit(1)
+
+    if report:
+        if not format:
+            if report.endswith(".yaml"):
+                format = "yaml"
+            else:
+                format = "json"
+        save_report(runner.get_report(), report, format)
 
     click.echo("")
 

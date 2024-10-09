@@ -5,11 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## Unreleased
+
+### Added
+
+- Support for Python 3.13
+- Adds `--report=filename` to generate a test report
+- Adds `--format=[json|yaml]` to specify the report format
+
+### Changed
 
 - Upgrade dependencies
 - Migration to Poetry, Ruff and Black
 - Adopted keepachangelog format
+
+### Deprecated
+
+- Drop support for Python 3.6, 3.7 and 3.8
+
+## 0.5.1 (2022-11-08)
+
+- Add tests for filters
+- Fix filters args
 
 ## 0.5.0 (2022-11-10)
 
