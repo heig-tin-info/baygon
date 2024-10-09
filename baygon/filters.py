@@ -1,7 +1,8 @@
-""" String filters for Baygon.
+"""String filters for Baygon.
 Each filter is a class that implements a filter method.
 A filter is used to modify `stdout` and `stderr` before they are tested.
 """
+
 import inspect
 import re
 import sys
@@ -15,45 +16,46 @@ from .error import InvalidFilterError
 
 
 class Filter(ABC):
-    """ Base class for filters. """
+    """Base class for filters."""
+
     @abstractmethod
     def apply(self, value: str) -> str:
-        """ Apply the filter to a value. """
+        """Apply the filter to a value."""
         return value
 
     def filter(self, value: str) -> str:
-        """ Apply the filter to a value. """
+        """Apply the filter to a value."""
         return self.apply(value)
 
     def __init__(self, *args, **kwargs):
-        """ Initialize the filter.
+        """Initialize the filter.
         Keyword arguments:
 
         input: Boolean Is the filter applied to the input?
         """
-        self.input = kwargs.get('input', False)
+        self.input = kwargs.get("input", False)
 
     def __repr__(self):
-        return f'{self.__class__.__name__}'
+        return f"{self.__class__.__name__}"
 
     def __call__(self, value: str) -> str:
         return self.filter(value)
 
     @classmethod
     def name(cls):
-        """ Return the name of the filter. """
-        return cls.__name__.split('Filter', maxsplit=1)[1].lower()
+        """Return the name of the filter."""
+        return cls.__name__.split("Filter", maxsplit=1)[1].lower()
 
 
 class FilterNone(Filter):
-    """ Filter that does nothing. """
+    """Filter that does nothing."""
 
     def apply(self, value: str) -> str:
         return value
 
 
 class FilterUppercase(Filter):
-    """ Filter for uppercase strings.
+    """Filter for uppercase strings.
     >>> f = FilterUppercase()
     >>> f('hello')
     'HELLO'
@@ -64,7 +66,7 @@ class FilterUppercase(Filter):
 
 
 class FilterLowercase(Filter):
-    """ Filter for lowercase strings.
+    """Filter for lowercase strings.
     >>> f = FilterLowercase()
     >>> f('HELLO')
     'hello'
@@ -75,11 +77,12 @@ class FilterLowercase(Filter):
 
 
 class FilterTrim(Filter):
-    """ Filter for trimmed strings.
+    """Filter for trimmed strings.
     >>> f = FilterTrim()
     >>> f(' hello   ')
     'hello'
     """
+
     __output__ = True
 
     def apply(self, value: str) -> str:
@@ -87,18 +90,18 @@ class FilterTrim(Filter):
 
 
 class FilterIgnoreSpaces(Filter):
-    """ Filter for strings with no spaces.
+    """Filter for strings with no spaces.
     >>> f = FilterIgnoreSpaces()
     >>> f('hello   world')
     'helloworld'
     """
 
     def apply(self, value: str) -> str:
-        return value.replace(' ', '')
+        return value.replace(" ", "")
 
 
 class FilterReplace(Filter):
-    """ Filter for strings with simple replacements.
+    """Filter for strings with simple replacements.
     >>> f = FilterReplace('hello', 'world')
     >>> f('hello world')
     'world world'
@@ -114,7 +117,7 @@ class FilterReplace(Filter):
 
 
 class FilterRegex(Filter):
-    """ Filter for strings using regular expressions.
+    """Filter for strings using regular expressions.
     >>> f = FilterRegex('[aeiou]', '-')
     >>> f('hello world')
     'h-ll- w-rld'
@@ -131,55 +134,53 @@ class FilterRegex(Filter):
 
 
 class FilterEval(Filter):
-    """ Filter for evaluating mustaches in strings.
-    """
+    """Filter for evaluating mustaches in strings."""
 
-    def __init__(self, start: str = '{{', end: str = '}}', init: list = None):
+    def __init__(self, start: str = "{{", end: str = "}}", init: list = None):
         super().__init__()
-        self._mustache = re.compile(f'{start}(.*?){end}')
+        self._mustache = re.compile(f"{start}(.*?){end}")
         self._kernel = TinyKernel()
 
         init += [
-            'from math import *',
-            'from random import *',
-            'from statistics import *',
-            'from baygon.eval import iter',
+            "from math import *",
+            "from random import *",
+            "from statistics import *",
+            "from baygon.eval import iter",
         ]
 
         for item in init:
             self._kernel(item)
 
     def apply(self, value: str) -> str:
-        """ Evaluate mustaches in a string. """
+        """Evaluate mustaches in a string."""
         pos = 0
-        ret = ''
+        ret = ""
         for match in self._mustache.finditer(value):
-            ret += value[pos:match.start()]
+            ret += value[pos : match.start()]
             ret += str(self.exec(match.group(1)))
             pos = match.end()
         ret += value[pos:]
         return ret
 
     def exec(self, code: str):
-        """ Execute code in the kernel. """
+        """Execute code in the kernel."""
 
         # Inject context to custom functions
-        code = re.sub(r'((?<=\b)iter\(.*?)(\))',
-                      f'\\1,ctx={hash(code)}\\2', code)
+        code = re.sub(r"((?<=\b)iter\(.*?)(\))", f"\\1,ctx={hash(code)}\\2", code)
 
         # Workaround to get the value of assignments
         try:
-            self._kernel('_ = ' + code)
-            return self._kernel.glb['_']
+            self._kernel("_ = " + code)
+            return self._kernel.glb["_"]
         except SyntaxError:
             return self._kernel(code)
 
     def __repr__(self):
-        return f'{self.__class__.__name__}({self._mustache.pattern})'
+        return f"{self.__class__.__name__}({self._mustache.pattern})"
 
 
 class Filters(Filter, Sequence):
-    """ A sequence of filters. """
+    """A sequence of filters."""
 
     def __init__(self, filters=None):
         super().__init__()
@@ -201,7 +202,7 @@ class Filters(Filter, Sequence):
                 instances.append(FilterFactory(name, *args))
             return instances
 
-        raise InvalidFilterError(f'Invalid type for filters: {type(filters)}')
+        raise InvalidFilterError(f"Invalid type for filters: {type(filters)}")
 
     def __getitem__(self, index):
         return self._filters[index]
@@ -210,7 +211,7 @@ class Filters(Filter, Sequence):
         return len(self._filters)
 
     def extend(self, filters):
-        """ Extend the filters with another Filters object. """
+        """Extend the filters with another Filters object."""
         self._filters.extend(self._parse_filter(filters))
         return self
 
@@ -220,25 +221,26 @@ class Filters(Filter, Sequence):
         return value
 
     def __repr__(self):
-        return f'{self.__class__.__name__}<{self._filters}>'
+        return f"{self.__class__.__name__}<{self._filters}>"
 
 
 class FilterFactory:
-    """ Factory for filters. """
+    """Factory for filters."""
+
     @classmethod
     @lru_cache()
     def filters(cls):
-        """ Helper to get all filters by their name. """
+        """Helper to get all filters by their name."""
         fmap = {}
         for _, member in inspect.getmembers(sys.modules[__name__]):
-            if not inspect.isclass(member) or not hasattr(member, 'name'):
+            if not inspect.isclass(member) or not hasattr(member, "name"):
                 continue
-            if member.name() == 'base' or len(member.name()) < 2:
+            if member.name() == "base" or len(member.name()) < 2:
                 continue
             fmap[member.name()] = member
         return fmap
 
     def __new__(cls, name, *args, **kwargs) -> Filter:
         if name not in cls.filters():
-            raise ValueError(f'Unknown matcher: {name}')
+            raise ValueError(f"Unknown matcher: {name}")
         return cls.filters()[name](*args, **kwargs)

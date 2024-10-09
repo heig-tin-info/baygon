@@ -1,4 +1,4 @@
-""" Executable class. To be used with the Test class. """
+"""Executable class. To be used with the Test class."""
 
 import os
 import shutil
@@ -9,18 +9,18 @@ from pathlib import Path
 
 from .error import InvalidExecutableError
 
-Outputs = namedtuple('Outputs', ['exit_status', 'stdout', 'stderr'])
+Outputs = namedtuple("Outputs", ["exit_status", "stdout", "stderr"])
 
-forbidden_binaries = ['rm', 'mv', 'dd', 'wget', 'mkfs']
+forbidden_binaries = ["rm", "mv", "dd", "wget", "mkfs"]
 
 
 def get_env(env: typing.Optional[str] = None) -> dict:
-    """ Get the environment variables to be used for the subprocess. """
+    """Get the environment variables to be used for the subprocess."""
     return {**os.environ, **(env or {})}
 
 
 class Executable:
-    """ An executable program.
+    """An executable program.
 
     Convenient execution and access to program outputs such as:
 
@@ -44,8 +44,8 @@ class Executable:
 
         return super().__new__(cls) if filename else None
 
-    def __init__(self, filename, encoding='utf-8'):
-        """ Create an executable object.
+    def __init__(self, filename, encoding="utf-8"):
+        """Create an executable object.
 
         :param filename: The path of the executable.
         :param encoding: The encoding to be used for the outputs, default is UTF-8.
@@ -58,19 +58,24 @@ class Executable:
             self.encoding = encoding
 
         if not self._is_executable(self.filename):
-            if '/' not in filename and shutil.which(filename) is not None:
+            if "/" not in filename and shutil.which(filename) is not None:
                 if filename in forbidden_binaries:
                     raise InvalidExecutableError(f"Program '{filename}' is forbidden!")
                 filename = shutil.which(filename)
             else:
-                raise InvalidExecutableError(f"Program '{filename}' is not an executable!")
+                raise InvalidExecutableError(
+                    f"Program '{filename}' is not an executable!"
+                )
 
     def run(self, *args, stdin=None, env=None):
-        """ Run the program and grab all the outputs. """
-        with subprocess.Popen([self.filename, *[str(a) for a in args]],
-                              stdout=subprocess.PIPE,
-                              stdin=subprocess.PIPE,
-                              stderr=subprocess.PIPE, env=env) as proc:
+        """Run the program and grab all the outputs."""
+        with subprocess.Popen(
+            [self.filename, *[str(a) for a in args]],
+            stdout=subprocess.PIPE,
+            stdin=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            env=env,
+        ) as proc:
 
             if stdin is not None:
                 stdin = stdin.encode(self.encoding)
@@ -82,10 +87,7 @@ class Executable:
             if stderr is not None:
                 stderr = stderr.decode(self.encoding)
 
-            return Outputs(
-                proc.returncode,
-                stdout,
-                stderr)
+            return Outputs(proc.returncode, stdout, stderr)
 
     def __call__(self, *args, **kwargs):
         return self.run(*args, **kwargs)

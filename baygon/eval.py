@@ -1,4 +1,4 @@
-""" Helper functions used in `eval` filter.
+"""Helper functions used in `eval` filter.
 These functions are injected into the kernel and made available from
 the mustaches templates.
 
@@ -30,12 +30,12 @@ _context = {}
 
 
 def reset():
-    """ Reset the context. """
+    """Reset the context."""
     _context.clear()
 
 
 def iter(start=0, step=1, ctx=None):
-    """ Custom iterator for eval input filter. """
-    ctx = tuple([start, step, ctx])
+    """Custom iterator for eval input filter."""
+    ctx = (start, step, ctx)
     _context[ctx] = _context.get(ctx, start - step) + step
     return _context[ctx]
