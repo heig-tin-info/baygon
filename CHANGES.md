@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Adds `--report=filename` to generate a test report
 - Adds `--format=[json|yaml]` to specify the report format
 - Points are reported in the test report and on the output
+- CLI arguments can now be passed in the configuration file
+- Adds pretty table summary using rich
+- Points distribution mechanism
 
 ### Changed
 

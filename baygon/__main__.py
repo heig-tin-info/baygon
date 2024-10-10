@@ -36,7 +36,7 @@ def display_test_name(test):
     click.secho(f"{test.name}", nl=False, bold=False)
 
 
-def display_table(test_suite):
+def display_table(data):
     grey_line_style = Style(color="grey37")
     title_style = Style(bold=False, color="white")
     table = Table(
@@ -51,22 +51,17 @@ def display_table(test_suite):
     table.add_column("Points", justify="center", style=grey_line_style)
     table.add_column("Status", justify="center", style=grey_line_style)
 
-    def traverse_group(tests, pad=0):
-        for test in tests:
-            if isinstance(test, TestGroup):
-                table.add_row(str(test.id), (" " * pad) + test.name, "", "")
-                traverse_group(test, pad + 2)
-            elif isinstance(test, TestCase):
-                earned = test.points if test.exit == 0 else 0
-                table.add_row(
-                    str(test.id),
-                    (" " * pad) + test.name,
-                    f"{earned}/{test.points}",
-                    "[green]PASS[/green]" if test.exit == 0 else "[red]FAIL[/red]",
-                )
+    for test in data:
+        status = ""
+        points = ""
+        if test.get("status") is not None:
+            status = "[green]PASS[/green]" if test["status"] else "[red]FAIL[/red]"
 
-    traverse_group(test_suite)
+            points = f"{test['earned']}/{test['points']}"
 
+        table.add_row(
+            str(test["id"]), (" " * len(test["id"])) + test["name"], points, status
+        )
     console.print(table)
 
 
@@ -119,6 +114,8 @@ class Runner:
         self.points_earned = 0
         self.points_total = 0
 
+        self.summary = []
+
     def _init_logger(self, loglevel):
         handler = logging.StreamHandler()
         formatter = OneLineExceptionFormatter(logging.BASIC_FORMAT)
@@ -151,6 +148,9 @@ class Runner:
         self.skipped = 0
 
         self._traverse_group(self.test_suite)
+
+        if self.test_suite.config.get("table"):
+            display_table(self.summary)
 
         tests = self.failures + self.successes + self.skipped
         seconds = round(time.time() - start_time, 2)
@@ -194,9 +194,6 @@ class Runner:
                     format = "json"
             save_report(self.get_report(), report, format)
 
-        if self.test_suite.config.get("table"):
-            display_table(self.test_suite)
-
         return self.failures
 
     def _max_length(self, tests):
@@ -228,6 +225,7 @@ class Runner:
 
     def _run_test(self, test):
         self.ran_commands = []
+        earned_points = 0
         hook = self.hook_ran_command if self.verbose > 2 else None
         issues = test.run(hook)
         self.points_total += test.points
@@ -251,7 +249,6 @@ class Runner:
                     fg="blue",
                     dim=True,
                 )
-            self.points_earned += test.points
         else:
             self.failures += 1
             click.secho(" FAILED", fg="red", bold=True)
@@ -264,6 +261,18 @@ class Runner:
             for issue in issues:
                 click.secho("  " * len(test.id) + "- " + str(issue), fg="magenta")
 
+        earned_points = test.points if not issues else 0
+        self.points_earned += earned_points
+        self.summary.append(
+            {
+                "id": test.id,
+                "name": test.name,
+                "status": not bool(issues),
+                "points": test.points,
+                "earned": earned_points,
+            }
+        )
+
     def _traverse_group(self, tests):
         for test in tests:
             if self.limit > 0 and self.failures > self.limit:
@@ -271,6 +280,12 @@ class Runner:
 
             if isinstance(test, TestGroup):
                 display_test_name(test)
+                self.summary.append(
+                    {
+                        "id": test.id,
+                        "name": test.name,
+                    }
+                )
                 click.echo("")
                 self._traverse_group(test)
             elif isinstance(test, TestCase):
