@@ -9,6 +9,7 @@ import click
 from rich.console import Console
 from rich.table import Table
 from rich.style import Style
+from rich.rule import Rule
 from rich.box import SQUARE_DOUBLE_HEAD
 from . import TestCase, TestGroup, TestSuite, __copyright__, __version__
 from .error import InvalidExecutableError
@@ -85,10 +86,6 @@ class Runner:
     """Test runner."""
 
     def __init__(self, executable=None, config=None, **kwargs):
-        self.verbose = kwargs.get("verbose", 0)
-        if self.verbose > 3:
-            self._init_logger("DEBUG")
-
         self.executable = executable
         self.limit = kwargs.get("limit", -1)
         click.secho(f"Using configuration file: {config}")
@@ -103,6 +100,13 @@ class Runner:
             self.test_suite.config["format"] = kwargs["format"]
         if "table" in kwargs and kwargs["table"] is not None:
             self.test_suite.config["table"] = kwargs["table"]
+
+        self.verbose = kwargs.get("verbose", 0)
+        if self.verbose > 0:
+            click.echo("Verbose level set to " + str(self.verbose))
+
+        if self.verbose > 3:
+            self._init_logger("DEBUG")
 
         self.align_column = 0
 
@@ -155,7 +159,7 @@ class Runner:
         tests = self.failures + self.successes + self.skipped
         seconds = round(time.time() - start_time, 2)
         self.run_time = seconds
-        click.secho(f"\nRan {tests} tests in {seconds}s.", bold=True)
+        console.print(f"\nRan [bold]{tests}[/bold] tests in [bold]{seconds} s[/bold].")
 
         if self.points_total > 0:
             click.secho(
@@ -223,51 +227,74 @@ class Runner:
         """
         return "\n".join(" " * length + line for line in text.splitlines())
 
-    def _run_test(self, test):
-        self.ran_commands = []
-        earned_points = 0
-        hook = self.hook_ran_command if self.verbose > 2 else None
-        issues = test.run(hook)
-        self.points_total += test.points
-        if issues is None:  # Skipped
-            click.secho(" SKIPPED", fg="yellow")
-            if self.ran_commands:
-                click.secho(
-                    self.pad("".join([f"$ {cmd}\n" for cmd in self.ran_commands]), 2),
-                    fg="blue",
-                    dim=True,
-                )
+    def display_test_verbose(self, test, issues, verbose=0):
+
+        p = test
+        name = []
+        while True:
+            if p is None or getattr(p, "name", None) is None:
+                break
+            if p.name:
+                name.append(p.name)
+            p = p.parent
+        name = " / ".join(reversed(name))
+
+        if verbose >= 2:
+            console.print("\n")
+            console.print(Rule(f"Test {test.id}: {name}", align="left", style="bold"))
+
+        if verbose >= 3:
+            click.secho(
+                self.pad("".join([f"$ {cmd}\n" for cmd in self.ran_commands]), 2),
+                dim=True,
+            )
+
+        if test.status == "skipped":
+            if verbose > 0:
+                click.secho(" SKIPPED", fg="yellow")
+            else:
+                click.secho("S", fg="yellow", nl=False)
             self.skipped += 1
             return
-        display_pad(self.align_column - test_name_length(test))
-        if not issues:
-            self.successes += 1
-            click.secho(" PASSED", fg="green")
-            if self.ran_commands:
-                click.secho(
-                    self.pad("".join([f"$ {cmd}\n" for cmd in self.ran_commands]), 2),
-                    fg="blue",
-                    dim=True,
-                )
-        else:
-            self.failures += 1
-            click.secho(" FAILED", fg="red", bold=True)
-            if self.ran_commands:
-                click.secho(
-                    self.pad("".join([f"$ {cmd}\n" for cmd in self.ran_commands]), 2),
-                    fg="blue",
-                    dim=True,
-                )
-            for issue in issues:
-                click.secho("  " * len(test.id) + "- " + str(issue), fg="magenta")
 
-        earned_points = test.points if not issues else 0
+        if test.status == "passed":
+            if verbose > 0:
+                click.secho(" PASSED", fg="green")
+            else:
+                click.secho(".", fg="green", nl=False)
+            self.successes += 1
+            return
+
+        if test.status == "failed":
+            if verbose > 0:
+                click.secho(" FAILED", fg="red")
+            else:
+                click.secho("F", fg="red", nl=False)
+            self.failures += 1
+
+        for k, issue in enumerate(issues):
+            click.secho(str(issue))
+
+    def _run_test(self, test):
+        self.ran_commands = []
+        hook = self.hook_ran_command
+        issues = test.run(hook)
+        if issues is None:
+            test.status = "skipped"
+        elif not issues:
+            test.status = "passed"
+        else:
+            test.status = "failed"
+
+        self.display_test_verbose(test, issues, self.verbose)
+
+        earned_points = test.points if test.status == "passed" else 0
         self.points_earned += earned_points
         self.summary.append(
             {
                 "id": test.id,
                 "name": test.name,
-                "status": not bool(issues),
+                "status": test.status,
                 "points": test.points,
                 "earned": earned_points,
             }
@@ -279,17 +306,14 @@ class Runner:
                 break
 
             if isinstance(test, TestGroup):
-                display_test_name(test)
                 self.summary.append(
                     {
                         "id": test.id,
                         "name": test.name,
                     }
                 )
-                click.echo("")
                 self._traverse_group(test)
             elif isinstance(test, TestCase):
-                display_test_name(test)
                 self._run_test(test)
         return self.failures
 

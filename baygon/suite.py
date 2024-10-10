@@ -60,7 +60,7 @@ class BaseMixin:
     Ensure it will be the last MRO (Method Resolution Order)."""
 
     def __init__(self, *args, **kwargs):
-        pass
+        self.parent = kwargs.get("parent", None)
 
 
 class FilterMixin(BaseMixin):
