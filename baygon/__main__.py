@@ -6,11 +6,12 @@ import sys
 import time
 
 import click
-from rich.console import Console
-from rich.table import Table
-from rich.style import Style
-from rich.rule import Rule
 from rich.box import SQUARE_DOUBLE_HEAD
+from rich.console import Console
+from rich.rule import Rule
+from rich.style import Style
+from rich.table import Table
+
 from . import TestCase, TestGroup, TestSuite, __copyright__, __version__
 from .error import InvalidExecutableError
 from .helpers import create_command_line
@@ -227,7 +228,7 @@ class Runner:
         """
         return "\n".join(" " * length + line for line in text.splitlines())
 
-    def display_test_verbose(self, test, issues, verbose=0):
+    def display_test_verbose(self, test, issues, verbose=0):  # noqa: C901
 
         p = test
         name = []

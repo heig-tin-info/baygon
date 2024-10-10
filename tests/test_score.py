@@ -1,6 +1,5 @@
 from unittest import TestCase
 
-from baygon.schema import Schema
 from baygon.score import compute_points
 
 
