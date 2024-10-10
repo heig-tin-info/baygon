@@ -6,13 +6,18 @@ import sys
 import time
 
 import click
-
+from rich.console import Console
+from rich.table import Table
+from rich.style import Style
+from rich.box import SQUARE_DOUBLE_HEAD
 from . import TestCase, TestGroup, TestSuite, __copyright__, __version__
 from .error import InvalidExecutableError
 from .helpers import create_command_line
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("baygon")
+
+console = Console()
 
 
 def display_pad(pad=0):
@@ -29,6 +34,40 @@ def display_test_name(test):
     """Display the name of a test."""
     click.secho(f"{test.id.pad()}Test {test.id}: ", nl=False, bold=True)
     click.secho(f"{test.name}", nl=False, bold=False)
+
+
+def display_table(test_suite):
+    grey_line_style = Style(color="grey37")
+    title_style = Style(bold=False, color="white")
+    table = Table(
+        title="Test Summary",
+        title_style=title_style,
+        border_style=grey_line_style,
+        box=SQUARE_DOUBLE_HEAD,
+    )
+
+    table.add_column("ID", justify="left")
+    table.add_column("Test Name", justify="left", style=grey_line_style)
+    table.add_column("Points", justify="center", style=grey_line_style)
+    table.add_column("Status", justify="center", style=grey_line_style)
+
+    def traverse_group(tests, pad=0):
+        for test in tests:
+            if isinstance(test, TestGroup):
+                table.add_row(str(test.id), (" " * pad) + test.name, "", "")
+                traverse_group(test, pad + 2)
+            elif isinstance(test, TestCase):
+                earned = test.points if test.exit == 0 else 0
+                table.add_row(
+                    str(test.id),
+                    (" " * pad) + test.name,
+                    f"{earned}/{test.points}",
+                    "[green]PASS[/green]" if test.exit == 0 else "[red]FAIL[/red]",
+                )
+
+    traverse_group(test_suite)
+
+    console.print(table)
 
 
 class OneLineExceptionFormatter(logging.Formatter):
@@ -57,8 +96,18 @@ class Runner:
 
         self.executable = executable
         self.limit = kwargs.get("limit", -1)
-        click.secho(config, fg="yellow")
+        click.secho(f"Using configuration file: {config}")
         self.test_suite = TestSuite(path=config, executable=self.executable)
+
+        # Forward cli arguments to the test suite
+        if "verbose" in kwargs and kwargs["verbose"] != 0:
+            self.test_suite.config["verbose"] = kwargs["verbose"]
+        if "report" in kwargs and kwargs["report"] is not None:
+            self.test_suite.config["report"] = kwargs["report"]
+        if "format" in kwargs and kwargs["format"] is not None:
+            self.test_suite.config["format"] = kwargs["format"]
+        if "table" in kwargs and kwargs["table"] is not None:
+            self.test_suite.config["table"] = kwargs["table"]
 
         self.align_column = 0
 
@@ -136,6 +185,18 @@ class Runner:
                 fg="yellow",
             )
 
+        report = self.test_suite.config.get("report")
+        if report:
+            if not format:
+                if report.endswith(".yaml"):
+                    format = "yaml"
+                else:
+                    format = "json"
+            save_report(self.get_report(), report, format)
+
+        if self.test_suite.config.get("table"):
+            display_table(self.test_suite)
+
         return self.failures
 
     def _max_length(self, tests):
@@ -146,13 +207,24 @@ class Runner:
                 length = max(self._max_length(test), length)
         return length
 
-    def hook_ran_command(self, cmd, stdin, stdout, exit_status, **kwargs):
+    def hook_ran_command(self, cmd, stdin, stdout, stderr, exit_status, **kwargs):
         """Capture executed command for logging purpose."""
         # If element have a space, wrap it with quotes
 
         cmdline = create_command_line(cmd)
         cin = f' <<< "{stdin.decode("utf-8")}"' if stdin else ""
-        self.ran_commands.append(f"{cmdline}{cin} (exit: {exit_status})")
+        self.ran_commands.append(
+            f"{cmdline}{cin} (exited with: {exit_status})\n{stdout}{stderr}"
+        )
+
+    def pad(self, text, length):
+        """Shift text to right
+        >>> pad("hello", 5)"
+        '     hello'
+        >>> pad("hello\nworld", 3)"
+        '   hello\n   world'
+        """
+        return "\n".join(" " * length + line for line in text.splitlines())
 
     def _run_test(self, test):
         self.ran_commands = []
@@ -163,7 +235,7 @@ class Runner:
             click.secho(" SKIPPED", fg="yellow")
             if self.ran_commands:
                 click.secho(
-                    "".join([f"  $ {cmd}\n" for cmd in self.ran_commands]),
+                    self.pad("".join([f"$ {cmd}\n" for cmd in self.ran_commands]), 2),
                     fg="blue",
                     dim=True,
                 )
@@ -175,7 +247,7 @@ class Runner:
             click.secho(" PASSED", fg="green")
             if self.ran_commands:
                 click.secho(
-                    "".join([f"  $ {cmd}\n" for cmd in self.ran_commands]),
+                    self.pad("".join([f"$ {cmd}\n" for cmd in self.ran_commands]), 2),
                     fg="blue",
                     dim=True,
                 )
@@ -185,7 +257,7 @@ class Runner:
             click.secho(" FAILED", fg="red", bold=True)
             if self.ran_commands:
                 click.secho(
-                    "".join([f"  $ {cmd}\n" for cmd in self.ran_commands]),
+                    self.pad("".join([f"$ {cmd}\n" for cmd in self.ran_commands]), 2),
                     fg="blue",
                     dim=True,
                 )
@@ -233,6 +305,7 @@ def version():
 @click.option("-l", "--limit", type=int, default=-1, help="Limit errors to N")
 @click.option("-d", "--debug", is_flag=True, default=0, help="Debug mode")
 @click.option("-r", "--report", type=click.Path(), help="Report file")
+@click.option("-t", "--table", is_flag=True, default=0, help="Summary table")
 @click.option(
     "-f", "--format", type=click.Choice(["json", "yaml"]), help="Report format"
 )
@@ -242,7 +315,7 @@ def version():
     type=click.Path(exists=True),
     help="Choose config file (.yml or .json)",
 )
-def cli(debug, verbose, executable, config, report, format, **kwargs):
+def cli(debug, **kwargs):
     """Baygon functional test runner."""
     if kwargs.get("version"):
         version()
@@ -251,23 +324,15 @@ def cli(debug, verbose, executable, config, report, format, **kwargs):
     if debug:
         logger.setLevel(logging.DEBUG)
         logger.debug("Debug mode enabled.")
-        runner = Runner(executable, config, verbose=verbose, **kwargs)
+        runner = Runner(**kwargs)
         runner.run()
     else:
         try:
-            runner = Runner(executable, config, verbose=verbose, **kwargs)
+            runner = Runner(**kwargs)
             runner.run()
         except InvalidExecutableError as error:
             click.secho(f"\nError: {error}", fg="red", bold=True, err=True)
             sys.exit(1)
-
-    if report:
-        if not format:
-            if report.endswith(".yaml"):
-                format = "yaml"
-            else:
-                format = "json"
-        save_report(runner.get_report(), report, format)
 
     click.echo("")
 

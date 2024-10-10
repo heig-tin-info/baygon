@@ -8,4 +8,4 @@ if len(sys.argv) > 1 and sys.argv[1] == "--version":
 if len(sys.argv) != 2 + 1:
     sys.exit(1)
 
-print(f"a+b = {sys.argv[1]} + {sys.argv[2]}")
+print(f"a + b = {int(sys.argv[1]) + int(sys.argv[2])}")

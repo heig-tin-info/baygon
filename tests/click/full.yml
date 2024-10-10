@@ -15,14 +15,14 @@ tests:
             exit: 1
       - name: Stdout is the difference of arguments
         args: [7, 2]
-        stdout: [{ filters: { trim: true }, equals: 5 }]
+        stdout: [{ filters: { trim: true }, equals: "a + b = 9" }]
       - name: Version on stderr
         args: ["--version"]
         stderr:
           - regex: '\b\d\.\d\.\d\b'
           - contains: "Version"
   - name: Sub
-    executable: ./add.exe.py
+    executable: ./sub.exe.py
     tests:
       - name: Arguments check
         tests:
@@ -33,8 +33,8 @@ tests:
             args: [1]
             exit: 1
       - name: Stdout is the sum of arguments
-        args: [10, 5]
-        stdout: [{ filters: { trim: true }, equals: 15 }]
+        args: [10, 4]
+        stdout: [{ filters: { trim: true }, contains: 6 }]
       - name: Version on stderr
         args: ["--version"]
         stderr:

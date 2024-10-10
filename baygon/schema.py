@@ -120,6 +120,13 @@ group = VSchema(
     {Required("tests"): All(Num.down(), [All(Any(Self, test), Num.next())], Num.up())}
 ).extend(common)
 
+cli = {
+    Optional("verbose"): Any(int),
+    Optional("report"): str,
+    Optional("format"): Any("json", "yaml"),
+    Optional("table", default=False): Boolean(),
+}
+
 
 def Schema(data, humanize=False):  # noqa: N802
     """Validate the given data against the schema."""
@@ -138,6 +145,7 @@ def Schema(data, humanize=False):  # noqa: N802
         )
         .extend(common)
         .extend(evaluate)
+        .extend(cli)
     )
     if humanize:
         return validate_with_humanized_errors(data, schema)
