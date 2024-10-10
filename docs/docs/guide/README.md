@@ -89,3 +89,32 @@ ok.
 ::: tip
 You may need to use `pip3` instead of `pip` depending on your system.
 :::
+
+## Options
+
+Baygon has a few options to help you run your tests:
+
+```
+Usage: baygon [OPTIONS] [EXECUTABLE]
+
+  Baygon functional test runner.
+
+Options:
+  --version                 Shows version
+  -v, --verbose             Shows more details
+  -l, --limit INTEGER       Limit errors to N
+  -d, --debug               Debug mode
+  -r, --report PATH         Report file
+  -t, --table               Summary table
+  -f, --format [json|yaml]  Report format
+  -t, --config PATH         Choose config file (.yml or .json)
+  --help                    Show this message and exit.
+```
+### Verbose
+
+The `-v` or `--verbose` is cumulative. The more you use it, the more details you get, you can use it such as `-vvv`.
+
+0. Only minimum output will be displayed (default value)
+1. Display all tests
+2. Display all tests and steps
+3. Display all tests, steps and output

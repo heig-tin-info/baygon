@@ -64,6 +64,7 @@ click = "^8.1"
 PyYAML = "^6.0"
 tinykernel = "^0.0.2"
 rich = "^13.9.2"
+pydantic = "^2.9.2"
 
 [tool.poetry.dev-dependencies]
 pytest = "^8.3.3"
