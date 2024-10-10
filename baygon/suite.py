@@ -11,6 +11,7 @@ from .filters import FilterEval, FilterNone, Filters
 from .id import Id
 from .matchers import InvalidExitStatus, MatcherFactory
 from .schema import Schema
+from .score import compute_points
 
 
 def find_testfile(path=None):
@@ -268,7 +269,7 @@ class TestSuite(ExecutableMixin, FilterMixin, GroupMixin):
             cwd = self.path
             self.config = load_config(self.path)
 
-        # compute_points(self.config)
+        compute_points(self.config)
 
         self.name = self.config.get("name", "Test Suite")
         self.version = self.config.get("version")
