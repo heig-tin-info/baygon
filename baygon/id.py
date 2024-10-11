@@ -61,9 +61,11 @@ class Id(Sequence):
         return f"Id({str(self)})"
 
     def __add__(self, other):
+        if not isinstance(other, int):
+            raise TypeError(f"Cannot add type {type(other)} to Id")
         return Id(self.ids[:-1] + [self.ids[-1] + other])
 
-    def __list__(self):
+    def as_list(self):
         return self.ids
 
     def __iter__(self):
@@ -79,8 +81,8 @@ class Id(Sequence):
     def __getitem__(self, item):
         return self.ids[item]
 
-    def pad(self, length="  "):
-        """Return id with initial padding."""
+    def indent(self, length="  "):
+        """Return id with initial indent."""
         return length * (len(self) - 1)
 
 

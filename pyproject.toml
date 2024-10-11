@@ -58,12 +58,12 @@ exclude = [
 "Tracker" = "https://github.com/heig-tin-info/baygon/issues"
 
 [tool.poetry.dependencies]
-python = ">=3.9"
-voluptuous = "^0.15"
+python = ">=3.9,<3.14"
 click = "^8.1"
 PyYAML = "^6.0"
-tinykernel = "^0.0.2"
 rich = "^13.9.2"
+restrictedpython = "^7.4"
+pydantic = "^2.9.2"
 
 [tool.poetry.dev-dependencies]
 pytest = "^8.3.3"
@@ -95,7 +95,9 @@ norecursedirs = [".git", "_build"]
 addopts = '''
     --doctest-modules
     --ignore-glob='*.exe.py'
-    --cov=baygon --cov-report
-    term --cov-report
-    xml --cov-fail-under=80 -vvv
+    --cov=baygon
+    --cov-report term-missing
+    --cov-report xml
+    --cov-fail-under=80
+    -vvv
 '''

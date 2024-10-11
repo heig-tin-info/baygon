@@ -141,6 +141,9 @@ class FilterEval(Filter):
         self._mustache = re.compile(f"{start}(.*?){end}")
         self._kernel = TinyKernel()
 
+        if init is None:
+            init = []
+
         init += [
             "from math import *",
             "from random import *",
