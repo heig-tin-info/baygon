@@ -2,7 +2,7 @@ import json
 from typing import IO, Any, Dict, List, Literal, Optional, Union
 
 import yaml
-from pydantic import BaseModel, Field, ValidationError, field_validator
+from pydantic import BaseModel, Field, ValidationError, field_validator, model_validator
 
 Value = Union[str, int, float, bool]
 
@@ -45,12 +45,13 @@ class CommonConfig(MinPointsMixin, BaseModel):
     points: Optional[float] = None
     weight: Optional[float] = None
 
-    @field_validator("points")
-    def check_points_weight(cls, v, values):
+    @model_validator(mode="before")
+    def check_points_and_weight(cls, values):
+        points = values.get("points")
         weight = values.get("weight")
-        if weight is not None and v is not None:
+        if points is not None and weight is not None:
             raise ValueError("Cannot specify both 'points' and 'weight'")
-        return v
+        return values
 
 
 class TestConfig(CommonConfig):

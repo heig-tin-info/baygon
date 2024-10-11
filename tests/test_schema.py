@@ -31,7 +31,7 @@ def test_test_contains():
 
 def test_empty_filters():
     s = SchemaConfig(version=1, tests=[])
-    assert "filters" in s.dict()
+    assert "filters" in s.model_dump()
 
 
 def test_schema_from_json():
@@ -127,14 +127,12 @@ def test_invalid_version():
 
 def test_validate_method():
     dict_input = {"version": 1, "tests": [{"exit": 0}]}
-    schema = Schema(various=dict_input)
-    schema.validate()  # Should pass without any exception
+    Schema(various=dict_input)
 
     # Test invalid schema
     invalid_input = {"version": 3, "tests": [{"exit": 0}]}
-    schema = Schema(various=invalid_input)
     with pytest.raises(ValueError, match="Only version up to 2 is accepted"):
-        schema.validate()
+        Schema(various=invalid_input)
 
 
 def test_points_and_weight_conflict():
