@@ -1,58 +1,15 @@
 """Test suite."""
 
-import json
 from pathlib import Path
 
-import yaml
-
-from .error import ConfigError, InvalidExecutableError
+from .error import InvalidExecutableError
 from .executable import Executable
 from .filters import FilterEval, FilterNone, Filters
+from .helpers import load_config, find_testfile
 from .id import Id
 from .matchers import InvalidExitStatus, MatcherFactory
 from .schema import Schema
 from .score import compute_points
-
-
-def find_testfile(path=None):
-    """Recursively find the tests description file."""
-    if not path:
-        path = Path(".")
-    elif isinstance(path, str):
-        path = Path(path)
-
-    path = path.resolve(strict=True)
-
-    if path.is_file():
-        return path
-
-    for filename in ["baygon", "t", "test", "tests"]:
-        for ext in ["json", "yml", "yaml"]:
-            f = path.joinpath(f"{filename}.{ext}")
-            if f.exists():
-                return f
-
-    # Recursively search in parent directories
-    if path.parent == path:  # Test if root directory
-        return None
-
-    return find_testfile(path.parent)
-
-
-def load_config(path=None):
-    """Load a configuration file (can be YAML or JSON)."""
-    path = find_testfile(path)
-
-    if not path.exists():
-        raise ConfigError(f"Couldn't find and configuration file in '{path.resolve()}'")
-
-    with open(path, "rt", encoding="utf-8") as fp:
-        if path.suffix in [".yml", ".yaml"]:
-            return Schema(yaml.safe_load(fp))
-        if path.suffix in [".json"]:
-            return Schema(json.load(fp))
-
-    raise ConfigError(f"Unknown file extension '{path.suffix}' for '{path}'")
 
 
 class BaseMixin:

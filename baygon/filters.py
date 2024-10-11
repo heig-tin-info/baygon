@@ -9,9 +9,7 @@ import sys
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from functools import lru_cache
-
-from tinykernel import TinyKernel
-
+from .kernel import RestrictedEvaluator
 from .error import InvalidFilterError
 
 
@@ -136,23 +134,10 @@ class FilterRegex(Filter):
 class FilterEval(Filter):
     """Filter for evaluating mustaches in strings."""
 
-    def __init__(self, start: str = "{{", end: str = "}}", init: list = None):
+    def __init__(self, start: str = "{{", end: str = "}}"):
         super().__init__()
         self._mustache = re.compile(f"{start}(.*?){end}")
-        self._kernel = TinyKernel()
-
-        if init is None:
-            init = []
-
-        init += [
-            "from math import *",
-            "from random import *",
-            "from statistics import *",
-            "from baygon.eval import iter",
-        ]
-
-        for item in init:
-            self._kernel(item)
+        self._kernel = RestrictedEvaluator()
 
     def apply(self, value: str) -> str:
         """Evaluate mustaches in a string."""
@@ -167,16 +152,8 @@ class FilterEval(Filter):
 
     def exec(self, code: str):
         """Execute code in the kernel."""
-
-        # Inject context to custom functions
         code = re.sub(r"((?<=\b)iter\(.*?)(\))", f"\\1,ctx={hash(code)}\\2", code)
-
-        # Workaround to get the value of assignments
-        try:
-            self._kernel("_ = " + code)
-            return self._kernel.glb["_"]
-        except SyntaxError:
-            return self._kernel(code)
+        return self._kernel(code)
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self._mustache.pattern})"

@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from baygon import Executable, is_safe_executable
+from baygon.executable import Executable, is_safe_executable
 from baygon.error import InvalidExecutableError
 from baygon.helpers import GreppableString
 

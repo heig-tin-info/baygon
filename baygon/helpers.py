@@ -1,5 +1,8 @@
 import re
 import shlex
+from pathlib import Path
+from .error import ConfigError
+from .schema import Schema
 
 
 def escape_argument(arg):
@@ -47,3 +50,38 @@ class GreppableString(str):
         False
         """
         return value in self
+
+
+def find_testfile(path=None):
+    """Recursively find the tests description file."""
+    if not path:
+        path = Path(".")
+    elif isinstance(path, str):
+        path = Path(path)
+
+    path = path.resolve(strict=True)
+
+    if path.is_file():
+        return path
+
+    for filename in ["baygon", "t", "test", "tests"]:
+        for ext in ["json", "yml", "yaml"]:
+            f = path.joinpath(f"{filename}.{ext}")
+            if f.exists():
+                return f
+
+    # Recursively search in parent directories
+    if path.parent == path:  # Test if root directory
+        return None
+
+    return find_testfile(path.parent)
+
+
+def load_config(path=None):
+    """Load a configuration file (can be YAML or JSON)."""
+    path = find_testfile(path)
+
+    if not path.exists():
+        raise ConfigError(f"Couldn't find and configuration file in '{path.resolve()}'")
+
+    return Schema(filename=path)

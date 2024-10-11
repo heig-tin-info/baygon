@@ -3,7 +3,7 @@ from io import StringIO
 import pytest
 from pydantic import ValidationError
 
-from baygon import Schema, SchemaConfig
+from baygon.schema import Schema, SchemaConfig
 
 
 def test_minimal():

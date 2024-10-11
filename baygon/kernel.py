@@ -1,4 +1,6 @@
 import math
+import random
+import statistics
 
 from RestrictedPython import (
     compile_restricted,
@@ -27,6 +29,15 @@ class RestrictedEvaluator:
             "exp": math.exp,
             "iter": iter,
             "reset": reset,
+            "rand": random.random,
+            "randint": random.randint,
+            "uniform": random.uniform,
+            "choice": random.choice,
+            "mean": statistics.mean,
+            "median": statistics.median,
+            "mode": statistics.mode,
+            "stdev": statistics.stdev,
+            "variance": statistics.variance,
         }
         self.local_env = {}
 
