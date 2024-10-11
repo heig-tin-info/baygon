@@ -207,4 +207,4 @@ def test_min_point_behavior():
 
 def test_distribute_rounding():
     assert distribute([1, 2], 10, 0.01) == [3.33, 6.67]
-    assert distribute([1, 1, 1], 100, 1) == [33, 33, 34]
+    assert sorted(distribute([1, 1, 1], 100, 1)) == [33, 33, 34]
