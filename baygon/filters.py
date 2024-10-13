@@ -106,13 +106,13 @@ class FilterReplace(Filter):
     'world world'
     """
 
-    def __init__(self, pattern: str, replacement: str):
+    def __init__(self, pattern: str, replace: str):
         super().__init__()
         self.pattern = pattern
-        self.replacement = replacement
+        self.replace = replace
 
     def apply(self, value: str) -> str:
-        return value.replace(self.pattern, self.replacement)
+        return value.replace(self.pattern, self.replace)
 
 
 class FilterRegex(Filter):
@@ -122,14 +122,14 @@ class FilterRegex(Filter):
     'h-ll- w-rld'
     """
 
-    def __init__(self, pattern: str, replacement: str):
+    def __init__(self, pattern: str, replace: str, flags=[]):
         super().__init__()
         self.pattern = pattern
-        self.replacement = replacement
-        self.regex = re.compile(pattern)
+        self.replace = replace
+        self.regex = re.compile(pattern, flags)
 
     def apply(self, value: str) -> str:
-        return self.regex.sub(self.replacement, value)
+        return self.regex.sub(self.replace, value)
 
 
 class FilterEval(Filter):

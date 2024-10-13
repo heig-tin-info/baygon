@@ -51,7 +51,7 @@ Filters can be applied to all outputs (`stdout`, `stderr`) of every tests. The f
       - chomp: true
     ```
 
-`ignore-spaces`
+`join`
 
 :   All spaces are removed from all outputs.
 

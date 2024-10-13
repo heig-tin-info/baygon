@@ -86,3 +86,52 @@ def load_config(path=None):
         raise ConfigError(f"Couldn't find and configuration file in '{path.resolve()}'")
 
     return Schema(filename=path)
+
+
+def parse_pcre_flags(flags: str):
+    """Parse PCRE flags into Python's re module flags."""
+    python_flags = 0
+    for flag in flags:
+        if flag == "i":
+            python_flags |= re.IGNORECASE
+        elif flag == "m":
+            python_flags |= re.MULTILINE
+        elif flag == "s":
+            python_flags |= re.DOTALL
+        elif flag == "g":
+            pass
+        else:
+            raise ValueError(f"Invalid flag in regex: {flag}")
+    return python_flags
+
+
+def to_pcre(regex: str):
+    """
+    Convert a Perl-style regex of the form s/delimiter/search/replace/flags
+    into a format usable in Python, translating flags to Python's `re` module flags.
+    """
+    if not regex.startswith("s"):
+        raise ValueError("Regex must start with 's'.")
+
+    delimiter = regex[1]
+    pattern = rf"s\{delimiter}(.*?)\{delimiter}(.*?)\{delimiter}(.*)"
+
+    match = re.match(pattern, regex)
+    if not match:
+        raise ValueError(f"Incorrect regex format: {regex}")
+
+    search, replace, flags = match.groups()
+
+    python_flags = parse_pcre_flags(flags)
+
+    valid_flags = set("gims")
+    for flag in flags:
+        if flag not in valid_flags:
+            raise ValueError(f"Invalid flag in regex: {flag}")
+
+    try:
+        re.compile(search)
+    except re.error:
+        raise ValueError(f"Invalid regex pattern: {search}")
+
+    return {"search": search, "replace": replace, "flags": python_flags}
