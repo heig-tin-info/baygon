@@ -1,4 +1,5 @@
 import json
+from io import StringIO
 from typing import IO, Any, Dict, List, Literal, Optional, Union
 
 import yaml
@@ -7,14 +8,29 @@ from pydantic import BaseModel, Field, ValidationError, field_validator, model_v
 Value = Union[str, int, float, bool]
 
 
+class MinPointsMixin:
+    min_points: float = Field(0.1, alias="min-points")
+
+
+class EnvMixin:
+    timeout: Optional[int] = None
+    use_tty: Optional[bool] = False
+    env: Dict[str, Value] = {}
+
+
+class CLIMixin:
+    """CLI configuration that can be overridden by CLI arguments"""
+
+    verbose: Optional[int] = 0
+    report: Optional[str] = None
+    format: Optional[Literal["json", "yaml"]] = "json"
+    table: bool = False
+
+
 class EvaluateConfig(BaseModel):
     start: str = "{{"
     end: str = "}}"
     init: Optional[List[str]] = None
-
-
-class MinPointsMixin(BaseModel):
-    min_points: float = Field(0.1, alias="min-points")
 
 
 class FiltersConfig(BaseModel):
@@ -31,15 +47,11 @@ class CaseConfig(BaseModel):
     equals: Optional[Value] = None
     regex: Optional[Value] = None
     contains: Optional[Value] = None
-    not_: Optional[List[Dict[str, Value]]] = Field(None, alias="not")
+    negate: Optional[List[Dict[str, Value]]] = None
     expected: Optional[Value] = None
 
-    @field_validator("not_", mode="before")
-    def rename_not(cls, v):
-        return v
 
-
-class CommonConfig(MinPointsMixin, BaseModel):
+class CommonConfig(BaseModel, MinPointsMixin, EnvMixin):
     name: str = ""
     executable: Optional[str] = None
     points: Optional[float] = None
@@ -56,7 +68,6 @@ class CommonConfig(MinPointsMixin, BaseModel):
 
 class TestConfig(CommonConfig):
     args: List[Value] = []
-    env: Dict[str, Value] = {}
     stdin: Optional[Value] = ""
     stdout: Optional[List[Union[Value, "CaseConfig"]]] = []
     stderr: Optional[List[Union[Value, "CaseConfig"]]] = []
@@ -67,23 +78,13 @@ class TestConfig(CommonConfig):
 class GroupConfig(CommonConfig):
     tests: List[Union["GroupConfig", TestConfig]]
 
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = {"arbitrary_types_allowed": True}
 
 
 GroupConfig.model_rebuild()
 
 
-class CLIConfig(BaseModel):
-    """CLI configuration that can be overridden by CLI arguments"""
-
-    verbose: Optional[int] = 0
-    report: Optional[str] = None
-    format: Optional[Literal["json", "yaml"]] = "json"
-    table: bool = False
-
-
-class SchemaConfig(MinPointsMixin, CLIConfig, BaseModel):
+class SchemaConfig(BaseModel, CLIMixin, MinPointsMixin, EnvMixin):
     name: Optional[str] = None
     version: int = 2
     filters: FiltersConfig = FiltersConfig()
@@ -91,16 +92,21 @@ class SchemaConfig(MinPointsMixin, CLIConfig, BaseModel):
     points: Optional[float] = None
     evaluate: Optional[EvaluateConfig] = None
 
+    @model_validator(mode="before")
+    def check_forbidden_fields(cls, values):
+        if "weight" in values:
+            raise ValueError("The field 'weight' is not allowed in SchemaConfig.")
+        return values
+
     @field_validator("version")
     def _check_version(cls, v):
         if v > 2:
-            raise ValidationError(
+            raise ValueError(
                 "Only version up to 2 is accepted, you may used a newer schema"
             )
         return v
 
-    class Config:
-        populate_by_name = True
+    model_config = {"populate_by_name": True}  # Remplace l'ancienne classe Config
 
 
 class Schema:
@@ -124,9 +130,6 @@ class Schema:
             raise ValueError("No valid input provided to build a schema.")
 
     def _from_various(self, various: Any) -> SchemaConfig:
-        """
-        Determine the type of `various` and call the appropriate parser.
-        """
         if isinstance(various, SchemaConfig):
             return various
         elif isinstance(various, dict):
@@ -135,29 +138,29 @@ class Schema:
             try:
                 # Attempt to parse as JSON
                 return self._from_json(various)
-            except json.JSONDecodeError:
+            except ValueError:
                 try:
                     # Attempt to parse as YAML
                     return self._from_yaml(various)
-                except yaml.YAMLError:
+                except ValueError:
                     raise ValueError("Invalid string format. Must be JSON or YAML.")
-        elif isinstance(various, IO):
-            # Assume it's a file-like object and try to read it
-            return self._from_file(various)
+        elif isinstance(various, StringIO):
+            return self._from_various(various.getvalue())
         else:
             raise ValueError("Unsupported input type for `various`.")
 
-    def _from_json(self, json_str: Union[str, Dict]) -> SchemaConfig:
+    def _from_json(self, json_str: str) -> SchemaConfig:
         """
         Parse the input as JSON and return a validated SchemaConfig.
         """
-        if isinstance(json_str, str):
-            try:
-                data = json.loads(json_str)
-            except json.JSONDecodeError as e:
-                raise ValueError(f"Invalid JSON format: {e}")
-        else:
-            data = json_str
+        if not isinstance(json_str, str):
+            raise ValueError("Not a string")
+
+        try:
+            data = json.loads(json_str)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Invalid JSON format: {e}")
+
         return SchemaConfig(**data)
 
     def _from_yaml(self, yaml_str: str) -> SchemaConfig:
@@ -168,6 +171,8 @@ class Schema:
             data = yaml.safe_load(yaml_str)
         except yaml.YAMLError as e:
             raise ValueError(f"Invalid YAML format: {e}")
+        if not isinstance(data, dict):
+            raise ValueError("Malformed YAML.")
         return SchemaConfig(**data)
 
     def _from_file(self, file: IO) -> SchemaConfig:
@@ -196,7 +201,7 @@ class Schema:
         If the schema is invalid, a ValidationError will be raised.
         """
         try:
-            self.config = SchemaConfig(**self.config.dict())
+            self.config = SchemaConfig(**self.config)
         except ValidationError as e:
             raise ValueError(f"Schema validation failed: {e}")
 

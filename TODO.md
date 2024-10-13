@@ -14,6 +14,7 @@
 - [ ] Migrate from TinyKernel to RestrictedPython
 - [ ] Short test summary info
 - [ ] Implement standalone tests
+- [ ] Migrate documentation to MkDocs
 
 ## New Features
 
