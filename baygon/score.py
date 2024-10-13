@@ -106,7 +106,9 @@ def assign_points(test, parent=None):  # noqa: C901
     # If there are subtests, assign points to them
     if "tests" in test:
         fixed_points = sum(
-            subtest.get("points", 0) for subtest in test["tests"] if "points" in subtest
+            subtest.get("points", 0) or 0
+            for subtest in test["tests"]
+            if "points" in subtest
         )
         weights = []
         subtests_to_distribute = []
@@ -122,7 +124,7 @@ def assign_points(test, parent=None):  # noqa: C901
                 weights.append(subtest["weight"])
                 subtests_to_distribute.append(subtest)
 
-        points_to_distribute = test["points"] - fixed_points
+        points_to_distribute = (test["points"] or 0) - fixed_points
 
         if weights and points_to_distribute > 0:
             allocated_points = distribute(weights, points_to_distribute, min_point)

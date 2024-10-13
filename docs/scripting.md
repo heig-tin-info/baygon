@@ -1,6 +1,6 @@
 # Scripting
 
-You can use Baygon as a library to write your own test runner. This is useful if you want to write your own test runner or if you want to use Baygon in a CI/CD pipeline.
+Baygon is meant to be used as a standalone program to test other programs using a configuration file. However, you can also use Baygon as a library to write your own test runner.
 
 Here is an example of a test runner using Baygon:
 

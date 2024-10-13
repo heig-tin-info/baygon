@@ -1,7 +1,7 @@
 import json
 from io import StringIO
 from typing import IO, Any, Dict, List, Literal, Optional, Union
-
+from pathlib import Path, PosixPath
 import yaml
 from pydantic import BaseModel, Field, ValidationError, field_validator, model_validator
 
@@ -117,7 +117,10 @@ class Schema:
         """
 
         if various:
-            self.config = self._from_various(various)
+            if isinstance(various, (PosixPath, Path)):
+                self.config = self._from_filename(various)
+            else:
+                self.config = self._from_various(various)
         elif json:
             self.config = self._from_json(json)
         elif yaml:

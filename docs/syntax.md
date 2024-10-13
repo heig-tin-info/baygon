@@ -1,11 +1,11 @@
 # Config File Syntax
 
-## Base
+## Schema version
 
-Each config file should start with the version of the syntax which is `1`. Then the mandatory `tests` dictionary must exist. The following is a minimal example composed of 1 test which tests if the output is 3 when the binary is run with two arguments `1` and `2`:
+The schema version is the first key of the configuration file. It is mandatory the version is the baygon version. Syntax API might be incompatible between major versions. The following is a minimal example composed of 1 test which tests if the output is 3 when the binary is run with two arguments `1` and `2`:
 
 ```yaml
-version: 1
+version: 1.0 # Can use semantic versioning
 tests:
   - args: [1, 2]
     stdout: 3
@@ -13,30 +13,94 @@ tests:
 
 ## Filters
 
-Global filters can be applied to all outputs of every tests. The outputs are `stdout` and `stderr`. Baygon features the following filters:
+Filters can be applied to all outputs (`stdout`, `stderr`) of every tests. The following filters are available:
 
-- `uppercase`: All outputs are transformed into uppercase.
-- `lowercase`: All outputs are transformed into lowercase.
-- `trim`: All outputs are trimmed (spaces are removed from both ends, on each line
-- `ignore-spaces`: All spaces are removed from all outputs.
-- `regex`: A remplacement is made using regular expressions.
-- `replace`: A remplacement is made using a string.
+`uppercase`
 
-If more than one filter is applied, they are applied in the order they are written.
+:   All outputs are transformed into uppercase.
 
-In the following, both standard output and standard error will be in lowercase and every occurrences of `foo` or `foobar` will be replaced by `bar`:
+    ```yaml
+    filters:
+      - uppercase: true
+    ```
+
+`lowercase`
+
+:   All outputs are transformed into lowercase.
+
+    ```yaml
+    filters:
+      - lowercase: true
+    ```
+
+`trim`
+
+:   All outputs are trimmed (spaces are removed from both ends), on each line
+
+    ```yaml
+    filters:
+      - trim: true
+    ```
+
+`chomp`
+
+:   Trailings newlines are removed from all outputs.
+
+    ```yaml
+    filters:
+      - chomp: true
+    ```
+
+`ignore-spaces`
+
+:   All spaces are removed from all outputs.
+
+    ```yaml
+    filters:
+      - ignore-spaces: true
+    ```
+
+`regex`
+
+:   A remplacement is made using regular expressions. Multiple forms are accepted. Either a PCRE expression or a search and replace form.
+
+    ```yaml
+    filters:
+      # PCRE expression
+      - regex: 's/foo(bar)?/bar/g'
+      # Search and replace form
+      - regex:
+        search: foo(bar)?
+        replace: bar
+      # Search and replace in an array
+      - regex: [foo(bar)?, bar]
+    ```
+
+`replace`
+
+:   A remplacement is made using a string.
+
+    ```yaml
+    filters:
+      - replace:
+        search: foo
+        replace: bar
+      - replace: [foo, bar]
+    ```
+
+Multiple filters can be applied at the same time:
 
 ```yaml
 version: 1
 filters:
-  lowercase: true
-  regex: [foo(bar)?, bar]
+  - lowercase: true
+  - regex: [foo(bar)?, bar]
 tests:
   - args: [1, 2]
     stdout: 3
 ```
 
-Filters can also be applied to a single test:
+Filters can also be applied at any level (root, group, test), they override the previous definitions:
 
 ```yaml
 version: 1
@@ -46,18 +110,18 @@ tests:
       - contains: foo
       - regex: f(oo|aa|uu)
     filters:
-      lowercase: true
+      - lowercase: true
 ```
 
 Or even at a stream output level:
 
 ```yaml
-stdout: [{ filters: { trim: true }, equals: 3 }]
+stdout: [{ filters: [ trim: true ], equals: 3 }]
 ```
 
 ## Naming
 
-All tests can be optionally named:
+Tests and groups can be optionally named:
 
 ```yaml
 version: 1
@@ -72,7 +136,7 @@ tests:
 
 ## Groups and subgroups
 
-Tests can be grouped into sub sections, by nesting each test into categories:
+Tests can be grouped into hierarchical sub sections, by nesting each test into categories:
 
 ```yaml
 version: 1
@@ -91,15 +155,53 @@ tests:
 
 ## Exit status
 
-The exit status can be checked with the `exit` key followed with an integer. The following checks if the program returns 0
+The exit status can be checked with the `exit` key followed with a 8-bit integer. The following checks if the program returns 0
 
 ```yaml
 version: 1
 tests:
-  - exit: 0
+  - exit: 154
+  - exit: 0x9a
+  - exit: Oo232
+  - exit: -102
 ```
 
-## Standard outputs
+The value can be expressed in unsigned, signed or hexadecimal form. Baygon automatically interprets the value in unsigned form (0 to 255).
+
+You may want to test ranges of exit status:
+
+```yaml
+version: 1
+tests:
+  - exit:
+      - gt: 0  # Greater than 0
+      - '>': 0
+
+      - lt: 255 # Less than 255
+      - '<': 255
+
+      - gte: 0 # Greater or equal to 0
+      - '>=': 0
+
+      - lte: 255 # Less or equal to 255
+      - '<=': 255
+```
+
+In POSIX some exit status are used for specific purposes.
+
+| Signal  | Signification            | Exit Status |
+| ------- | ------------------------ | ----------- |
+| SIGHUP  | Hangup                   | 129         |
+| SIGINT  | Interrupt                | 130         |
+| SIGQUIT | Quit                     | 131         |
+| SIGILL  | Illegal instruction      | 132         |
+| SIGABRT | Aborted                  | 134         |
+| SIGFPE  | Floating point exception | 136         |
+| SIGKILL | Killed                   | 137         |
+| SIGSEGV | Segmentation fault       | 139         |
+| SIGTERM | Terminated               | 143         |
+
+## Checking outputs
 
 Both `stdout` and `stderr` can be tested against multiple conditions:
 
@@ -112,9 +214,48 @@ tests:
       - equals: foobar # Must be exactly equal to foobar
 ```
 
+The available conditions are:
+
+`contains`
+
+:   The output must contain the string.
+
+    ```yaml
+    stdout:
+      - contains: foo
+    ```
+
+`regex`
+
+:   The output must match the regular expression.
+
+    ```yaml
+    stdout:
+      - regex: f(oo|aa|uu)
+    ```
+
+`equals`
+
+:   The output must be strictly equal to the string.
+
+    ```yaml
+    stdout:
+      - equals: foobar
+    ```
+
+`negate`
+
+:   This is a special condition that negates the following condition. It is useful when you want to negate a condition that is not available. For example, you want to test if the output does not contain a string:
+
+    ```yaml
+    stdout:
+      - negate:
+        - contains: foo
+    ```
+
 ## Executable
 
-In the case you want to specify a different executable name for a different test:
+Baygon allows for specifying the executable to run either from the command line or from the configuration file. You may specify an executable at any level (root, group, test). The only condition is that an executable must be specified before any test.
 
 ```yaml
 tests:
@@ -131,7 +272,7 @@ tests:
         exit: 0
 ```
 
-The executable is propagated through the test tree. But you cannot override an existing executable. The following is invalid:
+The executable is therefore propagated through the test tree, but you cannot override it. Thus, the following is invalid:
 
 ```yaml
 tests:
@@ -140,7 +281,7 @@ tests:
       - executable: ./bar
 ```
 
-One approach is name the executable at the top level:
+One common approach is to name the executable at the top level:
 
 ```yaml
 version: 1
@@ -156,52 +297,133 @@ Or even from the shell:
 baygon ./foobar
 ```
 
-Note that the working directory is the directory of the config file, except if you specify the executable from the shell. In this case the working directory is the current directory.
+!!! note
+
+    The current working directory `cwd` is the directory of the config file, except if you specify the executable from the shell. In this case the working directory is the current directory.
+
+### Environment variables
+
+You can specify environment variables for the executable at any level:
+
+```yaml
+env: [FOO=bar, BAR=foo]
+```
+
+### TTY
+
+Some programs behave differently when they are run in a TTY. You can specify the `tty` key to run the program in a TTY. By default, the program is run in a non-TTY environment.
+
+```yaml
+tty: true
+```
+
+### Timeout
+
+You can specify a timeout for the executable. The timeout is in seconds.
+
+```yaml
+timeout: 5
+```
+
+### Arguments
+
+You can specify arguments for the executable. The arguments are passed as an array.
+
+```yaml
+args: [1, 2]
+```
+
+### Input
+
+You can specify an input for the executable. The input is either a string or a file.
+
+```yaml
+input: 'foo bar'
+```
+
+```yaml
+input:
+  file: input.txt
+```
+
+The working directory is the directory of the configuration file or the one specified with `cwd`.
 
 ## Configuration file
 
-By default Baygon will look for a file named `baygon.yml` in the current directory. You can specify a different file with the `-c` or `--config` option:
+When running `Baygon` without specifying a configuration file, it will look for a file named `baygon.yml` recursively in the current directory and its parents. If no file is found an error is raised.
+
+You can specify a different file with the `-c` or `--config` option:
 
 ```console
 baygon --config other.yaml
 ```
 
-Other names such as `t`, `test` or `tests` can be used, but the extension must be `.json`, `.yml` or `.yaml`. Here some valid configuration names:
+You are flexible in the format of the configuration file. The following formats are supported:
 
 ```text
 baygon.yml
 baygon.yaml
 baygon.json
-tests.yml
-t.json
-...
 ```
 
-## Tests of strings
+!!! note
 
-Baygon currently features three type of tests :
+    The names `t.json`, `tests.json` are now deprecated, use `baygon.json` instead.
 
-- `contains`: A string contained into the corresponding output.
-- `regex`: A Python regular expression
-- `equals`: An exact match
+## Loops and expressions
 
-You can combine any of the three tests together:
+If the `eval` mode is enabled, you can use loops and expressions in the configuration file. The following is an example of a loop that runs the program with arguments from 1 to 10:
 
 ```yaml
+version: 1
+eval: true
 tests:
-  - stdout:
-      - contains: foo # Must contain the word foo
-      - regex: f(oo|aa|uu) # Must match
-      - equals: foobar
+  - args: ['{{i = iter(1, 10)}}']
+    stdout: '{{i}}'
 ```
 
-You can also add a negation with the `not` keyword:
+The test will be executed 10 times, from 1 to 10 and the output is checked against the value of `i`.
+
+The `eval` option will search for mustaches `{{` and `}}` and evaluate the expression inside. You can use standard arithmetic operators and functions. The following iterators are available:
+
+`iter(start, end, step=1)`
+
+:   Starts a new iterator for this test and returns the current value. The iterator is incremented by `step` at each iteration.
+
+    ```yaml
+    args: ['{{i = iter(1, 10)}}'] # For integers
+    args: ['{{i = iter(1.0, 10.0, 0.5)}}'] # For floats
+    args: ['{{i = iter("a", "z")}}'] # For characters
+    args: ['{{i = iter([4, 8, 15, 16, 23, 42])}}'] # For arrays
+    ```
+
+`rand(min, max, iterations=1, seed=0)`
+
+:   Returns a random number between `min` and `max`.
+
+    ```yaml
+    args: ['{{i = rand(1, 10, 10)}}'] # 10 random numbers between 1 and 10
+    ```
+
+You can use complex expressions such as:
 
 ```yaml
-tests:
-  - stdout:
-      not:
-        - contains: foo # Must contain the word foo
-        - regex: f(oo|aa|uu) # Must match
-        - equals: foobar
+args: ['{{a = iter(-10, 10)}}', '{{b = iter(-10, 10)}}']
+filters:
+  - chomp: true
+stdout: '{{a}} + {{b}} = {{a + b}}'
+```
+
+The math functions available are:
+
+```text
+sin, cos, tan, asin, acos, atan, sinh, cosh, tanh, asinh, acosh, atanh, sqrt, exp, log, log10, log2, pow, ceil, floor, round, abs, min, max, std, median, sum
+```
+
+Behind the scenes, Baygon uses an isolated environment to evaluate the expressions. You may want to add your own functions instead of `eval`:
+
+```yaml
+eval:
+ - from statistics import mean
+ - from math import sqrt
 ```

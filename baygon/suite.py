@@ -5,11 +5,13 @@ from pathlib import Path
 from .error import InvalidExecutableError
 from .executable import Executable
 from .filters import FilterEval, FilterNone, Filters
-from .helpers import find_testfile, load_config
+from .helpers import find_testfile
 from .id import Id
 from .matchers import InvalidExitStatus, MatcherFactory
 from .schema import Schema
 from .score import compute_points
+
+PROPAGATE_KEYS = ["executable", "cwd", "env", "timeout", "use_tty"]
 
 
 class BaseMixin:
@@ -218,22 +220,23 @@ class TestSuite(ExecutableMixin, FilterMixin, GroupMixin):
     __test__ = False  # Don't run this class as a test
 
     def __init__(self, data: dict = None, path=None, executable=None, cwd=None):
+        cwd = cwd if cwd is not None else Path.cwd()
+
         if isinstance(data, dict):
             self.config = Schema(data).get_config()
-            cwd = Path.cwd()
         else:
             self.path = find_testfile(path)
-            cwd = self.path
-            self.config = load_config(self.path)
+            if self.path is None:
+                raise FileNotFoundError(f"Baygon config file not found: {path}")
+            self.config = Schema(self.path).get_config()
+
+        self.config = self.config.model_dump()
 
         compute_points(self.config)
 
         self.name = self.config.get("name", "Test Suite")
         self.version = self.config.get("version")
+        self.executable = executable or self.config.get("executable")
+        self.cwd = cwd
 
-        class Root:
-            def __init__(self, executable):
-                self.executable = Executable(executable)
-                self.cwd = cwd.resolve(strict=True).parent
-
-        super().__init__(self.config, parent=Root(executable))
+        super().__init__(self.config, parent=None)
