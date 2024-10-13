@@ -5,7 +5,7 @@ from pathlib import Path
 from .error import InvalidExecutableError
 from .executable import Executable
 from .filters import FilterEval, FilterNone, Filters
-from .helpers import load_config, find_testfile
+from .helpers import find_testfile, load_config
 from .id import Id
 from .matchers import InvalidExitStatus, MatcherFactory
 from .schema import Schema
@@ -219,7 +219,7 @@ class TestSuite(ExecutableMixin, FilterMixin, GroupMixin):
 
     def __init__(self, data: dict = None, path=None, executable=None, cwd=None):
         if isinstance(data, dict):
-            self.config = Schema(data)
+            self.config = Schema(data).get_config()
             cwd = Path.cwd()
         else:
             self.path = find_testfile(path)

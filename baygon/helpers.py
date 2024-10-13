@@ -1,6 +1,7 @@
 import re
 import shlex
 from pathlib import Path
+
 from .error import ConfigError
 from .schema import Schema
 

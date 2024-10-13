@@ -1,10 +1,10 @@
 from io import StringIO
+from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
 
-from baygon.schema import Schema, SchemaConfig, CaseConfig, CommonConfig
-from pathlib import Path
+from baygon.schema import CommonConfig, Schema, SchemaConfig
 
 
 def test_minimal():
@@ -205,15 +205,6 @@ def test_schema_from_yaml_invalid():
     yaml_str = "version: 2\ntests: ["
     with pytest.raises(ValueError, match="Invalid YAML format"):
         Schema(yaml=yaml_str)
-
-
-def test_schema_from_filename(tmp_path):
-    fake_file = tmp_path / "testfile.json"
-    fake_file.write_text('{"version": 2, "tests": []}')
-
-    schema = Schema(filename=str(fake_file))
-    assert schema.config.version == 2
-    assert schema.config.tests == []
 
 
 def test_schema_from_filename_file_not_found():

@@ -9,8 +9,9 @@ import sys
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from functools import lru_cache
-from .kernel import RestrictedEvaluator
+
 from .error import InvalidFilterError
+from .kernel import RestrictedEvaluator
 
 
 class Filter(ABC):

@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from baygon.executable import Executable, is_safe_executable
 from baygon.error import InvalidExecutableError
+from baygon.executable import Executable, is_safe_executable
 from baygon.helpers import GreppableString
 
 dir_path = Path(__file__).resolve(strict=True).parent

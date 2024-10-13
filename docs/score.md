@@ -6,15 +6,15 @@ The configuration keys you can use are:
 
 **`points`**
 
-The total points that can be earned from the whole suite, group of tests or test.
+: The total points that can be earned from the whole suite, group of tests or test.
 
 **`weight`**
 
-The weight of a test or group of tests. The weight is used to calculate the available points. A default `weight` value of `10` is used but you can set it to any value you want according to your needs.
+: The weight of a test or group of tests. The weight is used to calculate the available points. A default `weight` value of `10` is used but you can set it to any value you want according to your needs.
 
 **`min-points`**
 
-When using weights, for instance if you have a group of test awarded 2 points shared in three tests of equally weights, each test will be awarded 0.666...points. The `min-points` key allows you to set a minimum value for the points. In this case, if you set `min-points` to `1`, each test will be awarded 1 point. Typical values are `1`, `0.5`, `0.25` or `0.1`.
+: When using weights, for instance if you have a group of test awarded 2 points shared in three tests of equally weights, each test will be awarded 0.666...points. The `min-points` key allows you to set a minimum value for the points. In this case, if you set `min-points` to `1`, each test will be awarded 1 point. Typical values are `1`, `0.5`, `0.25` or `0.1`.
 
 Baygon will automatically figure out how to assign points to each test based on your entries. Some rules apply:
 

@@ -1,4 +1,6 @@
-# What is Baygon?
+# Getting started
+
+## What is Baygon?
 
 **Baygon** is a minimalistic test framework for any types of executables. It provides a simple way of testing code with a [JSON](https://en.wikipedia.org/wiki/JSON) or a [YAML](https://en.wikipedia.org/wiki/YAML) description of tests.
 
@@ -6,9 +8,9 @@ It is mainly designed for simple tests in academic environments, but it can be u
 
 Points can be assigned to tests, group of tests or automatically distributed based on the number of tests. The total earned points can be used to calculate the final assignment grade.
 
-::: warning
-Baygon is currently in `beta` stage. It's ready to be used for building functional tests, but the config and API are not stable enough, which is likely to have breaking changes between minor releases.
-:::
+!!! warning
+    Baygon is currently in `beta` stage. It's ready to be used for building functional tests, but the config and API are not stable enough, which is likely to have breaking changes between minor releases.
+
 
 ## How it works
 
@@ -86,6 +88,5 @@ Ran 4 tests in 0.01s.
 ok.
 ```
 
-::: tip
-You may need to use `pip3` instead of `pip` depending on your system.
-:::
+!!! tip
+    You may need to use `pip3` instead of `pip` depending on your system.

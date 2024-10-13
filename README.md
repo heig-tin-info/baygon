@@ -1,5 +1,11 @@
 # Baygon
 
+[![CI](https://img.shields.io/github/actions/workflow/status/heig-tin-info/baygon/ci.yml?branch=main&logo=github&label=CI)](https://github.com/heig-tin-info/baygon/actions?query=event%3Apush+branch%3Amain+workflow%3ACI)
+[![Coverage](https://coverage-badge.samuelcolvin.workers.dev/heig-tin-info/baygon.svg)](https://coverage-badge.samuelcolvin.workers.dev/redirect/heig-tin-info/baygon)
+[![pypi](https://img.shields.io/pypi/v/baygon.svg)](https://pypi.python.org/pypi/baygon)
+[![downloads](https://static.pepy.tech/badge/baygon/month)](https://pepy.tech/project/baygon)
+[![versions](https://img.shields.io/pypi/pyversions/baygon.svg)](https://github.com/heig-tin-info/baygon)
+[![license](https://img.shields.io/github/license/heig-tin-info/baygon.svg)](https://github.com/heig-tin-info/baygon/blob/main/LICENSE)
 [![GitHub issues](https://img.shields.io/github/issues/heig-tin-info/baygon.svg)](https://github.com/heig-tin-info/baygon/issues)
 [![GitHub last commit](https://img.shields.io/github/last-commit/heig-tin-info/baygon.svg)](https://github.com/heig-tin-info/baygon/commits/master)
 ![Build and Deploy](https://github.com/heig-tin-info/baygon/workflows/Build%20and%20Deploy/badge.svg)

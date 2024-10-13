@@ -45,10 +45,28 @@ class RestrictedEvaluator:
     def error(self):
         return self.local_env.get("__exception__")
 
+    def __call__(self, code: str):
+        return self.evaluate(code)
+
     def evaluate(self, code: str):
-        compiled_code = compile_restricted(code, "<string>", "exec")
-        exec(compiled_code, self.global_env, self.local_env)
         try:
+            compiled_code = compile_restricted(code, "<string>", "exec")
+            exec(compiled_code, self.global_env, self.local_env)
+
+            # Extract the last variable assigned (if it's an assignment)
+            # Split the code into lines, and check for assignment
+            lines = code.strip().split("\n")
+            last_line = lines[-1].strip()
+
+            # Check if the last line is an assignment like `a = 42`
+            if "=" in last_line:
+                var_name = last_line.split("=")[0].strip()
+                if var_name in self.local_env:
+                    return self.local_env[var_name]
+                elif var_name in self.global_env:
+                    return self.global_env[var_name]
+
+            # If it's an expression, we return its evaluated result
             result = eval(code, self.global_env, self.local_env)
             return result
         except Exception as e:
