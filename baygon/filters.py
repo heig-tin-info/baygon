@@ -9,7 +9,7 @@ import sys
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from functools import lru_cache
-
+from .helpers import parse_pcre_flags
 from .error import InvalidFilterError
 from .kernel import RestrictedEvaluator
 
@@ -106,13 +106,13 @@ class FilterReplace(Filter):
     'world world'
     """
 
-    def __init__(self, pattern: str, replace: str):
+    def __init__(self, search: str, replace: str):
         super().__init__()
-        self.pattern = pattern
+        self.search = search
         self.replace = replace
 
     def apply(self, value: str) -> str:
-        return value.replace(self.pattern, self.replace)
+        return value.replace(self.search, self.replace)
 
 
 class FilterRegex(Filter):
@@ -122,11 +122,11 @@ class FilterRegex(Filter):
     'h-ll- w-rld'
     """
 
-    def __init__(self, pattern: str, replace: str, flags=[]):
+    def __init__(self, pattern: str, replace: str, flags=""):
         super().__init__()
         self.pattern = pattern
         self.replace = replace
-        self.regex = re.compile(pattern, flags)
+        self.regex = re.compile(pattern, parse_pcre_flags(flags))
 
     def apply(self, value: str) -> str:
         return self.regex.sub(self.replace, value)
@@ -182,7 +182,13 @@ class Filters(Filter, Sequence):
                     args = [args]
                 instances.append(FilterFactory(name, *args))
             return instances
-
+        if isinstance(filters, list):
+            instances = []
+            for f in filters:
+                if not isinstance(f, Filter):
+                    raise InvalidFilterError(f"Invalid type for filter: {type(f)}")
+                instances.append(f)
+            return instances
         raise InvalidFilterError(f"Invalid type for filters: {type(filters)}")
 
     def __getitem__(self, index):

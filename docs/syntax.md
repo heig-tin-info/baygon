@@ -51,13 +51,13 @@ Filters can be applied to all outputs (`stdout`, `stderr`) of every tests. The f
       - chomp: true
     ```
 
-`join`
+`stripall`
 
 :   All spaces are removed from all outputs.
 
     ```yaml
     filters:
-      - ignore-spaces: true
+      - stripall: true
     ```
 
 `regex`
@@ -427,3 +427,20 @@ eval:
  - from statistics import mean
  - from math import sqrt
 ```
+
+### Custom initialization
+
+You can specify custom initialization code that is run before the tests. The code is run in the same environment as the expressions.
+
+```yaml
+eval:
+  start: '{{'
+  end: '}}'
+  init: |
+    def foo(x):
+        return x + 1
+```
+
+The code is run before each tests.
+
+You can redefine the start and end delimiters if you want to.
