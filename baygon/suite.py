@@ -140,8 +140,6 @@ class TestCase(NamedMixin, ExecutableMixin, FilterMixin):
 
         self.exit = config.get("exit", None)
 
-        self.repeat = config.get("repeat", 1)
-
         self.config = config
         self.output = None
         self.issues = []
@@ -149,6 +147,8 @@ class TestCase(NamedMixin, ExecutableMixin, FilterMixin):
         self.filtered_args = None
         self.filtered_exit = None
         self.filtered_stdin = None
+
+        self.kernel = None
 
     def _eval(self, data):
         if not self.eval:
