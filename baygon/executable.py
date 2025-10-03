@@ -137,6 +137,9 @@ class Executable:
             "cwd": self.cwd,
         }
 
+        if timeout == -1:
+            timeout = None
+
         if use_tty:
             master_fd, slave_fd = pty.openpty()
             popen_args.update({"stdin": slave_fd})
@@ -151,7 +154,8 @@ class Executable:
                         os.write(master_fd, stdin)
 
                 stdout, stderr = proc.communicate(
-                    input=stdin if not use_tty else None, timeout=timeout
+                    input=stdin if not use_tty else None,
+                    **({"timeout": timeout} if timeout else {}),
                 )
 
                 stdout = stdout.decode(self.encoding) if stdout else ""
