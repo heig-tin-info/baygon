@@ -136,6 +136,36 @@ pyenv global 3.10.15 3.11.11 3.12.8 3.13.3
 
 ### Running Tests
 
+Using the Makefile (recommended):
+
+```bash
+# Install dependencies (auto-detects uv or poetry)
+make install
+
+# Run all tests
+make test
+
+# Run tests with coverage
+make test-cov
+
+# Run linters
+make lint
+
+# Format code
+make format
+
+# Run all tox environments
+make tox
+
+# Clean build artifacts
+make clean
+
+# Show all available commands
+make help
+```
+
+Or run commands directly:
+
 ```bash
 # Run all tests
 pytest
