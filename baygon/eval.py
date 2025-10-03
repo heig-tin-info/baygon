@@ -25,9 +25,10 @@ Examples:
     >>> iter(100, 10)
     100
 """
-from .kernel import RestrictedEvaluator
 import random
 import re
+
+from .kernel import RestrictedEvaluator
 
 _context = {}
 
@@ -79,6 +80,9 @@ def random(min=0, max=100, n=1, ctx=None):
 class Kernel:
     def __init__(self, mustaches=(r'{{', r'}}'), preambles=[]):
         self._kernel = RestrictedEvaluator()
+        # Inject iter and reset functions into the kernel
+        self._kernel.global_env['iter'] = iter
+        self._kernel.global_env['reset'] = reset
         self._pattern = re.compile(f"{mustaches[0]}(.*?){mustaches[1]}")
         for preamble in preambles:
             self._kernel(preamble)
