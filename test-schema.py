@@ -1,7 +1,9 @@
-from typing import Optional, List, Union
-from pydantic import BaseModel, Field, model_validator, ValidationError, field_validator
-from baygon.helpers import to_pcre, parse_pcre_flags
+from typing import Optional
+
+from pydantic import BaseModel, Field, model_validator
+
 from baygon.filters import FilterFactory, Filters
+from baygon.helpers import to_pcre
 
 
 class RegexDictFormat(BaseModel):
