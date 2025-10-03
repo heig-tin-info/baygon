@@ -25,6 +25,7 @@ Examples:
     >>> iter(100, 10)
     100
 """
+
 import random
 import re
 
@@ -37,52 +38,47 @@ def reset():
     """Reset the context."""
     _context.clear()
 
+
 class ContextIterator:
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
 
     @property
     def has_ended(self):
-        return self.get('ended', False)
+        return self.get("ended", False)
 
-def iter(start=0, end=1, step=1, ctx:ContextIterator=None):
+
+def iter(start=0, end=1, step=1, ctx: ContextIterator = None):
     """Custom iterator for eval input filter."""
     if ctx is None:
         raise ValueError("Context is required")
 
-    if (not ctx):
-        ctx.update({
-            'start': start,
-            'end': end,
-            'step': step,
-            'value': start,
-            'ended': False
-        })
-        return ctx['value']
-    ctx['value'] += step
-    if ctx['value'] >= ctx['end']:
-        ctx['ended'] = True
-    return ctx['value']
+    if not ctx:
+        ctx.update(
+            {"start": start, "end": end, "step": step, "value": start, "ended": False}
+        )
+        return ctx["value"]
+    ctx["value"] += step
+    if ctx["value"] >= ctx["end"]:
+        ctx["ended"] = True
+    return ctx["value"]
 
-def random(min=0, max=100, n=1, ctx=None):
+
+def random_value(min_val=0, max_val=100, n=1, ctx=None):
     """Return a random number between min and max."""
-    if (not ctx):
-        ctx.update({
-            'min': min,
-            'max': max,
-            'n': n,
-            'ended': False
-        })
-    ctx = (min, max, n, ctx)
+    if not ctx:
+        ctx.update({"min": min_val, "max": max_val, "n": n, "ended": False})
+    ctx = (min_val, max_val, n, ctx)
 
-    return random.randint(min, max)
+    return random.randint(min_val, max_val)
+
 
 class Kernel:
-    def __init__(self, mustaches=(r'{{', r'}}'), preambles=[]):
+    def __init__(self, mustaches=(r"{{", r"}}"), preambles=[]):
         self._kernel = RestrictedEvaluator()
         # Inject iter and reset functions into the kernel
-        self._kernel.global_env['iter'] = iter
-        self._kernel.global_env['reset'] = reset
+        self._kernel.global_env["iter"] = iter
+        self._kernel.global_env["reset"] = reset
         self._pattern = re.compile(f"{mustaches[0]}(.*?){mustaches[1]}")
         for preamble in preambles:
             self._kernel(preamble)

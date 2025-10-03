@@ -1,7 +1,8 @@
-from baygon.helpers import to_pcre
+import re
 
 import pytest
-import re
+
+from baygon.helpers import to_pcre
 
 
 def test_basic_conversion():

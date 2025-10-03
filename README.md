@@ -93,14 +93,11 @@ pip install -e .
 Install `pyenv` then install all required version of Python:
 
 ```bash
-pyenv install 3.6.15
-pyenv install 3.7.12
-pyenv install 3.8.12
-pyenv install 3.9.9
 pyenv install 3.10.4
 pyenv install 3.11.0
 pyenv install 3.12.0
-pyenv global 3.6.15 3.7.12 3.8.12 3.9.9 3.10.4 3.11.0 3.12.0
+pyenv install 3.13.0
+pyenv global 3.10.4 3.11.0 3.12.0 3.13.0
 ```
 
 Then setup your Poetry environment:

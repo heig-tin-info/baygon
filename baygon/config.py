@@ -17,6 +17,7 @@ from .schema import SchemaConfig
 from .score import assign_points
 from .suite import ExecutableMixin, FilterMixin, NamedMixin
 
+
 class BaygonConfig:
     def __init__(self, data):
         self.data = SchemaConfig(data)
@@ -24,18 +25,18 @@ class BaygonConfig:
         assign_points(self.data)
 
         context = {
-            'executable': None,
-            'env': {},
-            'tty': False,
-            'timeout': -1,
-            'filters': Filters(),
-            'cwd': None,
+            "executable": None,
+            "env": {},
+            "tty": False,
+            "timeout": -1,
+            "filters": Filters(),
+            "cwd": None,
         }
         self._traverse(self.data["tests"], context)
 
     def _traverse(self, data, context):
         if "executable" in data:
-            context['executable'] = Executable(data["executable"])
+            context["executable"] = Executable(data["executable"])
         if "filters" in data:
             data["filters"] = Filters(data["filters"])
         if "tests" in data:
@@ -83,8 +84,6 @@ class TestCase(NamedMixin, ExecutableMixin, FilterMixin):
 
         self.extra = kwargs
 
-
-
     def run(self, hook=None):
         """Run the tests."""
 
@@ -112,10 +111,7 @@ class TestCase(NamedMixin, ExecutableMixin, FilterMixin):
                     self._match(on, case["not"], output, inverse=True)
 
         self.issues = []
-        if (
-            self.filtered_exit is not None
-            and self.filtered_exit != output.exit_status
-        ):
+        if self.filtered_exit is not None and self.filtered_exit != output.exit_status:
             self.issues.append(
                 InvalidExitStatus(
                     self.filtered_exit, output.exit_status, on="exit", test=self
