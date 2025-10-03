@@ -9,11 +9,10 @@ from RestrictedPython import (
     utility_builtins,
 )
 
-from .eval import iter, reset
-
 
 class RestrictedEvaluator:
     def __init__(self):
+        # Note: iter and reset are added dynamically when used from eval module
         self.global_env = {
             "__builtins__": {**safe_builtins, **utility_builtins, **limited_builtins},
             "math": math,
@@ -27,8 +26,6 @@ class RestrictedEvaluator:
             "pi": math.pi,
             "e": math.e,
             "exp": math.exp,
-            "iter": iter,
-            "reset": reset,
             "rand": random.random,
             "randint": random.randint,
             "uniform": random.uniform,

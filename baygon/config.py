@@ -8,12 +8,15 @@ A Validated schema is modifed into a BaygonConfig in which:
 - exectuable string is converted into Executable object.
 """
 
-from .schema import SchemaConfig
-from .filters import Filters
-from .matchers import MatcherFactory
-from .executable import Executable
-from .score import assign_points
+from .error import InvalidExecutableError
 from .eval import Kernel
+from .executable import Executable
+from .filters import FilterNone, Filters
+from .matchers import InvalidExitStatus, MatcherFactory
+from .schema import SchemaConfig
+from .score import assign_points
+from .suite import ExecutableMixin, FilterMixin, NamedMixin
+
 
 class BaygonConfig:
     def __init__(self, data):
@@ -22,23 +25,24 @@ class BaygonConfig:
         assign_points(self.data)
 
         context = {
-            'executable': None,
-            'env': {},
-            'tty': False,
-            'timeout': -1,
-            'filters': Filters(),
-            'cwd': None,
+            "executable": None,
+            "env": {},
+            "tty": False,
+            "timeout": -1,
+            "filters": Filters(),
+            "cwd": None,
         }
         self._traverse(self.data["tests"], context)
 
     def _traverse(self, data, context):
         if "executable" in data:
-            context['executable'] = Executable(data["executable"])
+            context["executable"] = Executable(data["executable"])
         if "filters" in data:
             data["filters"] = Filters(data["filters"])
         if "tests" in data:
             self._traverse(data["tests"], context.copy())
         if "tests" not in data:
+            pass  # This is a leaf node (test case)
 
 
 class TestCase(NamedMixin, ExecutableMixin, FilterMixin):
@@ -74,11 +78,11 @@ class TestCase(NamedMixin, ExecutableMixin, FilterMixin):
                 f"Test {self.id}, not a valid executable: {self.executable}"
             )
 
-        self.kernel = config.get("kernel", Kernel()) if config.get('eval', False) else None
+        self.kernel = (
+            config.get("kernel", Kernel()) if config.get("eval", False) else None
+        )
 
         self.extra = kwargs
-
-
 
     def run(self, hook=None):
         """Run the tests."""
@@ -92,7 +96,12 @@ class TestCase(NamedMixin, ExecutableMixin, FilterMixin):
 
         # Run the executable and collect the outputs
         self.outputs = output = self.executable.run(
-            *self.filtered_args, stdin=self.filtered_stdin, hook=hook, env=self.env, tty=self.tty, timeout=self.timeout
+            *self.filtered_args,
+            stdin=self.filtered_stdin,
+            hook=hook,
+            env=self.env,
+            tty=self.tty,
+            timeout=self.timeout,
         )
 
         for on in ["stdout", "stderr"]:
@@ -102,10 +111,7 @@ class TestCase(NamedMixin, ExecutableMixin, FilterMixin):
                     self._match(on, case["not"], output, inverse=True)
 
         self.issues = []
-        if (
-            self.filtered_exit is not None
-            and self.filtered_exit != output.exit_status
-        ):
+        if self.filtered_exit is not None and self.filtered_exit != output.exit_status:
             self.issues.append(
                 InvalidExitStatus(
                     self.filtered_exit, output.exit_status, on="exit", test=self
@@ -115,7 +121,8 @@ class TestCase(NamedMixin, ExecutableMixin, FilterMixin):
         return self.issues
 
     def _preprocess(self, data):
-        """ If inline evaluation using mustache syntax is enabled, evaluate the data.
+        """If inline evaluation using mustache syntax is enabled, evaluate data.
+
         It is used process args and stdin fields against matchers.
         """
         if not self.kernel:
@@ -134,7 +141,9 @@ class TestCase(NamedMixin, ExecutableMixin, FilterMixin):
         for key in MatcherFactory.matchers():
             if key in case:
                 out = filters(getattr(output, on))
-                matcher = MatcherFactory(key, self._preprocess(case[key]), inverse=inverse)
+                matcher = MatcherFactory(
+                    key, self._preprocess(case[key]), inverse=inverse
+                )
                 issue = matcher(out, on=on, test=self)
                 if issue:
                     self.issues.append(issue)

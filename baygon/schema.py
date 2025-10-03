@@ -9,14 +9,12 @@ from voluptuous import (
     Exclusive,
     Optional,
     Required,
-    Self,
     Schema,
+    Self,
 )
-
 from voluptuous.humanize import validate_with_humanized_errors
 
 from .id import TrackId
-
 
 Value = Any(str, All(Any(int, float, All(bool, Coerce(int))), Coerce(str)))
 

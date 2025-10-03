@@ -9,8 +9,9 @@ import sys
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from functools import lru_cache
-from .helpers import parse_pcre_flags
+
 from .error import InvalidFilterError
+from .helpers import parse_pcre_flags
 from .kernel import RestrictedEvaluator
 
 
