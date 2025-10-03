@@ -77,37 +77,90 @@ yarn docs:build
 yarn docs:dev
 ```
 
-## Contributing ?
+## Contributing
 
-```console
-sudo apt update python-venv
+### Quick Start with uv (Recommended)
+
+[uv](https://github.com/astral-sh/uv) is a fast Python package installer and resolver:
+
+```bash
 git clone https://github.com/heig-tin-info/baygon.git
 cd baygon
-python -m venv env
-source env/bin/activate
-pip install -e .
+
+# Install dependencies and create virtual environment
+uv sync --all-extras
+
+# Run tests
+uv run pytest
+
+# Run linters
+uv run ruff check baygon tests
+uv run black --check baygon tests
+
+# Run all tests with tox
+uv run tox
 ```
 
-### Tests
-
-Install `pyenv` then install all required version of Python:
+### Alternative: Using Poetry
 
 ```bash
-pyenv install 3.10.4
-pyenv install 3.11.0
-pyenv install 3.12.0
-pyenv install 3.13.0
-pyenv global 3.10.4 3.11.0 3.12.0 3.13.0
-```
+git clone https://github.com/heig-tin-info/baygon.git
+cd baygon
 
-Then setup your Poetry environment:
+# Install dependencies
+poetry install --with dev
 
-```bash
-poetry install
-```
+# Run tests
+poetry run pytest
 
-Run the tests:
+# Run linters
+poetry run ruff check baygon tests
+poetry run black --check baygon tests
 
-```bash
+# Run all tests with tox
 poetry run tox
 ```
+
+### Development Setup
+
+For running tests across multiple Python versions, install `pyenv`:
+
+```bash
+# Install required Python versions
+pyenv install 3.10.15
+pyenv install 3.11.11
+pyenv install 3.12.8
+pyenv install 3.13.3
+pyenv global 3.10.15 3.11.11 3.12.8 3.13.3
+```
+
+### Running Tests
+
+```bash
+# Run all tests
+pytest
+
+# Run specific test file
+pytest tests/test_schema.py
+
+# Run with coverage
+pytest --cov=baygon --cov-report=html
+
+# Run linters and formatters
+ruff check baygon tests
+black --check baygon tests
+
+# Run all environments (Python 3.10-3.13, linters, coverage)
+tox
+```
+
+### Code Quality Tools
+
+This project uses modern Python tooling:
+
+- **pytest**: Testing framework
+- **pytest-cov**: Coverage reporting
+- **ruff**: Fast Python linter (replaces flake8, isort, and more)
+- **black**: Code formatter
+- **tox**: Test automation across Python versions
+- **mypy**: Optional static type checking

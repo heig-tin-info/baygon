@@ -1,6 +1,70 @@
 [build-system]
-requires = ["poetry-core"]
+requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[project]
+name = "baygon"
+version = "0.5.1"
+description = "Functional tests for teaching activities"
+authors = [{name = "Yves Chevallier", email = "yves.chevallier@heig-vd.ch"}]
+license = {text = "MIT"}
+readme = "README.md"
+keywords = ["testing", "functional-testing"]
+requires-python = ">=3.10,<3.14"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Education",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: OS Independent",
+    "Operating System :: POSIX",
+    "Natural Language :: English",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Education",
+    "Topic :: Education :: Testing",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Software Development :: Testing",
+    "Topic :: Software Development :: Libraries",
+]
+dependencies = [
+    "click>=8.1",
+    "PyYAML>=6.0",
+    "rich>=13.9",
+    "restrictedpython>=7.4",
+    "voluptuous>=0.15",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3",
+    "pytest-cov>=5.0",
+    "ruff>=0.6",
+    "black>=24.10",
+    "tox>=4.21",
+    "mkdocs>=1.6",
+    "mkdocs-exclude>=1.0",
+    "mkdocs-redirects>=1.2",
+    "mkdocstrings-python>=1.12",
+    "mkdocs-material[imaging]>=9.5",
+]
+test = ["ruff", "black", "tox"]
+
+[project.urls]
+Homepage = "https://github.com/heig-tin-info/baygon"
+Documentation = "https://heig-tin-info.github.io/baygon/"
+Source = "https://github.com/heig-tin-info/baygon"
+Tracker = "https://github.com/heig-tin-info/baygon/issues"
+
+[project.scripts]
+baygon = "baygon.__main__:cli"
 
 [tool.poetry]
 name = "baygon"
@@ -58,23 +122,23 @@ exclude = [
 
 [tool.poetry.dependencies]
 python = ">=3.10,<3.14"
-click = "^8.1"
-PyYAML = "^6.0"
-rich = "^13.9.2"
-restrictedpython = "^7.4"
-voluptuous = "^0.15.2"
+click = ">=8.1"
+PyYAML = ">=6.0"
+rich = ">=13.9"
+restrictedpython = ">=7.4"
+voluptuous = ">=0.15"
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^8.3.3"
-pytest-cov = "^5.0.0"
-ruff = "^0.6.9"
-black = "^24.10.0"
-tox = "^4.21.2"
-mkdocs = "^1.6.1"
-mkdocs-exclude = "^1.0.2"
-mkdocs-redirects = "^1.2.1"
-mkdocstrings-python = "^1.12.0"
-mkdocs-material = { version = "^9.5.40", extras = ["imaging"] }
+pytest = ">=8.3"
+pytest-cov = ">=5.0"
+ruff = ">=0.6"
+black = ">=24.10"
+tox = ">=4.21"
+mkdocs = ">=1.6"
+mkdocs-exclude = ">=1.0"
+mkdocs-redirects = ">=1.2"
+mkdocstrings-python = ">=1.12"
+mkdocs-material = { version = ">=9.5", extras = ["imaging"] }
 
 [tool.check-manifest]
 ignore = ["node_modules/*"]
@@ -85,23 +149,103 @@ baygon = "baygon.__main__:cli"
 [tool.poetry.extras]
 test = ["ruff", "black", "tox"]
 
-[tool.ruff.lint]
-select = ["E", "F", "W", "C", "I"]
+# Ruff configuration - Modern Python linter and formatter
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+extend-exclude = ["demo/*.exe.py"]
 
+[tool.ruff.lint]
+select = [
+    "E",     # pycodestyle errors
+    "F",     # pyflakes
+    "W",     # pycodestyle warnings
+    "C90",   # mccabe complexity
+    "I",     # isort
+    "N",     # pep8-naming
+    "UP",    # pyupgrade
+    "B",     # flake8-bugbear
+    "A",     # flake8-builtins
+    "C4",    # flake8-comprehensions
+    "DTZ",   # flake8-datetimez
+    "ISC",   # flake8-implicit-str-concat
+    "ICN",   # flake8-import-conventions
+    "PIE",   # flake8-pie
+    "T20",   # flake8-print
+    "PT",    # flake8-pytest-style
+    "Q",     # flake8-quotes
+    "RET",   # flake8-return
+    "SIM",   # flake8-simplify
+    "TID",   # flake8-tidy-imports
+    "ARG",   # flake8-unused-arguments
+    "ERA",   # eradicate
+    "PD",    # pandas-vet
+    "PL",    # pylint
+    "TRY",   # tryceratops
+    "RUF",   # ruff-specific
+]
+ignore = [
+    "E501",    # line too long (handled by formatter)
+    "PLR0913", # too many arguments
+    "TRY003",  # avoid specifying messages outside exception class
+    "ISC001",  # conflicts with formatter
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["PLR2004", "S101", "TID252", "ARG001"]
+"baygon/__main__.py" = ["T20"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["baygon"]
+
+# Black configuration - Code formatter
 [tool.black]
 line-length = 88
+target-version = ["py310", "py311", "py312", "py313"]
+extend-exclude = "demo/.*\\.exe\\.py"
 
+# Pytest configuration - Testing framework
 [tool.pytest.ini_options]
-testpaths = "baygon tests"
+testpaths = ["baygon", "tests"]
 python_files = "test_*.py"
 python_classes = "Test*"
-norecursedirs = [".git", "_build"]
-addopts = '''
-    --doctest-modules
-    --ignore-glob='*.exe.py'
-    --cov=baygon
-    --cov-report term-missing
-    --cov-report xml
-    --cov-fail-under=80
-    -vvv
-'''
+norecursedirs = [".git", "_build", ".tox", "dist", "build"]
+addopts = [
+    "--doctest-modules",
+    "--ignore-glob=*.exe.py",
+    "--cov=baygon",
+    "--cov-report=term-missing",
+    "--cov-report=xml",
+    "--cov-report=html",
+    "--cov-fail-under=80",
+    "-vvv",
+]
+
+# Coverage configuration - Code coverage measurement
+[tool.coverage.run]
+branch = true
+source = ["baygon"]
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "*/__main__.py",
+    "*/version.py",
+]
+
+[tool.coverage.report]
+precision = 2
+show_missing = true
+skip_covered = false
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+
+[tool.coverage.html]
+directory = "htmlcov"
