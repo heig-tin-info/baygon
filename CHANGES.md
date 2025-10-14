@@ -33,6 +33,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Drop support for Python 3.6, 3.7 and 3.8
 
+## 0.6.0 (2025-10-14)
+
+### Changed
+
+- Replace the short option for `--config` with `-c` so `-t` can be used for the summary table flag.
+
+### Fixed
+
+- Restore compatibility with Click 8.3 by using boolean defaults for flags and avoiding attribute access on integers.
+- Ensure report files are written when the format is omitted by selecting a format based on the filename extension.
+- Reapply suite-level filters to test output so configuration filters such as `ignorespaces` work again.
+- Avoid passing positional arguments directly to the Click command when running `python -m baygon`.
+
 ## 0.5.1 (2022-11-08)
 
 - Add tests for filters
