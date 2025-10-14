@@ -4,6 +4,9 @@
 [![GitHub last commit](https://img.shields.io/github/last-commit/heig-tin-info/baygon.svg)](https://github.com/heig-tin-info/baygon/commits/master)
 ![Build and Deploy](https://github.com/heig-tin-info/baygon/workflows/Build%20and%20Deploy/badge.svg)
 ![Python](https://img.shields.io/pypi/pyversions/baygon)
+[![PyPI version](https://img.shields.io/pypi/v/baygon)](https://pypi.org/project/baygon/)
+[![PyPI - Downloads](https://img.shields.io/pypi/dm/baygon)](https://pypi.org/project/baygon/#files)
+[![License](https://img.shields.io/pypi/l/baygon)](https://github.com/heig-tin-info/baygon/blob/master/LICENSE.txt)
 [![codecov](https://codecov.io/github/heig-tin-info/baygon/branch/master/graph/badge.svg?token=hFuVW5z784)](https://codecov.io/github/heig-tin-info/baygon)
 
 **K**ills **B**ugs **D**ead!
