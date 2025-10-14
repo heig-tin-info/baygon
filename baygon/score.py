@@ -1,5 +1,5 @@
-""" Module used to compute the score of a test case.
-  Used in academic.
+"""Module used to compute the score of a test case.
+Used in academic.
 """
 
 from decimal import ROUND_DOWN, ROUND_HALF_UP, Decimal, getcontext

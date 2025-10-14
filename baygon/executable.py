@@ -83,7 +83,6 @@ class Executable:
             stderr=subprocess.PIPE,
             env=env,
         ) as proc:
-
             if stdin is not None:
                 stdin = stdin.encode(self.encoding)
 

@@ -70,7 +70,11 @@ class FiltersConfig(BaseModel):
     def _validate_pairs(cls, value: Any):
         if value is None:
             return None
-        if isinstance(value, Sequence) and not isinstance(value, str) and len(value) == 2:
+        if (
+            isinstance(value, Sequence)
+            and not isinstance(value, str)
+            and len(value) == 2
+        ):
             return [_coerce_value(value[0]), _coerce_value(value[1])]
         raise ValueError("must be a sequence of exactly two values")
 
@@ -221,7 +225,6 @@ class TestGroupModel(CommonSettings):
 BaygonTest = TestCaseModel | TestGroupModel
 
 TestGroupModel.model_rebuild()
-BaygonConfig.model_rebuild()
 
 
 class BaygonConfig(CommonSettings):
@@ -253,6 +256,9 @@ class BaygonConfig(CommonSettings):
         if isinstance(value, bool):
             return {"init": []}
         return value
+
+
+BaygonConfig.model_rebuild()
 
 
 def _assign_test_ids(tests: list[BaygonTest]) -> None:
@@ -319,7 +325,9 @@ def _dump_config(
         if config.eval is None:
             eval_data = {"init": []}
         else:
-            eval_data = config.eval.model_dump(by_alias=True, exclude_none=True, mode="python")
+            eval_data = config.eval.model_dump(
+                by_alias=True, exclude_none=True, mode="python"
+            )
             if raw_eval_value in {True, False, None}:
                 eval_data.pop("start", None)
                 eval_data.pop("end", None)
@@ -380,5 +388,6 @@ def Schema(data: Any, humanize: bool = False):  # noqa: N802
         raise
 
     _assign_test_ids(config.tests)
-    return _dump_config(config, include_eval=include_eval, raw_eval_value=raw_eval_value)
-
+    return _dump_config(
+        config, include_eval=include_eval, raw_eval_value=raw_eval_value
+    )

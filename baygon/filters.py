@@ -187,7 +187,6 @@ class Filters(Filter, Sequence):
         self._filters = self._parse_filter(filters)
 
     def _parse_filter(self, filters):
-
         if filters is None:
             return []
         if isinstance(filters, Filter):
