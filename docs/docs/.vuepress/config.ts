@@ -3,7 +3,7 @@ import { defaultTheme } from '@vuepress/theme-default'
 import { viteBundler } from '@vuepress/bundler-vite'
 
 export default defineUserConfig({
-  base: '/',  // Ou '/baygon/' si tu déploies dans un sous-dossier
+  base: process.env.NODE_ENV === 'production' ? '/baygon/' : '/',
   lang: 'en-US',
   title: 'Baygon',
   description: "Minimalistic functional test framework",
