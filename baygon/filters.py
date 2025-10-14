@@ -193,7 +193,7 @@ class Filters(Filter, Sequence):
         if isinstance(filters, Filter):
             return [filters]
         if isinstance(filters, Filters):
-            return filters._filters
+            return list(filters._filters)
         if isinstance(filters, dict):
             instances = []
             for name, args in filters.items():

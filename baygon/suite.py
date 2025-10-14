@@ -238,9 +238,9 @@ class TestCase(NamedMixin, ExecutableMixin, FilterMixin):
     def _match(self, on, case, output, inverse=False):
         """Match the output."""
         if "filters" in case:
-            filters = self.filters.extend(case["filters"])
+            filters = Filters(self.filters).extend(case["filters"])
         else:
-            filters = FilterNone
+            filters = self.filters
 
         for key in MatcherFactory.matchers():
             if key in case:

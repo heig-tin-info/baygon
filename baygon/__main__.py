@@ -151,6 +151,8 @@ class Runner:
         self.failures = 0
         self.successes = 0
         self.skipped = 0
+        self.points_total = 0
+        self.points_earned = 0
 
         self._traverse_group(self.test_suite)
 
@@ -191,13 +193,14 @@ class Runner:
             )
 
         report = self.test_suite.config.get("report")
+        report_format = self.test_suite.config.get("format")
         if report:
-            if not format:
+            if not report_format:
                 if report.endswith(".yaml"):
-                    format = "yaml"
+                    report_format = "yaml"
                 else:
-                    format = "json"
-            save_report(self.get_report(), report, format)
+                    report_format = "json"
+            save_report(self.get_report(), report, report_format)
 
         return self.failures
 
@@ -290,6 +293,7 @@ class Runner:
         self.display_test_verbose(test, issues, self.verbose)
 
         earned_points = test.points if test.status == "passed" else 0
+        self.points_total += test.points
         self.points_earned += earned_points
         self.summary.append(
             {
@@ -343,14 +347,14 @@ def version():
 @click.option("--version", is_flag=True, help="Shows version")
 @click.option("-v", "--verbose", count=True, help="Shows more details")
 @click.option("-l", "--limit", type=int, default=-1, help="Limit errors to N")
-@click.option("-d", "--debug", is_flag=True, default=0, help="Debug mode")
+@click.option("-d", "--debug", is_flag=True, default=False, help="Debug mode")
 @click.option("-r", "--report", type=click.Path(), help="Report file")
-@click.option("-t", "--table", is_flag=True, default=0, help="Summary table")
+@click.option("-t", "--table", is_flag=True, default=False, help="Summary table")
 @click.option(
     "-f", "--format", type=click.Choice(["json", "yaml"]), help="Report format"
 )
 @click.option(
-    "-t",
+    "-c",
     "--config",
     type=click.Path(exists=True),
     help="Choose config file (.yml or .json)",
@@ -378,4 +382,4 @@ def cli(debug, **kwargs):
 
 
 if __name__ == "__main__":
-    cli(False)
+    cli()
