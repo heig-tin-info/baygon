@@ -13,5 +13,5 @@ try:
 except ImportError:
     __version__ = None
 
-__year__ = 2022
+__year__ = 2025
 __copyright__ = f"Copyright {__year__} HEIG-VD"
