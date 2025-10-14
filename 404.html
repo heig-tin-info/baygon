@@ -1,33 +1,43 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en-US">
   <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <meta name="generator" content="VuePress 2.0.0-beta.53">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="generator" content="VuePress 2.0.0-rc.17" />
     <style>
       :root {
-        --c-bg: #fff;
+        --vp-c-bg: #fff;
       }
-      html.dark {
-        --c-bg: #22272e;
+
+      [data-theme='dark'] {
+        --vp-c-bg: #1b1b1f;
       }
-      html, body {
-        background-color: var(--c-bg);
+
+      html,
+      body {
+        background-color: var(--vp-c-bg);
       }
     </style>
     <script>
-      const userMode = localStorage.getItem('vuepress-color-scheme');
-			const systemDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-			if (userMode === 'dark' || (userMode !== 'light' && systemDarkMode)) {
-				document.documentElement.classList.toggle('dark', true);
-			}
+      const userMode = localStorage.getItem('vuepress-color-scheme')
+      const systemDarkMode =
+        'matchMedia' in window
+          ? window.matchMedia('(prefers-color-scheme: dark)').matches
+          : false
+
+      if (userMode === 'light') {
+        document.documentElement.dataset.theme = 'light'
+      } else if (userMode === 'dark' || systemDarkMode) {
+        document.documentElement.dataset.theme = 'dark'
+      }
     </script>
-    <title> | Baygon</title><meta name="description" content="Minimalistic functional test framework">
-    <link rel="preload" href="/baygon/assets/style.5ed62c29.css" as="style" /><link rel="stylesheet" href="/baygon/assets/style.5ed62c29.css" />
-    <link rel="modulepreload" href="/baygon/assets/app.91ad3f97.js"><link rel="modulepreload" href="/baygon/assets/404.html.10828f85.js"><link rel="modulepreload" href="/baygon/assets/404.html.d2dc3323.js"><link rel="prefetch" href="/baygon/assets/index.html.fe13666f.js" as="script" /><link rel="prefetch" href="/baygon/assets/index.html.0160bff1.js" as="script" /><link rel="prefetch" href="/baygon/assets/advanced.html.c115cc67.js" as="script" /><link rel="prefetch" href="/baygon/assets/contributing.html.33e6e476.js" as="script" /><link rel="prefetch" href="/baygon/assets/scripting.html.1c8a8903.js" as="script" /><link rel="prefetch" href="/baygon/assets/syntax.html.39ebf65d.js" as="script" /><link rel="prefetch" href="/baygon/assets/index.html.8872958b.js" as="script" /><link rel="prefetch" href="/baygon/assets/index.html.cbb64b22.js" as="script" /><link rel="prefetch" href="/baygon/assets/advanced.html.9878b719.js" as="script" /><link rel="prefetch" href="/baygon/assets/contributing.html.af29234d.js" as="script" /><link rel="prefetch" href="/baygon/assets/scripting.html.7bec2e8c.js" as="script" /><link rel="prefetch" href="/baygon/assets/syntax.html.968b500b.js" as="script" />
+    <title>Baygon</title><meta name="description" content="Minimalistic functional test framework">
+    <link rel="preload" href="/assets/style-B9YJdv8P.css" as="style"><link rel="stylesheet" href="/assets/style-B9YJdv8P.css">
+    <link rel="modulepreload" href="/assets/app-Dg7hlZB4.js"><link rel="modulepreload" href="/assets/404.html-_aiqGd5h.js">
+    <link rel="prefetch" href="/assets/index.html-DJgZz7NU.js" as="script"><link rel="prefetch" href="/assets/index.html-B3taYjAi.js" as="script"><link rel="prefetch" href="/assets/advanced.html-3gv6PyDk.js" as="script"><link rel="prefetch" href="/assets/contributing.html-D_0FCE9r.js" as="script"><link rel="prefetch" href="/assets/score.html-Cj0Qqzru.js" as="script"><link rel="prefetch" href="/assets/scripting.html-ug_TRgX-.js" as="script"><link rel="prefetch" href="/assets/syntax.html-BTTycGdS.js" as="script"><link rel="prefetch" href="/assets/setupDevtools-7MC2TMWH-BvL-Ba7Y.js" as="script">
   </head>
   <body>
-    <div id="app"><!--[--><div class="theme-container"><main class="page"><div class="theme-default-content"><h1>404</h1><blockquote>How did we get here?</blockquote><a href="/baygon/" class="">Take me home</a></div></main></div><!----><!--]--></div>
-    <script type="module" src="/baygon/assets/app.91ad3f97.js" defer></script>
+    <div id="app"><!--[--><div class="vp-theme-container" vp-container data-v-67c08c1d><main class="page" data-v-67c08c1d><div class="theme-default-content" vp-content data-v-67c08c1d><h1 data-v-67c08c1d>404</h1><blockquote data-v-67c08c1d>That&#39;s a Four-Oh-Four.</blockquote><a class="route-link" href="/" data-v-67c08c1d>Take me home</a></div></main></div><!--[--><!----><!--]--><!--]--></div>
+    <script type="module" src="/assets/app-Dg7hlZB4.js" defer></script>
   </body>
 </html>
