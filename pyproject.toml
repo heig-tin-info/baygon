@@ -59,7 +59,7 @@ exclude = [
 
 [tool.poetry.dependencies]
 python = ">=3.9"
-voluptuous = "^0.15"
+pydantic = "^2.9"
 click = "^8.1"
 PyYAML = "^6.0"
 tinykernel = "^0.0.2"
