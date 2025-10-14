@@ -7,7 +7,7 @@ actions:
     link: /guide/
     type: primary
   - text: Syntax
-    link: /guide/syntax/
+    link: /guide/syntax.md
     type: secondary
 footer: MIT Licensed | Copyright © HEIG-VD 2021-present
 ---
