@@ -84,7 +84,7 @@ nav:
       - advanced.md
       - contributing.md
   - About: about.md
-  - Changelog: changelog.md
+  - Changelog: ../CHANGES.md
 
 markdown_extensions:
   - tables
