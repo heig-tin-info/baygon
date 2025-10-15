@@ -60,19 +60,10 @@ extra:
 extra_css:
   - 'styles/home.css'
 
-# https://www.mkdocs.org/user-guide/configuration/#validation
 validation:
   omitted_files: warn
   absolute_links: warn
   unrecognized_links: warn
-
-# extra_css:
-#   - 'extra/terminal.css'
-#   - 'extra/tweaks.css'
-# extra_javascript:
-#   - 'extra/feedback.js'
-#   - 'extra/fluff.js'
-#   - 'https://samuelcolvin.github.io/mkdocs-run-code/run_code_main.js'
 
 nav:
   - Home: index.md
@@ -83,8 +74,9 @@ nav:
       - score.md
       - advanced.md
       - contributing.md
+      - classroom.md
   - About: about.md
-  - Changelog: ../CHANGES.md
+  - Changelog: changelog.md
 
 markdown_extensions:
   - tables
@@ -97,6 +89,10 @@ markdown_extensions:
   - pymdownx.highlight:
       pygments_lang_class: true
   - pymdownx.extra
+  - pymdownx.snippets:
+      check_paths: false
+      base_path:
+        - "."
   - pymdownx.emoji:
       emoji_index: !!python/name:material.extensions.emoji.twemoji
       emoji_generator: !!python/name:material.extensions.emoji.to_svg

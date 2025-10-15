@@ -16,12 +16,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI arguments can now be passed in the configuration file
 - Adds pretty table summary using rich
 - Points distribution mechanism
+- Adds `baygon.yml` self-test so Baygon can validate itself with Baygon
+- `Schema()` accepts YAML strings and file-like objects in addition to mappings
+- Changelog is now published inside the MkDocs documentation
 
 ### Changed
 
 - Upgrade dependencies
 - Migration to Poetry, Ruff and Black
 - Adopted keepachangelog format
+- Configuration validation now relies on Pydantic instead of Voluptuous for clearer errors
+- YAML parsing errors raise `ConfigSyntaxError` with line and column details
+- Documentation migrated from VuePress to MkDocs Material with refreshed navigation
 
 ### Fixed
 
