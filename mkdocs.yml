@@ -75,6 +75,7 @@ nav:
       - advanced.md
       - contributing.md
       - classroom.md
+  - API: api/index.md
   - About: about.md
   - Changelog: changelog.md
 
@@ -104,6 +105,16 @@ watch:
 
 plugins:
   - social
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          options:
+            members_order: source
+            show_if_no_docstring: false
+            show_source: true
+            filters:
+              - "!^_"
   # - mike:
   #     alias_type: symlink
   #     canonical_version: latest

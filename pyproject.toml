@@ -73,6 +73,7 @@ black = "^24.10.0"
 tox = "^4.21.2"
 mkdocs = "^1.6.1"
 mkdocs-material = {extras = ["imaging"], version = "^9.6.21"}
+mkdocstrings = {extras = ["python"], version = "^0.26"}
 
 [tool.check-manifest]
 ignore = ["node_modules/*"]

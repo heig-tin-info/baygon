@@ -35,12 +35,22 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Install and Build
-        run: cd docs && yarn install && yarn docs:build
-      - name: Build and Deploy
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+      - name: Install documentation dependencies
+        run: poetry install --with dev
+      - name: Build documentation
+        run: poetry run mkdocs build --strict
+      - name: Deploy documentation
         uses: JamesIves/github-pages-deploy-action@4.7.3
         with:
-          folder: docs/docs/.vuepress/dist
+          folder: site
   release:
     name: Create Release
     needs: build
