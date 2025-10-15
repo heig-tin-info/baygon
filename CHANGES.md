@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Adds `baygon.yml` self-test so Baygon can validate itself with Baygon
 - `Schema()` accepts YAML strings and file-like objects in addition to mappings
 - Changelog is now published inside the MkDocs documentation
+- Adds API documentation
 
 ### Changed
 
@@ -28,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Configuration validation now relies on Pydantic instead of Voluptuous for clearer errors
 - YAML parsing errors raise `ConfigSyntaxError` with line and column details
 - Documentation migrated from VuePress to MkDocs Material with refreshed navigation
+- Migrate documentation from VuePress to MkDocs Material
 
 ### Fixed
 
