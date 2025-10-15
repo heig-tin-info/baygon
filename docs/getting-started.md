@@ -1,4 +1,6 @@
-# What is Baygon?
+# Getting started
+
+## What is Baygon?
 
 **Baygon** is a minimalistic test framework for any types of executables. It provides a simple way of testing code with a [JSON](https://en.wikipedia.org/wiki/JSON) or a [YAML](https://en.wikipedia.org/wiki/YAML) description of tests.
 
@@ -6,9 +8,10 @@ It is mainly designed for simple tests in academic environments, but it can be u
 
 Points can be assigned to tests, group of tests or automatically distributed based on the number of tests. The total earned points can be used to calculate the final assignment grade.
 
-::: warning
-Baygon is currently in `beta` stage. It's ready to be used for building functional tests, but the config and API are not stable enough, which is likely to have breaking changes between minor releases.
-:::
+!!! warning
+    Baygon is currently in `beta` stage. It's ready to be used for building functional tests, but the config and API are not stable enough, which is likely to have breaking changes between minor releases.
+
+Have fun squashing bugs!
 
 ## How it works
 
@@ -17,10 +20,6 @@ Baygon is a CLI tool that runs tests described in a JSON or YAML file. It can be
 Based on the description file, a `TestSuite` is built. A `TestSuite` is a collection of `TestCases` that are executed sequentially. Each `TestCase` is a collection of `TestSteps` that are executed sequentially.
 
 By default Baygon will run all the tests in the description file.
-
-## What a strange name!
-
-Baygon is a brand of insecticide popularized in the 80s by the commercial ads featuring Michel Leeb. The name was chosen because it's a simple and short name that is easy to remember. And Baygon is meant to kill bugs in your code!
 
 ## Get started
 
@@ -56,11 +55,12 @@ tests:
         exit: 1
   - name: Stdout is the sum of arguments
     args: [1, 2]
-    stdout: []
+    stdout:
+      - equals: "3"
   - name: Version on stderr
     args: ['--version']
     stderr:
-      - regex: '\b\d\.\d\.\d\b'
+      - match: 'm/\b\d\.\d\.\d\b/'
       - contains: 'Version'
 ```
 
@@ -86,6 +86,5 @@ Ran 4 tests in 0.01s.
 ok.
 ```
 
-::: tip
-You may need to use `pip3` instead of `pip` depending on your system.
-:::
+!!! tip
+    You may need to use `pip3` instead of `pip` depending on your system.
