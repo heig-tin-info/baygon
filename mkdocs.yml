@@ -74,7 +74,7 @@ nav:
       - score.md
       - advanced.md
       - contributing.md
-      - classroom.md
+      #- classroom.md
   - API: api/index.md
   - About: about.md
   - Changelog: changelog.md
@@ -105,6 +105,11 @@ watch:
 
 plugins:
   - social
+  - termynal:
+      title: bash
+      buttons: macos
+      prompt_literal_start:
+        - "$"
   - mkdocstrings:
       default_handler: python
       handlers:

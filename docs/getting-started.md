@@ -66,14 +66,24 @@ tests:
 
 To be able to run the tests, simply install [Baygon](https://pypi.org/project/baygon/):
 
-```
-pip install baygon
+<!-- termynal -->
+
+```bash
+$ pip install baygon
+---> 100%
+Done!
 ```
 
 Then build and test you application:
 
-```
+<!-- termynal -->
+
+```text
+
+# Compile the C program
 $ cc app.c -o a.out
+
+# Run baygon tests
 $ baygon -v ./a.out
 Test 1: Arguments check
   Test 1.1: No errors if two arguments.......... PASSED
