@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "baygon"
-version = "0.6.0"
+version = "0.6.1"
 description = "Functional tests for teaching activities"
 authors = ["Yves Chevallier <yves.chevallier@heig-vd.ch>"]
 license = "MIT"
