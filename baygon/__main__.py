@@ -348,12 +348,13 @@ def version():
 @click.option("-l", "--limit", type=int, default=-1, help="Limit errors to N")
 @click.option("-d", "--debug", is_flag=True, default=False, help="Debug mode")
 @click.option("-r", "--report", type=click.Path(), help="Report file")
-@click.option("-t", "--table", is_flag=True, default=False, help="Summary table")
+@click.option("-T", "--table", is_flag=True, default=False, help="Summary table")
 @click.option(
     "-f", "--format", type=click.Choice(["json", "yaml"]), help="Report format"
 )
 @click.option(
     "-c",
+    "-t",
     "--config",
     type=click.Path(exists=True),
     help="Choose config file (.yml or .json)",

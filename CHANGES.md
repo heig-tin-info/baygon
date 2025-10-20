@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - YAML parsing errors raise `ConfigSyntaxError` with line and column details
 - Documentation migrated from VuePress to MkDocs Material with refreshed navigation
 - Migrate documentation from VuePress to MkDocs Material
+- `--config` accepts both `-c` and legacy `-t` short flags; the summary table flag now maps to `-T`.
 
 ### Fixed
 

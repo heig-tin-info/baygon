@@ -80,14 +80,14 @@ class TestDemo(TestCase):
         self.assertEqual(result.exit_code, 0)
         self.assertIn("ok.", result.output)
 
-    def test_short_config_and_table_flags(self):
+    def test_short_config_alias_c_and_table_flag(self):
         runner = CliRunner()
         result = runner.invoke(
             cli,
             [
                 "-c",
                 str(self.get_config("success.yml")),
-                "-t",
+                "-T",
                 self.executable,
                 "-v",
             ],
@@ -97,6 +97,23 @@ class TestDemo(TestCase):
 
         self.assertEqual(result.exit_code, 0)
         self.assertIn("Test Summary", result.output)
+        self.assertIn("ok.", result.output)
+
+    def test_short_config_alias_t(self):
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            [
+                "-t",
+                str(self.get_config("success.yml")),
+                self.executable,
+                "-v",
+            ],
+        )
+
+        print(result, result.output)
+
+        self.assertEqual(result.exit_code, 0)
         self.assertIn("ok.", result.output)
 
     def test_report_json(self):
