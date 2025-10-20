@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Summary table now shows failed and skipped tests with the correct status labels.
 - '4 failed, 0 passed (0.0%% ok).' remove the duplicated pecentage sign
 - Fix output by adding quotes and `(empty)` for empty strings
 - More tests (89% coverage), enabled doctests

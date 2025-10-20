@@ -57,6 +57,12 @@ Ran 4 tests in 0.0s.
 ok.
 ```
 
+CLI highlights:
+
+- Use `--pretty` to render rich panels for failing tests, including captured command telemetry.
+- Pass `-T`/`--table` to display an aggregated summary table once the run completes.
+- Provide a custom test definition with `-c`/`--config`; prior Baygon 0.5.x releases used `-t` for this option, which is still accepted for backward compatibility.
+
 ## How to install?
 
 ```console

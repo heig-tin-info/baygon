@@ -166,6 +166,9 @@ By default Baygon will look for a file named `baygon.yml` in the current directo
 baygon --config other.yaml
 ```
 
+!!! note
+    Baygon 0.5.x historically used the `-t` flag for selecting the configuration file. The CLI still accepts `-t` for backward compatibility, but newer releases prefer `-c`/`--config`.
+
 Other names such as `t`, `test` or `tests` can be used, but the extension must be `.json`, `.yml` or `.yaml`. Here some valid configuration names:
 
 ```text

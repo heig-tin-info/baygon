@@ -96,5 +96,12 @@ Ran 4 tests in 0.01s.
 ok.
 ```
 
+## Explore the CLI output
+
+Baygon offers a few handy flags to tailor the feedback you receive during a run:
+
+- `--pretty` formats failing tests as rich panels, highlighting issues and the commands that were executed.
+- `-T`/`--table` prints a summary table once the run finishes, so you can quickly scan the status and points of each test.
+
 !!! tip
     You may need to use `pip3` instead of `pip` depending on your system.
