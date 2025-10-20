@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <meta name="generator" content="VuePress 2.0.0-rc.26" />
+    <meta name="generator" content="VuePress 2.0.0-rc.17" />
     <style>
       :root {
         --vp-c-bg: #fff;
@@ -19,25 +19,25 @@
       }
     </style>
     <script>
-      const useChoice = localStorage.getItem('vuepress-color-scheme')
-      const systemStatus =
+      const userMode = localStorage.getItem('vuepress-color-scheme')
+      const systemDarkMode =
         'matchMedia' in window
           ? window.matchMedia('(prefers-color-scheme: dark)').matches
           : false
 
-      if (useChoice === 'light') {
+      if (userMode === 'light') {
         document.documentElement.dataset.theme = 'light'
-      } else if (useChoice === 'dark' || systemStatus) {
+      } else if (userMode === 'dark' || systemDarkMode) {
         document.documentElement.dataset.theme = 'dark'
       }
     </script>
     <title>Baygon</title><meta name="description" content="Minimalistic functional test framework">
-    <link rel="preload" href="/baygon/assets/style-CfTgoJ5n.css" as="style"><link rel="stylesheet" href="/baygon/assets/style-CfTgoJ5n.css">
-    <link rel="modulepreload" href="/baygon/assets/app-DZORGJ_d.js"><link rel="modulepreload" href="/baygon/assets/404.html-BuraEDyo.js">
-    <link rel="prefetch" href="/baygon/assets/index.html-DAJuGXo0.js" as="script"><link rel="prefetch" href="/baygon/assets/index.html-DtXUgtK2.js" as="script"><link rel="prefetch" href="/baygon/assets/advanced.html-YCVpVbk1.js" as="script"><link rel="prefetch" href="/baygon/assets/contributing.html-y-uh0ry_.js" as="script"><link rel="prefetch" href="/baygon/assets/score.html-Bj94H-dl.js" as="script"><link rel="prefetch" href="/baygon/assets/scripting.html-CTr_l7Q9.js" as="script"><link rel="prefetch" href="/baygon/assets/syntax.html-C6Ke5Qm7.js" as="script">
+    <link rel="preload" href="/assets/style-B9YJdv8P.css" as="style"><link rel="stylesheet" href="/assets/style-B9YJdv8P.css">
+    <link rel="modulepreload" href="/assets/app-Co_6xWNu.js"><link rel="modulepreload" href="/assets/404.html-UV-xN2rK.js">
+    <link rel="prefetch" href="/assets/index.html-Cxpjqfb8.js" as="script"><link rel="prefetch" href="/assets/index.html-KCx3nTpe.js" as="script"><link rel="prefetch" href="/assets/advanced.html-A8D6P6RG.js" as="script"><link rel="prefetch" href="/assets/contributing.html-CxPNx66H.js" as="script"><link rel="prefetch" href="/assets/score.html-CnrAaSWE.js" as="script"><link rel="prefetch" href="/assets/scripting.html-C3uVDgZ7.js" as="script"><link rel="prefetch" href="/assets/syntax.html-BpsU1JMn.js" as="script"><link rel="prefetch" href="/assets/setupDevtools-7MC2TMWH-CXeqH9QN.js" as="script">
   </head>
   <body>
-    <div id="app"><!--[--><div class="vp-theme-container" vp-container data-v-33d3430e><main class="page" data-v-33d3430e><div vp-content data-v-33d3430e><h1 data-v-33d3430e>404</h1><blockquote data-v-33d3430e>There&#39;s nothing here.</blockquote><a class="route-link" href="/baygon/" data-v-33d3430e>Take me home</a></div></main></div><!--[--><!----><!--]--><!--]--></div>
-    <script type="module" src="/baygon/assets/app-DZORGJ_d.js" defer></script>
+    <div id="app"><!--[--><div class="vp-theme-container" vp-container data-v-67c08c1d><main class="page" data-v-67c08c1d><div class="theme-default-content" vp-content data-v-67c08c1d><h1 data-v-67c08c1d>404</h1><blockquote data-v-67c08c1d>That&#39;s a Four-Oh-Four.</blockquote><a class="route-link" href="/" data-v-67c08c1d>Take me home</a></div></main></div><!--[--><!----><!--]--><!--]--></div>
+    <script type="module" src="/assets/app-Co_6xWNu.js" defer></script>
   </body>
 </html>
