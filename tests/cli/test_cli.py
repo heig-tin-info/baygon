@@ -118,7 +118,7 @@ class TestDemo(TestCase):
         self.assertIn("Test 3: Version on stderr", result.output)
         self.assertIn("issues", result.output)
         self.assertIn("Command #1", result.output)
-        self.assertIn("stdin", result.output)
+        self.assertNotIn("stdin", result.output)
         self.assertIn("stdout", result.output)
         self.assertIn("stderr", result.output)
         self.assertIn("args", result.output)
@@ -182,6 +182,23 @@ class TestDemo(TestCase):
         ]
         self.assertTrue(failure_rows)
         self.assertTrue(any("FAIL" in row for row in failure_rows))
+
+    def test_debug_mode_runs_test_suite(self):
+        runner = CliRunner()
+        result = runner.invoke(
+            app,
+            [
+                "-c",
+                str(self.get_config("success.yml")),
+                self.executable,
+                "--debug",
+            ],
+        )
+
+        print(result.output)
+
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn("Using configuration file", result.output)
 
     def test_report_json(self):
         name = "report.json"

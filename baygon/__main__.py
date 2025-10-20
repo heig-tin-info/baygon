@@ -4,13 +4,11 @@ from __future__ import annotations
 
 import logging
 import os
-import sys
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import typer
-from typer import BadParameter
 from rich.box import SQUARE_DOUBLE_HEAD
 from rich.console import Console, Group
 from rich.panel import Panel
@@ -18,6 +16,7 @@ from rich.rule import Rule
 from rich.style import Style
 from rich.table import Table
 from rich.text import Text
+from typer import BadParameter
 
 from . import TestCase, TestGroup, TestSuite, __copyright__, __version__
 from .error import InvalidExecutableError
@@ -243,7 +242,9 @@ class Runner:
         # If element have a space, wrap it with quotes
 
         cmdline = create_command_line(cmd)
-        stdin_text = stdin.decode("utf-8") if isinstance(stdin, (bytes, bytearray)) else ""
+        stdin_text = (
+            stdin.decode("utf-8") if isinstance(stdin, (bytes, bytearray)) else ""
+        )
         self.ran_commands.append(
             {
                 "command": cmdline,
