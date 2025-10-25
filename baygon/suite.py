@@ -6,7 +6,7 @@ from pathlib import Path
 import yaml
 
 from .error import ConfigError, InvalidExecutableError
-from .executable import Executable
+from .executable import Executable, get_env
 from .filters import FilterEval, FilterNone, Filters
 from .id import Id
 from .matchers import InvalidExitStatus, MatcherFactory
@@ -43,8 +43,11 @@ def load_config(path=None):
     """Load a configuration file (can be YAML or JSON)."""
     path = find_testfile(path)
 
+    if path is None:
+        raise ConfigError("Couldn't find configuration file.")
+
     if not path.exists():
-        raise ConfigError(f"Couldn't find and configuration file in '{path.resolve()}'")
+        raise ConfigError(f"Couldn't find configuration file in '{path.resolve()}'")
 
     with open(path, "rt", encoding="utf-8") as fp:
         if path.suffix in [".yml", ".yaml"]:
@@ -69,11 +72,11 @@ class FilterMixin(BaseMixin):
     def __init__(self, *args, **kwargs):
         config = args[0]
 
-        # Configure filters
+        # Configure filters (copy parent filters to avoid shared mutations)
+        parent_filters = None
         if "parent" in kwargs and hasattr(kwargs["parent"], "filters"):
-            self.filters = kwargs["parent"].filters
-        else:
-            self.filters = Filters()
+            parent_filters = kwargs["parent"].filters
+        self.filters = Filters(parent_filters)
 
         if "filters" in config:
             self.filters.extend(config["filters"])
@@ -190,6 +193,7 @@ class TestCase(NamedMixin, ExecutableMixin, FilterMixin):
         self.filtered_args = None
         self.filtered_exit = None
         self.filtered_stdin = None
+        self.filtered_env = None
 
     def _eval(self, data):
         if not self.eval:
@@ -209,12 +213,16 @@ class TestCase(NamedMixin, ExecutableMixin, FilterMixin):
         for _ in range(self.repeat):
             self.filtered_args = self._eval(self.args)
             self.filtered_stdin = self._eval(self.stdin)
+            self.filtered_env = self._eval_env()
             self.filtered_exit = (
                 int(self._eval(str(self.exit))) if self.exit is not None else None
             )
 
             self.output = output = self.executable.run(
-                *self.filtered_args, stdin=self.filtered_stdin, hook=hook
+                *self.filtered_args,
+                stdin=self.filtered_stdin,
+                env=get_env(self.filtered_env),
+                hook=hook,
             )
 
             for on in ["stdout", "stderr"]:
@@ -250,6 +258,14 @@ class TestCase(NamedMixin, ExecutableMixin, FilterMixin):
                 if issue:
                     self.issues.append(issue)
 
+    def _eval_env(self):
+        """Evaluate environment variables with the configured evaluator."""
+        if not self.env:
+            return {}
+        if not self.eval:
+            return dict(self.env)
+        return {key: self.eval(value) for key, value in self.env.items()}
+
 
 class TestGroup(NamedMixin, ExecutableMixin, FilterMixin, GroupMixin):
     """A group of tests."""
@@ -263,11 +279,13 @@ class TestSuite(ExecutableMixin, FilterMixin, GroupMixin):
     def __init__(self, data: dict = None, path=None, executable=None, cwd=None):
         if isinstance(data, dict):
             self.config = Schema(data)
-            cwd = Path.cwd()
+            base_dir = Path(cwd) if cwd is not None else Path.cwd()
         else:
             self.path = find_testfile(path)
-            cwd = self.path
+            if self.path is None:
+                raise ConfigError(f"Couldn't find configuration file for '{path}'.")
             self.config = load_config(self.path)
+            base_dir = self.path.parent
 
         compute_points(self.config)
 
@@ -275,8 +293,8 @@ class TestSuite(ExecutableMixin, FilterMixin, GroupMixin):
         self.version = self.config.get("version")
 
         class Root:
-            def __init__(self, executable):
+            def __init__(self, executable, cwd):
                 self.executable = Executable(executable)
-                self.cwd = cwd.resolve(strict=True).parent
+                self.cwd = Path(cwd).resolve()
 
-        super().__init__(self.config, parent=Root(executable))
+        super().__init__(self.config, parent=Root(executable, base_dir))
