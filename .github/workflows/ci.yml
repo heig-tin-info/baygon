@@ -8,6 +8,8 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+    env:
+      UV_LINK_MODE: copy
     steps:
       - uses: actions/checkout@v4
       - run: git fetch --prune --unshallow
@@ -15,23 +17,25 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install Poetry
-        run: |
-          curl -sSL https://install.python-poetry.org | python3 -
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-      - name: Install dependencies
-        run: poetry install
+      - name: Install uv
+        uses: astral-sh/uv-action@v2
+        with:
+          version: latest
+      - name: Sync dependencies
+        run: uv sync --dev --extra test
       - name: Check formatting
-        run: poetry run black --check .
+        run: uv run --frozen black --check .
       - name: Lint with Ruff
-        run: poetry run ruff check .
-      - name: Test with tox
-        run: poetry run tox
+        run: uv run --frozen ruff check .
+      - name: Test with pytest
+        run: uv run --frozen pytest
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
   documentation:
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags')
+    env:
+      UV_LINK_MODE: copy
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -39,14 +43,14 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Install Poetry
-        run: |
-          curl -sSL https://install.python-poetry.org | python3 -
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-      - name: Install documentation dependencies
-        run: poetry install --with dev
+      - name: Install uv
+        uses: astral-sh/uv-action@v2
+        with:
+          version: latest
+      - name: Sync dependencies
+        run: uv sync --dev
       - name: Build documentation
-        run: poetry run mkdocs build --strict
+        run: uv run --frozen mkdocs build --strict
       - name: Deploy documentation
         uses: JamesIves/github-pages-deploy-action@4.7.3
         with:
@@ -62,12 +66,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.x"
-      - name: Install Poetry
-        run: |
-          python -m pip install --upgrade pip
-          pip install poetry
+      - name: Install uv
+        uses: astral-sh/uv-action@v2
+        with:
+          version: latest
       - name: Build distribution
-        run: poetry build
+        run: uv build
       - uses: actions/upload-artifact@v4
         with:
           name: release

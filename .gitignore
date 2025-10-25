@@ -100,3 +100,5 @@ a.out
 baygon/version.py
 .temp
 node_modules
+.uv_cache/
+.uv_cache_local/
