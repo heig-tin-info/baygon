@@ -232,7 +232,6 @@ class Runner:
         return "\n".join(" " * length + line for line in text.splitlines())
 
     def display_test_verbose(self, test, issues, verbose=0):  # noqa: C901
-
         p = test
         name = []
         while True:

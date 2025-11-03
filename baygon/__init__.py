@@ -10,7 +10,8 @@ try:
     from . import version as _version
 except ImportError:
     try:
-        from importlib.metadata import PackageNotFoundError, version as _metadata_version
+        from importlib.metadata import PackageNotFoundError
+        from importlib.metadata import version as _metadata_version
     except ImportError:  # pragma: no cover - Python <3.9 not supported
         __version__ = None
     else:
