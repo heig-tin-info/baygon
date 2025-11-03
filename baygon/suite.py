@@ -15,6 +15,7 @@ from .executable import Executable, get_env
 from .filters import FilterEval, FilterNone, Filters
 from .id import Id
 from .matchers import InvalidExitStatus, MatcherFactory
+from .runtime.runner import BaygonRunner
 from .schema import Schema
 from .score import compute_points
 
@@ -274,6 +275,13 @@ class TestSuite(ExecutableMixin, FilterMixin, GroupMixin):
             base_dir = self.path.parent
             self.model = load_config_model(self.path)
 
+        self.base_dir = Path(base_dir).resolve()
+        self.runtime_runner = BaygonRunner(
+            self.model,
+            base_dir=self.base_dir,
+            executable=executable,
+        )
+
         self.name = self.config.get("name", "Test Suite")
         self.version = self.config.get("version")
 
@@ -282,4 +290,4 @@ class TestSuite(ExecutableMixin, FilterMixin, GroupMixin):
                 self.executable = Executable(executable)
                 self.cwd = Path(cwd).resolve()
 
-        super().__init__(self.config, parent=Root(executable, base_dir))
+        super().__init__(self.config, parent=Root(executable, self.base_dir))
