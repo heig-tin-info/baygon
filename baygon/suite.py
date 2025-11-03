@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import warnings
 
 from .config.loader import (
     discover_config,
@@ -293,3 +294,11 @@ class TestSuite(ExecutableMixin, FilterMixin, GroupMixin):
                 self.cwd = Path(cwd).resolve()
 
         super().__init__(self.config, parent=Root(executable, self.base_dir))
+
+    def run(self, flatten=False):  # type: ignore[override]
+        warnings.warn(
+            "TestSuite.run() is deprecated; use TestSuite.runtime_runner.run() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return super().run(flatten=flatten)

@@ -61,7 +61,35 @@ CLI highlights:
 
 - Use `--pretty` to render rich panels for failing tests, including captured command telemetry.
 - Pass `-T`/`--table` to display an aggregated summary table once the run completes.
-- Provide a custom test definition with `-c`/`--config`; prior Baygon 0.5.x releases used `-t` for this option, which is still accepted for backward compatibility.
+- Provide a custom test definition with `-c`/`--config`. The legacy `-t` flag is still recognised but deprecated.
+
+## Programmatic usage
+
+Baygon now exposes the same building blocks used by the CLI so you can embed
+the runner directly in your tooling:
+
+```python
+from baygon.config import load_config
+from baygon.runtime import BaygonRunner
+
+suite = load_config("tests/smoke.yml")
+runner = BaygonRunner(suite, base_dir=Path("tests"))
+report = runner.run()
+
+for case in report.cases:
+    print(f"{case.case.name}: {case.status}")
+```
+
+You can also extend Baygon by registering custom filters or matchers:
+
+```python
+from baygon.filters import Filter, register_filter
+
+@register_filter("strip-digits")
+class FilterStripDigits(Filter):
+    def apply(self, value: str) -> str:
+        return "".join(c for c in value if not c.isdigit())
+```
 
 ## How to install?
 

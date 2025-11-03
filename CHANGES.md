@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Schema()` accepts YAML strings and file-like objects in addition to mappings
 - Changelog is now published inside the MkDocs documentation
 - Adds API documentation
+- Expose a programmatic runner via `baygon.runtime.BaygonRunner` and configuration helpers in `baygon.config`
+- Provide public dataclasses in `baygon.core.models` to represent suites, groups and cases
 
 ### Changed
 
@@ -33,6 +35,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Documentation migrated from VuePress to MkDocs Material with refreshed navigation
 - Migrate documentation from VuePress to MkDocs Material
 - `--config` accepts both `-c` and legacy `-t` short flags; the summary table flag now maps to `-T`.
+- CLI rendering now delegates to dedicated presentation modules and the core runtime service
+- Filters and matchers rely on explicit registries instead of module introspection
 
 ### Fixed
 
@@ -45,6 +49,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Deprecated
 
 - Drop support for Python 3.6, 3.7 and 3.8
+- `TestSuite.run()`; prefer `TestSuite.runtime_runner.run()`
+- The legacy `-t` short flag for `--config` (still accepted in this release)
 
 ## 0.6.0 (2025-10-14)
 

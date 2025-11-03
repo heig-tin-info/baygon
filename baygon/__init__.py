@@ -1,14 +1,51 @@
-"""Baygon is a tool to run tests on executables."""
+"""Baygon public API."""
+
+from __future__ import annotations
 
 from pathlib import Path
 import re
 
+from .config.loader import discover_config, load_config, load_config_dict
+from .core.models import (
+    CaseModel,
+    ConditionModel,
+    ExecutionResult,
+    GroupModel,
+    NegatedConditionModel,
+    SuiteModel,
+    build_suite_model,
+)
 from .executable import Executable
+from .runtime.runner import BaygonRunner, CaseResult, CommandLog, RunReport
 from .schema import Schema
 from .suite import TestCase, TestGroup, TestSuite
 
 
-__all__ = ["TestCase", "TestGroup", "TestSuite", "Executable", "Schema"]
+__all__ = [
+    # Legacy surface
+    "TestCase",
+    "TestGroup",
+    "TestSuite",
+    "Executable",
+    "Schema",
+    # Domain models
+    "CaseModel",
+    "ConditionModel",
+    "ExecutionResult",
+    "GroupModel",
+    "NegatedConditionModel",
+    "SuiteModel",
+    "build_suite_model",
+    # Configuration helpers
+    "discover_config",
+    "load_config",
+    "load_config_dict",
+    # Runtime services
+    "BaygonRunner",
+    "RunReport",
+    "CaseResult",
+    "CommandLog",
+]
 _PYPROJECT_VERSION_PATTERN = re.compile(
     r'^version\s*=\s*"(?P<version>[^"]+)"\s*$', re.MULTILINE
 )
