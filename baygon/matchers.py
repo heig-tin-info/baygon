@@ -1,8 +1,8 @@
+from abc import ABC, abstractmethod
+from functools import lru_cache
 import inspect
 import re
 import sys
-from abc import ABC, abstractmethod
-from functools import lru_cache
 
 
 class InvalidCondition:
@@ -21,7 +21,7 @@ class InvalidCondition:
         )
 
     def __repr__(self):
-        return f"{self.__class__.__name__}<{str(self)}>"
+        return f"{self.__class__.__name__}<{self!s}>"
 
 
 class InvalidExitStatus(InvalidCondition):
@@ -123,7 +123,7 @@ class MatcherFactory:
     """Factory for matchers."""
 
     @classmethod
-    @lru_cache()
+    @lru_cache
     def matchers(cls):
         """Helper to get all matchers by their name."""
         fmap = {}

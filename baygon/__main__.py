@@ -4,11 +4,10 @@ from __future__ import annotations
 
 import logging
 import os
-import time
 from pathlib import Path
+import time
 from typing import Any, Dict, List, Optional
 
-import typer
 from rich.box import SQUARE_DOUBLE_HEAD
 from rich.console import Console, Group
 from rich.panel import Panel
@@ -16,11 +15,13 @@ from rich.rule import Rule
 from rich.style import Style
 from rich.table import Table
 from rich.text import Text
+import typer
 from typer import BadParameter
 
 from . import TestCase, TestGroup, TestSuite, __copyright__, __version__
 from .error import InvalidExecutableError
 from .helpers import create_command_line
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("baygon")
@@ -265,7 +266,7 @@ class Runner:
         """
         return "\n".join(" " * length + line for line in text.splitlines())
 
-    def display_test_verbose(self, test, issues, verbose=0):  # noqa: C901
+    def display_test_verbose(self, test, issues, verbose=0):
         p = test
         name_parts = []
         while True:

@@ -1,14 +1,15 @@
 """Executable class. To be used with the Test class."""
 
+from collections import namedtuple
 import logging
 import os
+from pathlib import Path
 import shutil
 import subprocess
 import typing
-from collections import namedtuple
-from pathlib import Path
 
 from .error import InvalidExecutableError
+
 
 logger = logging.getLogger("baygon")
 
@@ -33,12 +34,12 @@ class Executable:
 
     For example:
 
-        >>> e = Executable('echo')
+        >>> e = Executable("echo")
         >>> e
         Executable<echo>
-        >>> e('-n', 'Hello World')
+        >>> e("-n", "Hello World")
         Outputs(exit_status=0, stdout='Hello World', stderr='')
-        >>> e('-n', 'Hello World').stdout
+        >>> e("-n", "Hello World").stdout
         'Hello World'
     """
 

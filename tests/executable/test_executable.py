@@ -1,10 +1,11 @@
-import shutil
 from pathlib import Path
+import shutil
 from unittest import TestCase
 
 from baygon import Executable
 from baygon.error import InvalidExecutableError
 from baygon.helpers import GreppableString
+
 
 dir_path = Path(__file__).resolve(strict=True).parent
 

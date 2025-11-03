@@ -3,7 +3,6 @@ These functions are injected into the kernel and made available from
 the mustaches templates.
 
 Examples:
-
     >>> reset()
     >>> iter()
     0
@@ -15,9 +14,9 @@ Examples:
     100
     >>> iter(100, 10)
     110
-    >>> iter(ctx='foo')
+    >>> iter(ctx="foo")
     0
-    >>> iter(ctx='foo')
+    >>> iter(ctx="foo")
     1
     >>> reset()
     >>> iter()

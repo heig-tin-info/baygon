@@ -1,7 +1,7 @@
 """Hierarchical Id class to identify nested sequences"""
 
-import re
 from collections.abc import Sequence
+import re
 from typing import List
 
 
@@ -9,7 +9,6 @@ class Id(Sequence):
     """Test identifier. Helper class to number tests.
 
     Example:
-
     >>> i = Id()
     >>> i = i.down()
     >>> i
@@ -58,7 +57,7 @@ class Id(Sequence):
         return ".".join([str(i) for i in self.ids])
 
     def __repr__(self):
-        return f"Id({str(self)})"
+        return f"Id({self!s})"
 
     def __add__(self, other):
         return Id(self.ids[:-1] + [self.ids[-1] + other])

@@ -17,7 +17,7 @@ from .score import compute_points
 def find_testfile(path=None):
     """Recursively find the tests description file."""
     if not path:
-        path = Path(".")
+        path = Path()
     elif isinstance(path, str):
         path = Path(path)
 
@@ -49,7 +49,7 @@ def load_config(path=None):
     if not path.exists():
         raise ConfigError(f"Couldn't find configuration file in '{path.resolve()}'")
 
-    with open(path, "rt", encoding="utf-8") as fp:
+    with open(path, encoding="utf-8") as fp:
         if path.suffix in [".yml", ".yaml"]:
             return Schema(yaml.safe_load(fp))
         if path.suffix in [".json"]:
@@ -60,10 +60,11 @@ def load_config(path=None):
 
 class BaseMixin:
     """Base mixin to prevent super() failure.
-    Ensure it will be the last MRO (Method Resolution Order)."""
+    Ensure it will be the last MRO (Method Resolution Order).
+    """
 
     def __init__(self, *args, **kwargs):
-        self.parent = kwargs.get("parent", None)
+        self.parent = kwargs.get("parent")
 
 
 class FilterMixin(BaseMixin):

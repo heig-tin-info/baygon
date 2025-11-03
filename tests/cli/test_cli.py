@@ -4,8 +4,8 @@ import json
 from pathlib import Path
 from unittest import TestCase
 
-import yaml
 from typer.testing import CliRunner
+import yaml
 
 from baygon.__main__ import app
 

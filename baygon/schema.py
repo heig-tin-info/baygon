@@ -5,7 +5,6 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any, Literal
 
-import yaml
 from pydantic import (
     AliasChoices,
     BaseModel,
@@ -15,6 +14,7 @@ from pydantic import (
     field_validator,
     model_validator,
 )
+import yaml
 
 from .error import ConfigError, ConfigSyntaxError
 
@@ -218,7 +218,7 @@ class TestGroupModel(CommonSettings):
 
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
-    tests: list["BaygonTest"]
+    tests: list[BaygonTest]
     test_id: list[int] = Field(default_factory=list, alias="test_id")
 
 

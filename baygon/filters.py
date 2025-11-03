@@ -3,12 +3,12 @@ Each filter is a class that implements a filter method.
 A filter is used to modify `stdout` and `stderr` before they are tested.
 """
 
-import inspect
-import re
-import sys
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from functools import lru_cache
+import inspect
+import re
+import sys
 
 from tinykernel import TinyKernel
 
@@ -29,8 +29,8 @@ class Filter(ABC):
 
     def __init__(self, *args, **kwargs):
         """Initialize the filter.
-        Keyword arguments:
 
+        Keyword Arguments:
         input: Boolean Is the filter applied to the input?
         """
         self.input = kwargs.get("input", False)
@@ -57,7 +57,7 @@ class FilterNone(Filter):
 class FilterUppercase(Filter):
     """Filter for uppercase strings.
     >>> f = FilterUppercase()
-    >>> f('hello')
+    >>> f("hello")
     'HELLO'
     """
 
@@ -68,7 +68,7 @@ class FilterUppercase(Filter):
 class FilterLowercase(Filter):
     """Filter for lowercase strings.
     >>> f = FilterLowercase()
-    >>> f('HELLO')
+    >>> f("HELLO")
     'hello'
     """
 
@@ -79,7 +79,7 @@ class FilterLowercase(Filter):
 class FilterTrim(Filter):
     """Filter for trimmed strings.
     >>> f = FilterTrim()
-    >>> f(' hello   ')
+    >>> f(" hello   ")
     'hello'
     """
 
@@ -92,7 +92,7 @@ class FilterTrim(Filter):
 class FilterIgnoreSpaces(Filter):
     """Filter for strings with no spaces.
     >>> f = FilterIgnoreSpaces()
-    >>> f('hello   world')
+    >>> f("hello   world")
     'helloworld'
     """
 
@@ -102,8 +102,8 @@ class FilterIgnoreSpaces(Filter):
 
 class FilterReplace(Filter):
     """Filter for strings with simple replacements.
-    >>> f = FilterReplace('hello', 'world')
-    >>> f('hello world')
+    >>> f = FilterReplace("hello", "world")
+    >>> f("hello world")
     'world world'
     """
 
@@ -118,8 +118,8 @@ class FilterReplace(Filter):
 
 class FilterRegex(Filter):
     """Filter for strings using regular expressions.
-    >>> f = FilterRegex('[aeiou]', '-')
-    >>> f('hello world')
+    >>> f = FilterRegex("[aeiou]", "-")
+    >>> f("hello world")
     'h-ll- w-rld'
     """
 
@@ -227,7 +227,7 @@ class FilterFactory:
     """Factory for filters."""
 
     @classmethod
-    @lru_cache()
+    @lru_cache
     def filters(cls):
         """Helper to get all filters by their name."""
         fmap = {}
