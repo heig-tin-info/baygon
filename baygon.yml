@@ -2,24 +2,22 @@ version: 1
 name: Baygon Self-Test
 tests:
   - name: Affiche la version
-    args: ["-m", "baygon", "--version"]
+    args: ["--version"]
     stdout:
       - regex: "Baygon version \\d+\\.\\d+\\.\\d+"
     exit: 0
   - name: Aide en ligne de commande
-    args: ["-m", "baygon", "--help"]
+    args: ["--help"]
     stdout:
       - contains: "Baygon functional test runner."
       - contains: "Usage:"
     exit: 0
   - name: Execution de la suite d'exemple
     args:
-      - -m
-      - baygon
       - tests/full/main.exe.py
       - -c
       - tests/full/tests.yml
     stdout:
-      - contains: "Using configuration file: tests/full/tests.yml"
+      - regex: "Using configuration file: .*tests/full/tests\\.yml"
       - contains: "ok."
     exit: 0

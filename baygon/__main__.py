@@ -113,8 +113,9 @@ class Runner:
     def __init__(self, executable=None, config=None, **kwargs):
         self.executable = executable
         self.limit = kwargs.get("limit", -1)
-        typer.secho(f"Using configuration file: {config}")
         self.test_suite = TestSuite(path=config, executable=self.executable)
+        resolved_config = getattr(self.test_suite, "path", None) or config
+        typer.secho(f"Using configuration file: {resolved_config}")
 
         # Forward cli arguments to the test suite
         if "verbose" in kwargs and kwargs["verbose"] != 0:

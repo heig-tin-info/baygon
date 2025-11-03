@@ -117,3 +117,9 @@ Run the automated checks:
 ```bash
 uv run --group dev nox -s lint tests
 ```
+
+Baygon can even test itself against all supported Python versions:
+
+```bash
+uv run baygon $(uv run which baygon)
+```
