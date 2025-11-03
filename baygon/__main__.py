@@ -1,26 +1,27 @@
 """Main CLI command."""
 
+# ruff: noqa: UP007
+
 from __future__ import annotations
 
+import json
 import logging
-import os
 from pathlib import Path
-import time
-from typing import Any
+from typing import Optional
 
-from rich.box import SQUARE_DOUBLE_HEAD
-from rich.console import Console, Group
-from rich.panel import Panel
-from rich.rule import Rule
-from rich.style import Style
-from rich.table import Table
-from rich.text import Text
+from rich.console import Console
 import typer
-from typer import BadParameter
 
-from . import TestCase, TestGroup, TestSuite, __copyright__, __version__
-from .error import InvalidExecutableError
-from .helpers import create_command_line
+from . import __copyright__, __version__
+from .error import ConfigError, InvalidExecutableError
+from .presentation.rich import (
+    render_command_panels,
+    render_pretty_failures,
+    render_summary_table,
+)
+from .presentation.text import render_case_results, render_summary
+from .runtime.runner import RunReport
+from .suite import TestSuite
 
 
 logging.basicConfig(level=logging.INFO)
@@ -33,489 +34,23 @@ app = typer.Typer(
 )
 
 
-def display_pad(pad: int = 0) -> None:
-    """Display a pad of spaces to align nested output."""
-    typer.secho("." * pad if pad > 0 else "  ", nl=False, dim=pad == 0)
-
-
-def test_name_length(test):
-    """Compute the length of test name."""
-    return len(f"{test.id.pad()}Test {test.id}: {test.name}")
-
-
-def display_test_name(test):
-    """Display the name of a test."""
-    typer.secho(f"{test.id.pad()}Test {test.id}: ", nl=False, bold=True)
-    typer.secho(f"{test.name}", nl=False, bold=False)
-
-
-def display_table(data):
-    grey_line_style = Style(color="grey37")
-    title_style = Style(bold=False, color="white")
-    table = Table(
-        title="Test Summary",
-        title_style=title_style,
-        border_style=grey_line_style,
-        box=SQUARE_DOUBLE_HEAD,
-    )
-
-    table.add_column("ID", justify="left")
-    table.add_column("Test Name", justify="left", style=grey_line_style)
-    table.add_column("Points", justify="center", style=grey_line_style)
-    table.add_column("Status", justify="center", style=grey_line_style)
-
-    for test in data:
-        status = ""
-        points = ""
-        status_value = test.get("status")
-        if status_value is not None:
-            normalized = status_value
-            if isinstance(status_value, str):
-                normalized = status_value.lower()
-
-            if normalized in (True, "passed"):
-                status = "[green]PASS[/green]"
-            elif normalized in (False, "failed"):
-                status = "[red]FAIL[/red]"
-            elif normalized == "skipped":
-                status = "[yellow]SKIPPED[/yellow]"
-            else:
-                status = str(status_value)
-
-            if "earned" in test and "points" in test:
-                points = f"{test['earned']}/{test['points']}"
-
-        table.add_row(
-            str(test["id"]), (" " * len(test["id"])) + test["name"], points, status
-        )
-    console.print(table)
-
-
-class OneLineExceptionFormatter(logging.Formatter):
-    """A formatter that displays the exception on a single line."""
-
-    def format_exception(self, exc_info):
-        """Format an exception."""
-        result = super().format_exception(exc_info)
-        return repr(result)
-
-    def format(self, record):
-        """Format a log record."""
-        result = super().format(record)
-        if record.exc_text:
-            result = result.replace("\n", "")
-        return result
-
-
-class Runner:
-    """Test runner."""
-
-    def __init__(self, executable=None, config=None, **kwargs):
-        self.executable = executable
-        self.limit = kwargs.get("limit", -1)
-        self.test_suite = TestSuite(path=config, executable=self.executable)
-        resolved_config = getattr(self.test_suite, "path", None) or config
-        typer.secho(f"Using configuration file: {resolved_config}")
-
-        # Forward cli arguments to the test suite
-        if "verbose" in kwargs and kwargs["verbose"] != 0:
-            self.test_suite.config["verbose"] = kwargs["verbose"]
-        if "report" in kwargs and kwargs["report"] is not None:
-            self.test_suite.config["report"] = kwargs["report"]
-        report_format = kwargs.get("report_format")
-        if report_format is not None:
-            self.test_suite.config["format"] = report_format
-        if "table" in kwargs and kwargs["table"] is not None:
-            self.test_suite.config["table"] = kwargs["table"]
-
-        self.verbose = kwargs.get("verbose", 0)
-        self.pretty = kwargs.get("pretty", False)
-        if self.verbose > 0:
-            typer.echo("Verbose level set to " + str(self.verbose))
-
-        if self.verbose > 3:
-            self._init_logger("DEBUG")
-
-        self.align_column = 0
-
-        self.failures = 0
-        self.successes = 0
-        self.skipped = 0
-        self.run_time = 0
-
-        self.points_earned = 0
-        self.points_total = 0
-
-        self.summary = []
-        self.ran_commands: list[dict[str, Any]] = []
-
-    def _init_logger(self, loglevel):
-        handler = logging.StreamHandler()
-        formatter = OneLineExceptionFormatter(logging.BASIC_FORMAT)
-        handler.setFormatter(formatter)
-        root = logging.getLogger()
-        root.setLevel(os.environ.get("LOGLEVEL", loglevel))
-        root.addHandler(handler)
-
-    def get_report(self):
-        self.test_suite.get_points()
-        return {
-            "failures": self.failures,
-            "successes": self.successes,
-            "skipped": self.skipped,
-            "total": self.failures + self.successes + self.skipped,
-            "time": self.run_time,
-            "points": {
-                "total": self.points_total,
-                "earned": self.points_earned,
-            },
-        }
-
-    def run(self):
-        """Run the tests."""
-        start_time = time.time()
-        self.align_column = self._max_length(self.test_suite) + 10
-
-        self.failures = 0
-        self.successes = 0
-        self.skipped = 0
-        self.points_total = 0
-        self.points_earned = 0
-
-        self._traverse_group(self.test_suite)
-
-        if self.test_suite.config.get("table"):
-            display_table(self.summary)
-
-        tests = self.failures + self.successes + self.skipped
-        seconds = round(time.time() - start_time, 2)
-        self.run_time = seconds
-        console.print(f"\nRan [bold]{tests}[/bold] tests in [bold]{seconds} s[/bold].")
-
-        if self.points_total > 0:
-            typer.secho(
-                f"Points: {self.points_earned}/{self.points_total}",
-                bold=True,
-            )
-
-        if self.failures > 0:
-            ratio = 100 - round(
-                self.failures / (self.failures + self.successes) * 100, 2
-            )
-            typer.secho(
-                (f"{self.failures} failed, {self.successes} " f"passed ({ratio}% ok)."),
-                fg="yellow",
-                bold=True,
-            )
-            typer.secho("\nfail.", fg="red", bold=True)
-        else:
-            typer.secho("\nok.", fg="green")
-
-        if self.skipped > 0:
-            typer.secho(
-                (
-                    f"{self.skipped} test(s) skipped, "
-                    "some executables may be missing."
-                ),
-                fg="yellow",
-            )
-
-        report = self.test_suite.config.get("report")
-        report_format = self.test_suite.config.get("format")
-        if report:
-            if not report_format:
-                report_format = "yaml" if report.endswith(".yaml") else "json"
-            save_report(self.get_report(), report, report_format)
-
-        return self.failures
-
-    def _max_length(self, tests):
-        length = 0
-        for test in tests:
-            length = max(test_name_length(test), length)
-            if isinstance(test, TestGroup):
-                length = max(self._max_length(test), length)
-        return length
-
-    def hook_ran_command(self, cmd, stdin, stdout, stderr, exit_status, **kwargs):
-        """Capture executed command for logging purpose."""
-        # If element have a space, wrap it with quotes
-
-        cmdline = create_command_line(cmd)
-        stdin_text = (
-            stdin.decode("utf-8") if isinstance(stdin, (bytes, bytearray)) else ""
-        )
-        self.ran_commands.append(
-            {
-                "command": cmdline,
-                "args": list(cmd[1:]),
-                "stdin": stdin_text,
-                "stdout": stdout,
-                "stderr": stderr,
-                "exit_status": exit_status,
-            }
-        )
-
-    def pad(self, text, length):
-        """Shift text to right
-        >>> pad("hello", 5)"
-        '     hello'
-        >>> pad("hello\nworld", 3)"
-        '   hello\n   world'
-        """
-        return "\n".join(" " * length + line for line in text.splitlines())
-
-    def display_test_verbose(self, test, issues, verbose=0):
-        p = test
-        name_parts = []
-        while True:
-            if p is None or getattr(p, "name", None) is None:
-                break
-            if p.name:
-                name_parts.append(p.name)
-            p = p.parent
-        breadcrumb = " / ".join(reversed(name_parts))
-
-        pretty_failure = self.pretty and test.status == "failed"
-
-        if verbose >= 2 and not pretty_failure:
-            console.print("\n")
-            console.print(
-                Rule(
-                    f"Test {test.id}: {breadcrumb}",
-                    align="left",
-                    style="bold",
-                )
-            )
-
-        if verbose >= 3 and not pretty_failure:
-            for panel in self._command_panels():
-                console.print(panel)
-
-        if test.status == "skipped":
-            if verbose > 0:
-                typer.secho(" SKIPPED", fg="yellow")
-            else:
-                typer.secho("S", fg="yellow", nl=False)
-            self.skipped += 1
-            return
-
-        if test.status == "passed":
-            if verbose > 0:
-                typer.secho(" PASSED", fg="green")
-            else:
-                typer.secho(".", fg="green", nl=False)
-            self.successes += 1
-            return
-
-        if test.status == "failed":
-            if verbose > 0:
-                typer.secho(" FAILED", fg="red")
-            else:
-                typer.secho("F", fg="red", nl=False)
-                if pretty_failure:
-                    typer.echo()
-            self.failures += 1
-            if pretty_failure:
-                self._render_pretty_failure(test, issues, breadcrumb)
-            else:
-                for issue in issues:
-                    typer.secho(str(issue))
-            return
-
-        for issue in issues:
-            typer.secho(str(issue))
-
-    def _normalize_stream_value(self, value: Any) -> str | None:
-        """Return a string representation for stream values."""
-        if value is None:
-            return None
-        if isinstance(value, (bytes, bytearray)):
-            if not value:
-                return ""
-            return value.decode("utf-8", errors="replace")
-        if isinstance(value, (list, tuple)):
-            return " ".join(str(item) for item in value)
-        return str(value)
-
-    def _build_stream_panel(
-        self,
-        *,
-        title: str,
-        value: Any,
-        placeholder: str,
-        style: str,
-        border_style: str,
-        empty_border_style: str | None = None,
-    ) -> Panel | None:
-        """Create a panel for a specific stream unless it is empty in pretty mode."""
-        text_value = self._normalize_stream_value(value)
-        is_empty = text_value is None or text_value == ""
-        if self.pretty and is_empty:
-            return None
-
-        display_text = placeholder if is_empty else text_value
-        applied_style = style if not is_empty else "dim"
-        applied_border = border_style
-        if empty_border_style is not None and is_empty:
-            applied_border = empty_border_style
-
-        return Panel(
-            Text(display_text, style=applied_style, overflow="fold", no_wrap=False),
-            title=title,
-            border_style=applied_border,
-        )
-
-    def _build_command_panel(self, command: dict[str, Any], index: int) -> Panel:
-        meta_table = Table.grid(padding=(0, 1))
-        meta_table.add_column(style="cyan bold", justify="right")
-        meta_table.add_column()
-        meta_table.add_row("command", command.get("command", ""))
-        meta_table.add_row("exit", str(command.get("exit_status")))
-
-        args_panel = self._build_stream_panel(
-            title="args",
-            value=command.get("args"),
-            placeholder="<none>",
-            style="white",
-            border_style="cyan",
-        )
-        stdin_panel = self._build_stream_panel(
-            title="stdin",
-            value=command.get("stdin"),
-            placeholder="<empty>",
-            style="white",
-            border_style="yellow",
-        )
-        stdout_panel = self._build_stream_panel(
-            title="stdout",
-            value=command.get("stdout"),
-            placeholder="<empty>",
-            style="green",
-            border_style="green",
-        )
-        stderr_panel = self._build_stream_panel(
-            title="stderr",
-            value=command.get("stderr"),
-            placeholder="<empty>",
-            style="red",
-            border_style="red",
-            empty_border_style="grey37",
-        )
-
-        stream_panels = [
-            panel
-            for panel in (args_panel, stdin_panel, stdout_panel, stderr_panel)
-            if panel is not None
-        ]
-        renderables: list[Any] = [meta_table]
-        if stream_panels:
-            renderables.append(Rule(style="grey37"))
-            renderables.append(Group(*stream_panels))
-
-        return Panel(
-            Group(*renderables),
-            title=f"Command #{index}",
-            border_style="cyan",
-        )
-
-    def _command_panels(self) -> list[Panel]:
-        return [
-            self._build_command_panel(command, index)
-            for index, command in enumerate(self.ran_commands, start=1)
-        ]
-
-    def _render_pretty_failure(self, test, issues, breadcrumb: str) -> None:
-        summary = Table.grid(padding=(0, 1))
-        summary.add_column(style="grey50", justify="right")
-        summary.add_column()
-        summary.add_row("path", breadcrumb or test.name)
-        summary.add_row("status", Text("FAILED", style="bold red"))
-        summary.add_row("points", f"0/{test.points}")
-
-        issues_table = Table.grid(padding=(0, 1))
-        issues_table.add_column(style="red bold", justify="right")
-        issues_table.add_column()
-        if not issues:
-            issues_table.add_row("", Text("No matcher issues recorded.", style="dim"))
-        else:
-            for index, issue in enumerate(issues, start=1):
-                issues_table.add_row(
-                    f"#{index}",
-                    Text(str(issue), style="white", overflow="fold"),
-                )
-        issues_panel = Panel(issues_table, title="issues", border_style="red")
-
-        renderables: list[Any] = [summary, Rule(style="grey37"), issues_panel]
-
-        command_panels = self._command_panels()
-        if command_panels:
-            renderables.extend([Rule(style="grey37"), Group(*command_panels)])
-        else:
-            renderables.extend(
-                [
-                    Rule(style="grey37"),
-                    Text("No command telemetry captured.", style="dim"),
-                ]
-            )
-
-        console.print(
-            Panel(
-                Group(*renderables),
-                title=f"Test {test.id}: {test.name}",
-                border_style="red",
-            )
-        )
-
-    def _run_test(self, test):
-        self.ran_commands = []
-        hook = self.hook_ran_command
-        issues = test.run(hook)
-        if issues is None:
-            test.status = "skipped"
-        elif not issues:
-            test.status = "passed"
-        else:
-            test.status = "failed"
-
-        self.display_test_verbose(test, issues, self.verbose)
-
-        earned_points = test.points if test.status == "passed" else 0
-        self.points_total += test.points
-        self.points_earned += earned_points
-        self.summary.append(
-            {
-                "id": test.id,
-                "name": test.name,
-                "status": test.status,
-                "points": test.points,
-                "earned": earned_points,
-            }
-        )
-
-    def _traverse_group(self, tests):
-        for test in tests:
-            if self.limit > 0 and self.failures > self.limit:
-                break
-
-            if isinstance(test, TestGroup):
-                self.summary.append(
-                    {
-                        "id": test.id,
-                        "name": test.name,
-                    }
-                )
-                self._traverse_group(test)
-            elif isinstance(test, TestCase):
-                self._run_test(test)
-        return self.failures
+def _report_payload(report: RunReport) -> dict:
+    return {
+        "failures": report.failures,
+        "successes": report.successes,
+        "skipped": report.skipped,
+        "total": report.total,
+        "time": report.duration,
+        "points": {
+            "total": report.points_total,
+            "earned": report.points_earned,
+        },
+    }
 
 
 def save_report(data, filename, output_format):
     """Save the report to a file."""
     if output_format == "json":
-        import json
-
         with Path(filename).open("w", encoding="utf-8") as fp:
             json.dump(data, fp, indent=2, sort_keys=True)
     elif output_format == "yaml":
@@ -536,18 +71,18 @@ def _version_callback(version_requested: bool) -> None:
         raise typer.Exit()
 
 
-def _format_callback(value: str | None) -> str | None:
+def _format_callback(value: Optional[str]) -> Optional[str]:
     if value is None:
         return None
     normalized = value.lower()
     if normalized not in {"json", "yaml"}:
-        raise BadParameter("Format must be 'json' or 'yaml'.")
+        raise typer.BadParameter("Format must be 'json' or 'yaml'.")
     return normalized
 
 
 @app.callback(invoke_without_command=True)
 def cli(
-    executable: Path | None = typer.Argument(
+    executable: Optional[Path] = typer.Argument(
         None,
         exists=True,
         dir_okay=False,
@@ -571,7 +106,7 @@ def cli(
     ),
     limit: int = typer.Option(-1, "-l", "--limit", help="Limit errors to N."),
     debug: bool = typer.Option(False, "-d", "--debug", help="Enable debug mode."),
-    report: Path | None = typer.Option(
+    report: Optional[Path] = typer.Option(
         None,
         "-r",
         "--report",
@@ -588,7 +123,7 @@ def cli(
         "--pretty",
         help="Display nested frames for failing tests.",
     ),
-    report_format: str | None = typer.Option(
+    report_format: Optional[str] = typer.Option(
         None,
         "-f",
         "--format",
@@ -596,7 +131,7 @@ def cli(
         help="Report format (json or yaml).",
         callback=_format_callback,
     ),
-    config: Path | None = typer.Option(
+    config: Optional[Path] = typer.Option(
         None,
         "-c",
         "-t",
@@ -610,37 +145,72 @@ def cli(
 ) -> None:
     """Baygon functional test runner."""
 
-    _ = _version  # Trigger callback evaluation & silence linters.
+    del _version  # Trigger callback evaluation & silence linters.
 
-    runner_kwargs: dict[str, Any] = {
-        "executable": str(executable) if executable else None,
-        "verbose": verbose,
-        "limit": limit,
-        "report": str(report) if report else None,
-        "table": table,
-        "pretty": pretty,
-        "report_format": report_format,
-        "config": str(config) if config else None,
-    }
+    resolved_executable = str(executable) if executable else None
+
+    try:
+        suite = TestSuite(
+            path=str(config) if config else None,
+            executable=resolved_executable,
+        )
+    except ConfigError as error:
+        typer.secho(f"\nError: {error}", fg="red", bold=True, err=True)
+        raise typer.Exit(code=1) from error
+
+    config_path = getattr(suite, "path", None) or config
+    typer.secho(f"Using configuration file: {config_path}")
+
+    if verbose > 0:
+        typer.echo(f"Verbose level set to {verbose}")
 
     if debug:
         logger.setLevel(logging.DEBUG)
+        logging.getLogger().setLevel(logging.DEBUG)
         logger.debug("Debug mode enabled.")
-        runner = Runner(**runner_kwargs)
-        runner.run()
-    else:
-        try:
-            runner = Runner(**runner_kwargs)
-            runner.run()
-        except InvalidExecutableError as error:
-            typer.secho(f"\nError: {error}", fg="red", bold=True, err=True)
-            raise typer.Exit(code=1) from error
+
+    try:
+        report_result = suite.runtime_runner.run(limit=limit)
+    except InvalidExecutableError as error:
+        typer.secho(f"\nError: {error}", fg="red", bold=True, err=True)
+        raise typer.Exit(code=1) from error
+
+    include_issues = not pretty
+    render_case_results(
+        report_result,
+        write=typer.echo,
+        verbose=verbose,
+        include_issues=include_issues,
+    )
+
+    if verbose >= 3 and not pretty:
+        for case_result in report_result.cases:
+            render_command_panels(
+                case_result,
+                console=console,
+                hide_empty_streams=False,
+            )
+
+    if pretty:
+        render_pretty_failures(report_result, console=console)
+
+    if table:
+        render_summary_table(report_result, console=console)
+
+    render_summary(report_result, write=typer.echo)
+
+    if report:
+        destination = str(report)
+        output_format = report_format or (
+            "yaml" if destination.endswith(".yaml") else "json"
+        )
+        save_report(_report_payload(report_result), destination, output_format)
 
     typer.echo("")
 
 
 def run() -> None:
-    """Entrypoint used by poetry script."""
+    """Entrypoint used by packaging tools."""
     app()
 
 

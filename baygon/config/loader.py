@@ -59,7 +59,9 @@ def _resolve_start(path: str | Path | None) -> Path:
     try:
         return candidate.resolve(strict=True)
     except FileNotFoundError as exc:  # pragma: no cover - guard rails
-        raise ConfigError(f"Couldn't find configuration file in '{candidate}'.") from exc
+        raise ConfigError(
+            f"Couldn't find configuration file in '{candidate}'."
+        ) from exc
 
 
 def _scan_directory(directory: Path) -> Path | None:

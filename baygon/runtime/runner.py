@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Iterable, Iterator, Mapping, MutableMapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 import time
-from typing import Any, Callable, Iterable, Iterator, Mapping, MutableMapping, Sequence, Union
+from typing import Any, Callable, Union
 
 from baygon.core.models import CaseModel, ConditionModel, GroupModel, SuiteModel
 from baygon.error import InvalidExecutableError
@@ -276,14 +277,18 @@ def _inherit_executable(
     return str(path)
 
 
-def _merge_filters(parent: FilterType | None, current: Mapping[str, Any] | None) -> FilterType:
+def _merge_filters(
+    parent: FilterType | None, current: Mapping[str, Any] | None
+) -> FilterType:
     filters = Filters(parent) if parent is not None else Filters()
     if current:
         filters.extend(dict(current))
     return filters
 
 
-def _resolve_eval(parent: EvalType | None, current: Mapping[str, Any] | None) -> EvalType:
+def _resolve_eval(
+    parent: EvalType | None, current: Mapping[str, Any] | None
+) -> EvalType:
     if current:
         return FilterEval(**dict(current))
     if parent is not None:

@@ -10,6 +10,7 @@ from .models import (
     build_suite_model,
 )
 
+
 __all__ = [
     "CaseModel",
     "ConditionModel",

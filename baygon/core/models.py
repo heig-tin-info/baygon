@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator, Mapping, Sequence
 from copy import deepcopy
 from dataclasses import dataclass, field
 from types import MappingProxyType
-from typing import Any, Iterator, Mapping, Sequence, Tuple, Union
+from typing import Any, Union
 
 from baygon.score import compute_points
 
@@ -20,10 +21,10 @@ def _deep_freeze(value: Any) -> Any:
     return value
 
 
-def _as_id_tuple(identifier: Sequence[int] | None) -> Tuple[int, ...]:
+def _as_id_tuple(identifier: Sequence[int] | None) -> tuple[int, ...]:
     """Normalize hierarchical identifiers to tuples."""
     if identifier is None:
-        return tuple()
+        return ()
     return tuple(int(part) for part in identifier)
 
 
@@ -45,7 +46,7 @@ class ConditionModel:
     regex: str | None = None
     contains: str | None = None
     expected: str | None = None
-    negated: Tuple[NegatedConditionModel, ...] = field(default_factory=tuple)
+    negated: tuple[NegatedConditionModel, ...] = field(default_factory=tuple)
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "filters", _deep_freeze(self.filters))
@@ -55,16 +56,16 @@ class ConditionModel:
 class CaseModel:
     """Leaf test case definition."""
 
-    id: Tuple[int, ...]
+    id: tuple[int, ...]
     name: str
     min_points: float | int
     points: float | int | None
     executable: str | None
-    args: Tuple[str, ...]
+    args: tuple[str, ...]
     env: Mapping[str, str]
     stdin: str | None
-    stdout: Tuple[ConditionModel, ...]
-    stderr: Tuple[ConditionModel, ...]
+    stdout: tuple[ConditionModel, ...]
+    stderr: tuple[ConditionModel, ...]
     repeat: int
     exit: int | str | None
     filters: Mapping[str, Any]
@@ -87,13 +88,13 @@ TestNode = Union["GroupModel", "CaseModel"]
 class GroupModel:
     """Hierarchical test group definition."""
 
-    id: Tuple[int, ...]
+    id: tuple[int, ...]
     name: str
     min_points: float | int
     points: float | int | None
     executable: str | None
     filters: Mapping[str, Any]
-    tests: Tuple[TestNode, ...]
+    tests: tuple[TestNode, ...]
     eval: Mapping[str, Any] | None = None
 
     def __post_init__(self) -> None:
@@ -118,7 +119,7 @@ class SuiteModel:
     points: float | int | None
     executable: str | None
     filters: Mapping[str, Any]
-    tests: Tuple[TestNode, ...]
+    tests: tuple[TestNode, ...]
     eval: Mapping[str, Any] | None = None
     verbose: int | None = None
     report: str | None = None
@@ -144,7 +145,7 @@ class ExecutionResult:
 
     case: CaseModel
     status: str
-    issues: Tuple[Any, ...] = field(default_factory=tuple)
+    issues: tuple[Any, ...] = field(default_factory=tuple)
     duration_seconds: float | None = None
     telemetry: Mapping[str, Any] | None = None
 

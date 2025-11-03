@@ -270,7 +270,9 @@ class TestSuite(ExecutableMixin, FilterMixin, GroupMixin):
             try:
                 self.path = discover_config(path)
             except ConfigError as error:
-                raise ConfigError(f"Couldn't find configuration file for '{path}'.") from error
+                raise ConfigError(
+                    f"Couldn't find configuration file for '{path}'."
+                ) from error
             self.config = load_config_dict(self.path)
             base_dir = self.path.parent
             self.model = load_config_model(self.path)

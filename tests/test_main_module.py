@@ -1,80 +1,115 @@
-"""Unit tests targeting helpers in baygon.__main__."""
+"""Unit tests targeting CLI helpers and presenters."""
+
+# ruff: noqa: UP007
 
 from __future__ import annotations
 
+from io import StringIO
 import json
-from types import SimpleNamespace
+from pathlib import Path
+from typing import Optional
 
 import pytest
+from rich.console import Console
 import typer
 import yaml
 
 from baygon.__main__ import (
-    Runner,
     _format_callback,
     _version_callback,
-    console,
-    display_pad,
-    display_table,
-    display_test_name,
+    console as global_console,
     save_report,
 )
+from baygon.core.models import CaseModel, ConditionModel, SuiteModel
+from baygon.presentation.rich import (
+    render_command_panels,
+    render_pretty_failures,
+    render_summary_table,
+)
+from baygon.presentation.text import render_case_results, render_summary
+from baygon.runtime.runner import CaseResult, CommandLog, RunReport
 
 
-class DummyId:
-    def __init__(self, value: str) -> None:
-        self.value = value
-
-    def pad(self) -> str:
-        return f"{self.value} "
-
-    def __str__(self) -> str:
-        return self.value
-
-
-class DummyTest:
-    def __init__(self, value: str) -> None:
-        self.id = DummyId(value)
-        self.name = f"Test {value}"
-        self.points = 1
-
-
-def _build_runner(pretty: bool) -> Runner:
-    runner = Runner.__new__(Runner)  # type: ignore[call-arg]
-    runner.pretty = pretty
-    runner.ran_commands = []
-    return runner
+def _make_case(
+    *,
+    identifier: tuple[int, ...],
+    name: str,
+    points: Optional[int] = 1,
+) -> CaseModel:
+    return CaseModel(
+        id=identifier,
+        name=name,
+        min_points=0.1,
+        points=points,
+        executable=None,
+        args=(),
+        env={},
+        stdin="",
+        stdout=(),
+        stderr=(),
+        repeat=1,
+        exit=None,
+        filters={},
+    )
 
 
-def test_display_pad_outputs_spacing(capsys: pytest.CaptureFixture[str]) -> None:
-    display_pad()
-    display_pad(3)
-    out = capsys.readouterr().out
-    assert "  " in out
-    assert "..." in out
+def _build_report() -> tuple[RunReport, CaseResult]:
+    passing_case = _make_case(identifier=(1,), name="Passing", points=1)
+    failing_case = _make_case(identifier=(2,), name="Failing", points=1)
 
+    suite = SuiteModel(
+        name="Example Suite",
+        version=1,
+        min_points=0.1,
+        points=2,
+        executable=None,
+        filters={},
+        tests=(passing_case, failing_case),
+        eval=None,
+        verbose=None,
+        report=None,
+        report_format=None,
+        table=False,
+        compute_score=False,
+    )
 
-def test_display_test_name_formats_output(capsys: pytest.CaptureFixture[str]) -> None:
-    display_test_name(DummyTest("1.1"))
-    out = capsys.readouterr().out
-    assert "Test 1.1" in out
-    assert "Test 1.1: Test 1.1" in out
+    ok_result = CaseResult(
+        case=passing_case,
+        status="passed",
+        issues=(),
+        commands=(),
+        duration=0.01,
+        points_earned=1,
+    )
+    fail_result = CaseResult(
+        case=failing_case,
+        status="failed",
+        issues=(ValueError("boom"),),
+        commands=(
+            CommandLog(
+                argv=("prog", "arg"),
+                stdin=None,
+                stdout="actual",
+                stderr="",
+                exit_status=1,
+            ),
+        ),
+        duration=0.02,
+        points_earned=0,
+    )
 
+    report = RunReport(
+        suite=suite,
+        successes=1,
+        failures=1,
+        skipped=0,
+        points_total=2,
+        points_earned=1,
+        duration=0.03,
+        cases=(ok_result, fail_result),
+    )
 
-def test_display_table_renders_statuses() -> None:
-    payload = [
-        {"id": "1", "name": "Pass Case", "status": "passed", "points": 1, "earned": 1},
-        {"id": "2", "name": "Fail Case", "status": False, "points": 2, "earned": 0},
-        {"id": "3", "name": "Skip Case", "status": "skipped"},
-        {"id": "4", "name": "Custom Case", "status": "unknown"},
-    ]
-    with console.capture() as capture:
-        display_table(payload)
-    output = capture.get()
-    assert "PASS" in output
-    assert "FAIL" in output
-    assert "SKIPPED" in output
-    assert "unknown" in output
+    return report, fail_result
 
 
 def test_format_callback_normalizes_values() -> None:
@@ -91,7 +126,7 @@ def test_version_callback_prints_version(capsys: pytest.CaptureFixture[str]) -> 
     assert "Baygon version" in out
 
 
-def test_save_report_json_and_yaml(tmp_path) -> None:
+def test_save_report_json_and_yaml(tmp_path: Path) -> None:
     data = {"alpha": 1, "beta": {"gamma": 2}}
 
     json_path = tmp_path / "report.json"
@@ -103,39 +138,56 @@ def test_save_report_json_and_yaml(tmp_path) -> None:
     assert yaml.safe_load(yaml_path.read_text())["alpha"] == 1
 
 
-def test_pretty_stream_panel_omits_empty_values() -> None:
-    runner = _build_runner(pretty=True)
-    panel = runner._build_stream_panel(
-        title="stdout",
-        value="",
-        placeholder="<empty>",
-        style="green",
-        border_style="green",
+def test_text_renderer_outputs_issues() -> None:
+    report, _ = _build_report()
+    stream = StringIO()
+    render_case_results(report, write=stream.write, verbose=1, include_issues=True)
+    render_summary(report, write=stream.write)
+    output = stream.getvalue()
+    assert "Test 2: Failing FAILED" in output
+    assert "boom" in output
+    assert "Ran 2 tests in" in output
+    assert "fail." in output
+
+
+def test_rich_summary_table_contains_status() -> None:
+    report, _ = _build_report()
+    capture_console = Console(width=120, record=True)
+    render_summary_table(report, console=capture_console)
+    output = capture_console.export_text()
+    assert "Test Summary" in output
+    assert "Failing" in output
+    assert "PASS" in output
+
+
+def test_rich_pretty_failure_hides_empty_stdin() -> None:
+    report, failing_result = _build_report()
+    capture_console = Console(width=120, record=True)
+    render_pretty_failures(report, console=capture_console)
+    output = capture_console.export_text()
+    assert f"Test {failing_result.case.id_str}: {failing_result.case.name}" in output
+    assert "issues" in output
+    assert "stdout" in output
+    assert "Command #1" in output
+    assert "stdin" not in output
+
+
+def test_rich_command_panels_include_streams() -> None:
+    report, failing_result = _build_report()
+    capture_console = Console(width=120, record=True)
+    render_command_panels(
+        failing_result,
+        console=capture_console,
+        hide_empty_streams=False,
     )
-    assert panel is None
+    output = capture_console.export_text()
+    assert "Command #1" in output
+    assert "stdin" in output
+    assert "stdout" in output
+    assert "stderr" in output
 
 
-def test_non_pretty_stream_panel_renders_placeholder() -> None:
-    runner = _build_runner(pretty=False)
-    panel = runner._build_stream_panel(
-        title="stdout",
-        value="",
-        placeholder="<empty>",
-        style="green",
-        border_style="green",
-    )
-    assert panel is not None
-    renderable = getattr(panel, "renderable", None)
-    assert renderable is not None
-    plain_text = getattr(renderable, "plain", str(renderable))
-    assert "<empty>" in plain_text
-
-
-def test_render_pretty_failure_without_commands() -> None:
-    runner = _build_runner(pretty=True)
-    dummy_test = SimpleNamespace(id="1.1", name="Nested Case", points=1)
-    with console.capture() as capture:
-        runner._render_pretty_failure(dummy_test, [], "Group / Nested Case")
-    output = capture.get()
-    assert "No matcher issues recorded." in output
-    assert "No command telemetry captured." in output
+def test_global_console_is_available() -> None:
+    with global_console.capture() as capture:
+        global_console.print("ping")
+    assert "ping" in capture.get()
