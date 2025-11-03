@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
-import yaml
-
+from .config.loader import (
+    discover_config,
+    load_config as load_config_model,
+    load_config_dict,
+)
+from .core.models import SuiteModel, build_suite_model
 from .error import ConfigError, InvalidExecutableError
 from .executable import Executable, get_env
 from .filters import FilterEval, FilterNone, Filters
@@ -18,46 +21,15 @@ from .score import compute_points
 
 def find_testfile(path=None):
     """Recursively find the tests description file."""
-    if not path:
-        path = Path()
-    elif isinstance(path, str):
-        path = Path(path)
-
-    path = path.resolve(strict=True)
-
-    if path.is_file():
-        return path
-
-    for filename in ["baygon", "t", "test", "tests"]:
-        for ext in ["json", "yml", "yaml"]:
-            f = path.joinpath(f"{filename}.{ext}")
-            if f.exists():
-                return f
-
-    # Recursively search in parent directories
-    if path.parent == path:  # Test if root directory
+    try:
+        return discover_config(path)
+    except ConfigError:
         return None
-
-    return find_testfile(path.parent)
 
 
 def load_config(path=None):
     """Load a configuration file (can be YAML or JSON)."""
-    path = find_testfile(path)
-
-    if path is None:
-        raise ConfigError("Couldn't find configuration file.")
-
-    if not path.exists():
-        raise ConfigError(f"Couldn't find configuration file in '{path.resolve()}'")
-
-    with path.open(encoding="utf-8") as fp:
-        if path.suffix in [".yml", ".yaml"]:
-            return Schema(yaml.safe_load(fp))
-        if path.suffix in [".json"]:
-            return Schema(json.load(fp))
-
-    raise ConfigError(f"Unknown file extension '{path.suffix}' for '{path}'")
+    return load_config_dict(path)
 
 
 class BaseMixin:
@@ -286,17 +258,21 @@ class TestSuite(ExecutableMixin, FilterMixin, GroupMixin):
         executable: Path | str | None = None,
         cwd: Path | str | None = None,
     ):
+        self.model: SuiteModel | None = None
+
         if isinstance(data, dict):
             self.config = Schema(data)
+            compute_points(self.config)
             base_dir = Path(cwd) if cwd is not None else Path.cwd()
+            self.model = build_suite_model(self.config)
         else:
-            self.path = find_testfile(path)
-            if self.path is None:
-                raise ConfigError(f"Couldn't find configuration file for '{path}'.")
-            self.config = load_config(self.path)
+            try:
+                self.path = discover_config(path)
+            except ConfigError as error:
+                raise ConfigError(f"Couldn't find configuration file for '{path}'.") from error
+            self.config = load_config_dict(self.path)
             base_dir = self.path.parent
-
-        compute_points(self.config)
+            self.model = load_config_model(self.path)
 
         self.name = self.config.get("name", "Test Suite")
         self.version = self.config.get("version")
