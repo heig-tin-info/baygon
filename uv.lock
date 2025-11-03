@@ -16,6 +16,15 @@ wheels = [
 ]
 
 [[package]]
+name = "argcomplete"
+version = "3.6.3"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/38/61/0b9ae6399dd4a58d8c1b1dc5a27d6f2808023d0b5dd3104bb99f45a33ff6/argcomplete-3.6.3.tar.gz", hash = "sha256:62e8ed4fd6a45864acc8235409461b72c9a28ee785a2011cc5eb78318786c89c", size = 73754, upload-time = "2025-10-20T03:33:34.741Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/74/f5/9373290775639cb67a2fce7f629a1c240dce9f12fe927bc32b2736e16dfc/argcomplete-3.6.3-py3-none-any.whl", hash = "sha256:f5007b3a600ccac5d25bbce33089211dfd49eab4a7718da3f10e3082525a92ce", size = 43846, upload-time = "2025-10-20T03:33:33.021Z" },
+]
+
+[[package]]
 name = "babel"
 version = "2.17.0"
 source = { registry = "https://pypi.org/simple" }
@@ -53,11 +62,28 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
-test = [
+dev = [
+    { name = "black" },
+    { name = "mkdocs" },
+    { name = "mkdocs-material", extra = ["imaging"] },
+    { name = "mkdocstrings", extra = ["python"] },
+    { name = "nox" },
+    { name = "pytest" },
+    { name = "pytest-cov" },
+    { name = "ruff" },
+]
+docs = [
+    { name = "mkdocs" },
+    { name = "mkdocs-material", extra = ["imaging"] },
+    { name = "mkdocstrings", extra = ["python"] },
+]
+lint = [
     { name = "black" },
     { name = "ruff" },
-    { name = "tox", version = "4.30.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
-    { name = "tox", version = "4.32.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
+]
+test = [
+    { name = "pytest" },
+    { name = "pytest-cov" },
 ]
 
 [package.dev-dependencies]
@@ -66,27 +92,51 @@ dev = [
     { name = "mkdocs" },
     { name = "mkdocs-material", extra = ["imaging"] },
     { name = "mkdocstrings", extra = ["python"] },
+    { name = "nox" },
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "ruff" },
-    { name = "tox", version = "4.30.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
-    { name = "tox", version = "4.32.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
+]
+docs = [
+    { name = "mkdocs" },
+    { name = "mkdocs-material", extra = ["imaging"] },
+    { name = "mkdocstrings", extra = ["python"] },
+]
+lint = [
+    { name = "black" },
+    { name = "ruff" },
+]
+test = [
+    { name = "pytest" },
+    { name = "pytest-cov" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "black", marker = "extra == 'test'", specifier = ">=24.10.0,<25" },
+    { name = "black", marker = "extra == 'dev'", specifier = ">=24.10.0,<25" },
+    { name = "black", marker = "extra == 'lint'", specifier = ">=24.10.0,<25" },
     { name = "click", specifier = ">=8.1,<8.2" },
+    { name = "mkdocs", marker = "extra == 'dev'", specifier = ">=1.6.1,<2" },
+    { name = "mkdocs", marker = "extra == 'docs'", specifier = ">=1.6.1,<2" },
+    { name = "mkdocs-material", extras = ["imaging"], marker = "extra == 'dev'", specifier = ">=9.6.21,<10" },
+    { name = "mkdocs-material", extras = ["imaging"], marker = "extra == 'docs'", specifier = ">=9.6.21,<10" },
+    { name = "mkdocstrings", extras = ["python"], marker = "extra == 'dev'", specifier = ">=0.26,<0.27" },
+    { name = "mkdocstrings", extras = ["python"], marker = "extra == 'docs'", specifier = ">=0.26,<0.27" },
+    { name = "nox", marker = "extra == 'dev'", specifier = ">=2024.4.15,<2025" },
     { name = "pydantic", specifier = ">=2.9,<3" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.3.3,<9" },
+    { name = "pytest", marker = "extra == 'test'", specifier = ">=8.3.3,<9" },
+    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=5.0.0,<6" },
+    { name = "pytest-cov", marker = "extra == 'test'", specifier = ">=5.0.0,<6" },
     { name = "pyyaml", specifier = ">=6.0,<7" },
     { name = "rich", specifier = ">=13.9.2,<14" },
-    { name = "ruff", marker = "extra == 'test'", specifier = ">=0.6.9,<0.7" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.6.9,<0.7" },
+    { name = "ruff", marker = "extra == 'lint'", specifier = ">=0.6.9,<0.7" },
     { name = "termynal", specifier = ">=0.13.1,<0.14" },
     { name = "tinykernel", specifier = ">=0.0.2,<0.0.3" },
-    { name = "tox", marker = "extra == 'test'", specifier = ">=4.21.2,<5" },
     { name = "typer", specifier = ">=0.12.5,<0.13" },
 ]
-provides-extras = ["test"]
+provides-extras = ["test", "lint", "docs", "dev"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -94,10 +144,23 @@ dev = [
     { name = "mkdocs", specifier = ">=1.6.1,<2" },
     { name = "mkdocs-material", extras = ["imaging"], specifier = ">=9.6.21,<10" },
     { name = "mkdocstrings", extras = ["python"], specifier = ">=0.26,<0.27" },
+    { name = "nox", specifier = ">=2024.4.15,<2025" },
     { name = "pytest", specifier = ">=8.3.3,<9" },
     { name = "pytest-cov", specifier = ">=5.0.0,<6" },
     { name = "ruff", specifier = ">=0.6.9,<0.7" },
-    { name = "tox", specifier = ">=4.21.2,<5" },
+]
+docs = [
+    { name = "mkdocs", specifier = ">=1.6.1,<2" },
+    { name = "mkdocs-material", extras = ["imaging"], specifier = ">=9.6.21,<10" },
+    { name = "mkdocstrings", extras = ["python"], specifier = ">=0.26,<0.27" },
+]
+lint = [
+    { name = "black", specifier = ">=24.10.0,<25" },
+    { name = "ruff", specifier = ">=0.6.9,<0.7" },
+]
+test = [
+    { name = "pytest", specifier = ">=8.3.3,<9" },
+    { name = "pytest-cov", specifier = ">=5.0.0,<6" },
 ]
 
 [[package]]
@@ -137,15 +200,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/0a/1c/314d7f17434a5375682ad097f6f4cc0e3f414f3c95a9b1bb4df14a0f11f9/black-24.10.0-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:ccfa1d0cb6200857f1923b602f978386a3a2758a65b52e0950299ea014be6800", size = 1752801, upload-time = "2024-10-07T19:23:56.594Z" },
     { url = "https://files.pythonhosted.org/packages/39/a7/20e5cd9237d28ad0b31438de5d9f01c8b99814576f4c0cda1edd62caf4b0/black-24.10.0-cp39-cp39-win_amd64.whl", hash = "sha256:2cd9c95431d94adc56600710f8813ee27eea544dd118d45896bb734e9d7a0dc7", size = 1413626, upload-time = "2024-10-07T19:24:46.133Z" },
     { url = "https://files.pythonhosted.org/packages/8d/a7/4b27c50537ebca8bec139b872861f9d2bf501c5ec51fcf897cb924d9e264/black-24.10.0-py3-none-any.whl", hash = "sha256:3bb2b7a1f7b685f85b11fed1ef10f8a9148bceb49853e47a294a3dd963c1dd7d", size = 206898, upload-time = "2024-10-07T19:20:48.317Z" },
-]
-
-[[package]]
-name = "cachetools"
-version = "6.2.1"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/cc/7e/b975b5814bd36faf009faebe22c1072a1fa1168db34d285ef0ba071ad78c/cachetools-6.2.1.tar.gz", hash = "sha256:3f391e4bd8f8bf0931169baf7456cc822705f4e2a31f840d218f445b9a854201", size = 31325, upload-time = "2025-10-12T14:55:30.139Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/96/c5/1e741d26306c42e2bf6ab740b2202872727e0f606033c9dd713f8b93f5a8/cachetools-6.2.1-py3-none-any.whl", hash = "sha256:09868944b6dde876dfd44e1d47e18484541eaf12f26f29b7af91b26cc892d701", size = 11280, upload-time = "2025-10-12T14:55:28.382Z" },
 ]
 
 [[package]]
@@ -280,15 +334,6 @@ wheels = [
 ]
 
 [[package]]
-name = "chardet"
-version = "5.2.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/f3/0d/f7b6ab21ec75897ed80c17d79b15951a719226b9fababf1e40ea74d69079/chardet-5.2.0.tar.gz", hash = "sha256:1b3b6ff479a8c414bc3fa2c0852995695c4a026dcd6d0633b2dd092ca39c1cf7", size = 2069618, upload-time = "2023-08-01T19:23:02.662Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/38/6f/f5fbc992a329ee4e0f288c1fe0e2ad9485ed064cac731ed2fe47dcc38cbf/chardet-5.2.0-py3-none-any.whl", hash = "sha256:e1cf59446890a00105fe7b7912492ea04b6e6f06d4b742b2c788469e34c82970", size = 199385, upload-time = "2023-08-01T19:23:00.661Z" },
-]
-
-[[package]]
 name = "charset-normalizer"
 version = "3.4.4"
 source = { registry = "https://pypi.org/simple" }
@@ -412,6 +457,18 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/d8/53/6f443c9a4a8358a93a6792e2acffb9d9d5cb0a5cfd8802644b7b1c9a02e4/colorama-0.4.6.tar.gz", hash = "sha256:08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44", size = 27697, upload-time = "2022-10-25T02:36:22.414Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d1/d6/3965ed04c63042e047cb6a3e6ed1a63a35087b6a609aa3a15ed8ac56c221/colorama-0.4.6-py2.py3-none-any.whl", hash = "sha256:4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6", size = 25335, upload-time = "2022-10-25T02:36:20.889Z" },
+]
+
+[[package]]
+name = "colorlog"
+version = "6.10.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "colorama", marker = "sys_platform == 'win32'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a2/61/f083b5ac52e505dfc1c624eafbf8c7589a0d7f32daa398d2e7590efa5fda/colorlog-6.10.1.tar.gz", hash = "sha256:eb4ae5cb65fe7fec7773c2306061a8e63e02efc2c72eba9d27b0fa23c94f1321", size = 17162, upload-time = "2025-10-16T16:14:11.978Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/6d/c1/e419ef3723a074172b68aaa89c9f3de486ed4c2399e2dbd8113a4fdcaf9e/colorlog-6.10.1-py3-none-any.whl", hash = "sha256:2d7e8348291948af66122cff006c9f8da6255d224e7cf8e37d8de2df3bad8c9c", size = 11743, upload-time = "2025-10-16T16:14:10.512Z" },
 ]
 
 [[package]]
@@ -1087,6 +1144,22 @@ wheels = [
 ]
 
 [[package]]
+name = "nox"
+version = "2024.10.9"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "argcomplete" },
+    { name = "colorlog" },
+    { name = "packaging" },
+    { name = "tomli", marker = "python_full_version < '3.11'" },
+    { name = "virtualenv" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/08/93/4df547afcd56e0b2bbaa99bc2637deb218a01802ed62d80f763189be802c/nox-2024.10.9.tar.gz", hash = "sha256:7aa9dc8d1c27e9f45ab046ffd1c3b2c4f7c91755304769df231308849ebded95", size = 4003197, upload-time = "2024-10-09T12:50:17.413Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/66/00/981f0dcaddf111b6caf6e03d7f7f01b07fd4af117316a7eb1c22039d9e37/nox-2024.10.9-py3-none-any.whl", hash = "sha256:1d36f309a0a2a853e9bccb76bbef6bb118ba92fa92674d15604ca99adeb29eab", size = 61210, upload-time = "2024-10-09T12:50:14.79Z" },
+]
+
+[[package]]
 name = "packaging"
 version = "25.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1433,38 +1506,6 @@ wheels = [
 ]
 
 [[package]]
-name = "pyproject-api"
-version = "1.9.1"
-source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "python_full_version < '3.10'",
-]
-dependencies = [
-    { name = "packaging", marker = "python_full_version < '3.10'" },
-    { name = "tomli", marker = "python_full_version < '3.10'" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/19/fd/437901c891f58a7b9096511750247535e891d2d5a5a6eefbc9386a2b41d5/pyproject_api-1.9.1.tar.gz", hash = "sha256:43c9918f49daab37e302038fc1aed54a8c7a91a9fa935d00b9a485f37e0f5335", size = 22710, upload-time = "2025-05-12T14:41:58.025Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/ef/e6/c293c06695d4a3ab0260ef124a74ebadba5f4c511ce3a4259e976902c00b/pyproject_api-1.9.1-py3-none-any.whl", hash = "sha256:7d6238d92f8962773dd75b5f0c4a6a27cce092a14b623b811dba656f3b628948", size = 13158, upload-time = "2025-05-12T14:41:56.217Z" },
-]
-
-[[package]]
-name = "pyproject-api"
-version = "1.10.0"
-source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "python_full_version >= '3.10'",
-]
-dependencies = [
-    { name = "packaging", marker = "python_full_version >= '3.10'" },
-    { name = "tomli", marker = "python_full_version == '3.10.*'" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/45/7b/c0e1333b61d41c69e59e5366e727b18c4992688caf0de1be10b3e5265f6b/pyproject_api-1.10.0.tar.gz", hash = "sha256:40c6f2d82eebdc4afee61c773ed208c04c19db4c4a60d97f8d7be3ebc0bbb330", size = 22785, upload-time = "2025-10-09T19:12:27.21Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/54/cc/cecf97be298bee2b2a37dd360618c819a2a7fd95251d8e480c1f0eb88f3b/pyproject_api-1.10.0-py3-none-any.whl", hash = "sha256:8757c41a79c0f4ab71b99abed52b97ecf66bd20b04fa59da43b5840bac105a09", size = 13218, upload-time = "2025-10-09T19:12:24.428Z" },
-]
-
-[[package]]
 name = "pytest"
 version = "8.4.2"
 source = { registry = "https://pypi.org/simple" }
@@ -1747,56 +1788,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/7e/46/cc36c679f09f27ded940281c38607716c86cf8ba4a518d524e349c8b4874/tomli-2.3.0-cp314-cp314t-win32.whl", hash = "sha256:a1f7f282fe248311650081faafa5f4732bdbfef5d45fe3f2e702fbc6f2d496e0", size = 107563, upload-time = "2025-10-08T22:01:44.233Z" },
     { url = "https://files.pythonhosted.org/packages/84/ff/426ca8683cf7b753614480484f6437f568fd2fda2edbdf57a2d3d8b27a0b/tomli-2.3.0-cp314-cp314t-win_amd64.whl", hash = "sha256:70a251f8d4ba2d9ac2542eecf008b3c8a9fc5c3f9f02c56a9d7952612be2fdba", size = 119756, upload-time = "2025-10-08T22:01:45.234Z" },
     { url = "https://files.pythonhosted.org/packages/77/b8/0135fadc89e73be292b473cb820b4f5a08197779206b33191e801feeae40/tomli-2.3.0-py3-none-any.whl", hash = "sha256:e95b1af3c5b07d9e643909b5abbec77cd9f1217e6d0bca72b0234736b9fb1f1b", size = 14408, upload-time = "2025-10-08T22:01:46.04Z" },
-]
-
-[[package]]
-name = "tox"
-version = "4.30.3"
-source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "python_full_version < '3.10'",
-]
-dependencies = [
-    { name = "cachetools", marker = "python_full_version < '3.10'" },
-    { name = "chardet", marker = "python_full_version < '3.10'" },
-    { name = "colorama", marker = "python_full_version < '3.10'" },
-    { name = "filelock", version = "3.19.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
-    { name = "packaging", marker = "python_full_version < '3.10'" },
-    { name = "platformdirs", version = "4.4.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
-    { name = "pluggy", marker = "python_full_version < '3.10'" },
-    { name = "pyproject-api", version = "1.9.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
-    { name = "tomli", marker = "python_full_version < '3.10'" },
-    { name = "typing-extensions", marker = "python_full_version < '3.10'" },
-    { name = "virtualenv", marker = "python_full_version < '3.10'" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/51/b2/cee55172e5e10ce030b087cd3ac06641e47d08a3dc8d76c17b157dba7558/tox-4.30.3.tar.gz", hash = "sha256:f3dd0735f1cd4e8fbea5a3661b77f517456b5f0031a6256432533900e34b90bf", size = 202799, upload-time = "2025-10-02T16:24:39.974Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/e2/e4/8bb9ce952820df4165eb34610af347665d6cb436898a234db9d84d093ce6/tox-4.30.3-py3-none-any.whl", hash = "sha256:a9f17b4b2d0f74fe0d76207236925a119095011e5c2e661a133115a8061178c9", size = 175512, upload-time = "2025-10-02T16:24:38.209Z" },
-]
-
-[[package]]
-name = "tox"
-version = "4.32.0"
-source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "python_full_version >= '3.10'",
-]
-dependencies = [
-    { name = "cachetools", marker = "python_full_version >= '3.10'" },
-    { name = "chardet", marker = "python_full_version >= '3.10'" },
-    { name = "colorama", marker = "python_full_version >= '3.10'" },
-    { name = "filelock", version = "3.20.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
-    { name = "packaging", marker = "python_full_version >= '3.10'" },
-    { name = "platformdirs", version = "4.5.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
-    { name = "pluggy", marker = "python_full_version >= '3.10'" },
-    { name = "pyproject-api", version = "1.10.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
-    { name = "tomli", marker = "python_full_version == '3.10.*'" },
-    { name = "typing-extensions", marker = "python_full_version == '3.10.*'" },
-    { name = "virtualenv", marker = "python_full_version >= '3.10'" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/59/bf/0e4dbd42724cbae25959f0e34c95d0c730df03ab03f54d52accd9abfc614/tox-4.32.0.tar.gz", hash = "sha256:1ad476b5f4d3679455b89a992849ffc3367560bbc7e9495ee8a3963542e7c8ff", size = 203330, upload-time = "2025-10-24T18:03:38.132Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/fc/cc/e09c0d663a004945f82beecd4f147053567910479314e8d01ba71e5d5dea/tox-4.32.0-py3-none-any.whl", hash = "sha256:451e81dc02ba8d1ed20efd52ee409641ae4b5d5830e008af10fe8823ef1bd551", size = 175905, upload-time = "2025-10-24T18:03:36.337Z" },
 ]
 
 [[package]]

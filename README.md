@@ -106,14 +106,14 @@ pyenv install 3.12.0
 pyenv global 3.6.15 3.7.12 3.8.12 3.9.9 3.10.4 3.11.0 3.12.0
 ```
 
-Then setup your Poetry environment:
+Then sync your uv environment:
 
 ```bash
-poetry install
+uv sync --group dev
 ```
 
-Run the tests:
+Run the automated checks:
 
 ```bash
-poetry run tox
+uv run --group dev nox -s lint tests
 ```

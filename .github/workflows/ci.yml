@@ -22,13 +22,12 @@ jobs:
         with:
           version: latest
       - name: Sync dependencies
-        run: uv sync --dev --extra test
-      - name: Check formatting
-        run: uv run --frozen black --check .
-      - name: Lint with Ruff
-        run: uv run --frozen ruff check .
-      - name: Test with pytest
-        run: uv run --frozen pytest
+        run: uv sync --frozen --group dev
+      - name: Run lint session
+        if: matrix.python-version == '3.12'
+        run: uv run --frozen --group dev nox -s lint
+      - name: Run test session
+        run: uv run --frozen --group dev nox -s tests-${{ matrix.python-version }}
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
   documentation:
@@ -48,9 +47,9 @@ jobs:
         with:
           version: latest
       - name: Sync dependencies
-        run: uv sync --dev
+        run: uv sync --frozen --group dev
       - name: Build documentation
-        run: uv run --frozen mkdocs build --strict
+        run: uv run --frozen --group dev nox -s docs
       - name: Deploy documentation
         uses: JamesIves/github-pages-deploy-action@4.7.3
         with:
