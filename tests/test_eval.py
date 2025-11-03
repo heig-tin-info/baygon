@@ -4,7 +4,7 @@ from baygon.suite import TestSuite
 
 
 class TestEval(TestCase):
-    def testEval(self):
+    def test_eval(self):
         ts = TestSuite(
             {
                 "filters": {"trim": True},
@@ -21,7 +21,7 @@ class TestEval(TestCase):
         )
         self.assertEqual(ts.run(), [[]])
 
-    def testAdd(self):
+    def test_add(self):
         ts = TestSuite(
             {
                 "filters": {"trim": True},
@@ -39,7 +39,7 @@ class TestEval(TestCase):
         )
         self.assertEqual(ts.run(), [[]])
 
-    def testRandom(self):
+    def test_random(self):
         stdin = "({{ i = randint(10,1000) }} + {{ j = randint(1,10) }}) * 42"
         ts = TestSuite(
             {
@@ -58,7 +58,7 @@ class TestEval(TestCase):
         )
         self.assertEqual(ts.run(), [[]])
 
-    def testRepeat(self):
+    def test_repeat(self):
         ts = TestSuite(
             {
                 "filters": {"trim": True},

@@ -33,7 +33,7 @@ def reset():
     _context.clear()
 
 
-def iter(start=0, step=1, ctx=None):
+def iter(start=0, step=1, ctx=None):  # noqa: A001 - intentionally shadow built-in
     """Custom iterator for eval input filter."""
     ctx = (start, step, ctx)
     _context[ctx] = _context.get(ctx, start - step) + step

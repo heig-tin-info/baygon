@@ -1,5 +1,7 @@
 """Test suite."""
 
+from __future__ import annotations
+
 import json
 from pathlib import Path
 
@@ -49,7 +51,7 @@ def load_config(path=None):
     if not path.exists():
         raise ConfigError(f"Couldn't find configuration file in '{path.resolve()}'")
 
-    with open(path, encoding="utf-8") as fp:
+    with path.open(encoding="utf-8") as fp:
         if path.suffix in [".yml", ".yaml"]:
             return Schema(yaml.safe_load(fp))
         if path.suffix in [".json"]:
@@ -277,7 +279,13 @@ class TestSuite(ExecutableMixin, FilterMixin, GroupMixin):
 
     __test__ = False  # Don't run this class as a test
 
-    def __init__(self, data: dict = None, path=None, executable=None, cwd=None):
+    def __init__(
+        self,
+        data: dict | None = None,
+        path: Path | str | None = None,
+        executable: Path | str | None = None,
+        cwd: Path | str | None = None,
+    ):
         if isinstance(data, dict):
             self.config = Schema(data)
             base_dir = Path(cwd) if cwd is not None else Path.cwd()

@@ -3,6 +3,8 @@ Each filter is a class that implements a filter method.
 A filter is used to modify `stdout` and `stderr` before they are tested.
 """
 
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from functools import lru_cache
@@ -30,8 +32,9 @@ class Filter(ABC):
     def __init__(self, *args, **kwargs):
         """Initialize the filter.
 
-        Keyword Arguments:
-        input: Boolean Is the filter applied to the input?
+        Args:
+            *args: Positional arguments forwarded by subclasses.
+            **kwargs: Keyword arguments, notably `input` to mark filters for stdin.
         """
         self.input = kwargs.get("input", False)
 
@@ -136,19 +139,22 @@ class FilterRegex(Filter):
 class FilterEval(Filter):
     """Filter for evaluating mustaches in strings."""
 
-    def __init__(self, start: str = "{{", end: str = "}}", init: list = None):
+    def __init__(
+        self, start: str = "{{", end: str = "}}", init: list[str] | None = None
+    ):
         super().__init__()
         self._mustache = re.compile(f"{start}(.*?){end}")
         self._kernel = TinyKernel()
 
-        init += [
+        seed = list(init) if init is not None else []
+        seed += [
             "from math import *",
             "from random import *",
             "from statistics import *",
             "from baygon.eval import iter",
         ]
 
-        for item in init:
+        for item in seed:
             self._kernel(item)
 
     def apply(self, value: str) -> str:
@@ -192,7 +198,7 @@ class Filters(Filter, Sequence):
         if isinstance(filters, Filter):
             return [filters]
         if isinstance(filters, Filters):
-            return list(filters._filters)
+            return list(filters)
         if isinstance(filters, dict):
             instances = []
             for name, args in filters.items():

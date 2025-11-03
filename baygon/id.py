@@ -1,8 +1,9 @@
 """Hierarchical Id class to identify nested sequences"""
 
+from __future__ import annotations
+
 from collections.abc import Sequence
 import re
-from typing import List
 
 
 class Id(Sequence):
@@ -29,7 +30,7 @@ class Id(Sequence):
     (1, 2, 2, 2)
     """
 
-    def __init__(self, ids: List[int] = None):
+    def __init__(self, ids: list[int] | int | Id | str | None = None):
         if isinstance(ids, int):
             ids = [ids]
         if isinstance(ids, Id):
@@ -47,7 +48,7 @@ class Id(Sequence):
 
     def down(self, base: int = 1):
         """Return a new Id with the given id appended."""
-        return Id(self.ids + [base])
+        return Id([*self.ids, base])
 
     def up(self):
         """Return a new Id with the given id appended."""
@@ -66,8 +67,7 @@ class Id(Sequence):
         return self.ids
 
     def __iter__(self):
-        for i in self.ids:
-            yield i
+        yield from self.ids
 
     def __len__(self):
         return len(self.ids)

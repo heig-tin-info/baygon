@@ -171,12 +171,23 @@ ignore = [
   "D205",
   "D301",
   "D415",
+  "ANN001",
+  "ANN002",
+  "ANN003",
   "ANN201",
+  "ANN202",
+  "ANN204",
+  "ANN205",
+  "ANN206",
+  "ANN101",
+  "ANN102",
   "ARG002",
   "B008",
   "S101",
   "TRY003",
   "ANN401",
+  "PT009",
+  "PT027",
   "C901",
 ]
 
@@ -202,3 +213,4 @@ max-complexity = 10
 "baygon/__main__.py" = ["B008"]
 "**/__init__.py" = ["F401", "F403"]
 "tests/**" = ["D", "T20", "S101", "ANN", "ARG002", "SLF001", "PT018", "ARG001", "TRY003"]
+"tests/full/main.exe.py" = ["N999"]

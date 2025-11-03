@@ -6,7 +6,7 @@ import logging
 import os
 from pathlib import Path
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from rich.box import SQUARE_DOUBLE_HEAD
 from rich.console import Console, Group
@@ -121,8 +121,9 @@ class Runner:
             self.test_suite.config["verbose"] = kwargs["verbose"]
         if "report" in kwargs and kwargs["report"] is not None:
             self.test_suite.config["report"] = kwargs["report"]
-        if "format" in kwargs and kwargs["format"] is not None:
-            self.test_suite.config["format"] = kwargs["format"]
+        report_format = kwargs.get("report_format")
+        if report_format is not None:
+            self.test_suite.config["format"] = report_format
         if "table" in kwargs and kwargs["table"] is not None:
             self.test_suite.config["table"] = kwargs["table"]
 
@@ -145,7 +146,7 @@ class Runner:
         self.points_total = 0
 
         self.summary = []
-        self.ran_commands: List[Dict[str, Any]] = []
+        self.ran_commands: list[dict[str, Any]] = []
 
     def _init_logger(self, loglevel):
         handler = logging.StreamHandler()
@@ -222,10 +223,7 @@ class Runner:
         report_format = self.test_suite.config.get("format")
         if report:
             if not report_format:
-                if report.endswith(".yaml"):
-                    report_format = "yaml"
-                else:
-                    report_format = "json"
+                report_format = "yaml" if report.endswith(".yaml") else "json"
             save_report(self.get_report(), report, report_format)
 
         return self.failures
@@ -327,7 +325,7 @@ class Runner:
         for issue in issues:
             typer.secho(str(issue))
 
-    def _normalize_stream_value(self, value: Any) -> Optional[str]:
+    def _normalize_stream_value(self, value: Any) -> str | None:
         """Return a string representation for stream values."""
         if value is None:
             return None
@@ -347,8 +345,8 @@ class Runner:
         placeholder: str,
         style: str,
         border_style: str,
-        empty_border_style: Optional[str] = None,
-    ) -> Optional[Panel]:
+        empty_border_style: str | None = None,
+    ) -> Panel | None:
         """Create a panel for a specific stream unless it is empty in pretty mode."""
         text_value = self._normalize_stream_value(value)
         is_empty = text_value is None or text_value == ""
@@ -367,7 +365,7 @@ class Runner:
             border_style=applied_border,
         )
 
-    def _build_command_panel(self, command: Dict[str, Any], index: int) -> Panel:
+    def _build_command_panel(self, command: dict[str, Any], index: int) -> Panel:
         meta_table = Table.grid(padding=(0, 1))
         meta_table.add_column(style="cyan bold", justify="right")
         meta_table.add_column()
@@ -409,7 +407,7 @@ class Runner:
             for panel in (args_panel, stdin_panel, stdout_panel, stderr_panel)
             if panel is not None
         ]
-        renderables: List[Any] = [meta_table]
+        renderables: list[Any] = [meta_table]
         if stream_panels:
             renderables.append(Rule(style="grey37"))
             renderables.append(Group(*stream_panels))
@@ -420,7 +418,7 @@ class Runner:
             border_style="cyan",
         )
 
-    def _command_panels(self) -> List[Panel]:
+    def _command_panels(self) -> list[Panel]:
         return [
             self._build_command_panel(command, index)
             for index, command in enumerate(self.ran_commands, start=1)
@@ -447,7 +445,7 @@ class Runner:
                 )
         issues_panel = Panel(issues_table, title="issues", border_style="red")
 
-        renderables: List[Any] = [summary, Rule(style="grey37"), issues_panel]
+        renderables: list[Any] = [summary, Rule(style="grey37"), issues_panel]
 
         command_panels = self._command_panels()
         if command_panels:
@@ -512,23 +510,23 @@ class Runner:
         return self.failures
 
 
-def save_report(data, filename, format):
+def save_report(data, filename, output_format):
     """Save the report to a file."""
-    if format == "json":
+    if output_format == "json":
         import json
 
-        with open(filename, "w") as fp:
+        with Path(filename).open("w", encoding="utf-8") as fp:
             json.dump(data, fp, indent=2, sort_keys=True)
-    elif format == "yaml":
+    elif output_format == "yaml":
         import yaml
 
-        with open(filename, "w") as fp:
+        with Path(filename).open("w", encoding="utf-8") as fp:
             yaml.dump(data, fp)
 
 
 def version():
     """Display the version."""
-    print(f"Baygon version {__version__} {__copyright__}")
+    typer.echo(f"Baygon version {__version__} {__copyright__}")
 
 
 def _version_callback(version_requested: bool) -> None:
@@ -537,7 +535,7 @@ def _version_callback(version_requested: bool) -> None:
         raise typer.Exit()
 
 
-def _format_callback(value: Optional[str]) -> Optional[str]:
+def _format_callback(value: str | None) -> str | None:
     if value is None:
         return None
     normalized = value.lower()
@@ -548,7 +546,7 @@ def _format_callback(value: Optional[str]) -> Optional[str]:
 
 @app.callback(invoke_without_command=True)
 def cli(
-    executable: Optional[Path] = typer.Argument(
+    executable: Path | None = typer.Argument(
         None,
         exists=True,
         dir_okay=False,
@@ -572,7 +570,7 @@ def cli(
     ),
     limit: int = typer.Option(-1, "-l", "--limit", help="Limit errors to N."),
     debug: bool = typer.Option(False, "-d", "--debug", help="Enable debug mode."),
-    report: Optional[Path] = typer.Option(
+    report: Path | None = typer.Option(
         None,
         "-r",
         "--report",
@@ -589,7 +587,7 @@ def cli(
         "--pretty",
         help="Display nested frames for failing tests.",
     ),
-    format: Optional[str] = typer.Option(
+    report_format: str | None = typer.Option(
         None,
         "-f",
         "--format",
@@ -597,7 +595,7 @@ def cli(
         help="Report format (json or yaml).",
         callback=_format_callback,
     ),
-    config: Optional[Path] = typer.Option(
+    config: Path | None = typer.Option(
         None,
         "-c",
         "-t",
@@ -613,14 +611,14 @@ def cli(
 
     _ = _version  # Trigger callback evaluation & silence linters.
 
-    runner_kwargs: Dict[str, Any] = {
+    runner_kwargs: dict[str, Any] = {
         "executable": str(executable) if executable else None,
         "verbose": verbose,
         "limit": limit,
         "report": str(report) if report else None,
         "table": table,
         "pretty": pretty,
-        "format": format,
+        "report_format": report_format,
         "config": str(config) if config else None,
     }
 
