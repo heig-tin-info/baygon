@@ -1,5 +1,5 @@
 [build-system]
-requires = ["poetry-core>=1.9.0", "poetry-dynamic-versioning[plugin]>=1.4.0"]
+requires = ["poetry-core>=1.9.0", "poetry-dynamic-versioning[plugin]>=1.9.0"]
 build-backend = "poetry_dynamic_versioning.backend"
 
 [tool.poetry]
@@ -84,6 +84,23 @@ test = ["ruff", "black", "tox"]
 
 [tool.poetry-dynamic-versioning]
 enable = true
+style = "pep440"
+pattern = "(?P<base>\\d+(?:\\.\\d+)*)"
+
+[tool.poetry-dynamic-versioning.files."baygon/version.py"]
+initial-content = """
+__version__ = "0.0.0"
+__year__ = 2022
+"""
+initial-content-jinja = """
+{%- set _year = timestamp[:4] if timestamp else env.get("BAYGON_YEAR") -%}
+{%- if not _year -%}
+{%- set _year = "2022" -%}
+{%- endif -%}
+__version__ = "{{ serialize_pep440(version) }}"
+__year__ = {{ _year | int }}
+"""
+
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "C", "I"]
