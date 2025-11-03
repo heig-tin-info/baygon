@@ -76,6 +76,19 @@ class Executable:
 
         cmd = [self.filename, *[str(a) for a in args]]
 
+        def _decode(stream: typing.Optional[bytes], label: str) -> typing.Optional[str]:
+            if stream is None:
+                return None
+            try:
+                return stream.decode(self.encoding)
+            except UnicodeDecodeError:
+                logger.warning(
+                    "Failed to decode %s using %s; falling back to surrogate escapes",
+                    label,
+                    self.encoding,
+                )
+                return stream.decode(self.encoding, errors="surrogateescape")
+
         with subprocess.Popen(
             cmd,
             stdout=subprocess.PIPE,
@@ -89,10 +102,8 @@ class Executable:
 
             stdout, stderr = proc.communicate(input=stdin)
 
-            if stdout is not None:
-                stdout = stdout.decode(self.encoding)
-            if stderr is not None:
-                stderr = stderr.decode(self.encoding)
+            stdout = _decode(stdout, "stdout")
+            stderr = _decode(stderr, "stderr")
 
             if hook and callable(hook):
                 hook(

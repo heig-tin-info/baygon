@@ -77,3 +77,13 @@ class TestExecutable(TestCase):
         output = e.run(dir_path.joinpath("test.txt"))
         print(output)
         self.assertEqual(output.stdout, "Hello World\n")
+
+    def test_invalid_stdout_is_preserved_with_surrogates(self):
+        e = Executable(dir_path.joinpath("invalid_bytes.exe.py"))
+        output = e.run()
+        print(output)
+        self.assertIsNotNone(output.stdout)
+        self.assertEqual(
+            output.stdout.encode("utf-8", "surrogateescape"),
+            b"\xff",
+        )
