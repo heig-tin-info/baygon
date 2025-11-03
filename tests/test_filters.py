@@ -15,6 +15,7 @@ from baygon.filters import (
     Filters,
     FilterTrim,
     FilterUppercase,
+    register_filter,
 )
 
 
@@ -83,3 +84,20 @@ class TestFilters(TestCase):
     def test_filter_factory_unknown(self):
         with self.assertRaises(ValueError):
             FilterFactory("doesnotexist")
+
+    def test_register_filter_decorator(self):
+        @register_filter("custom-filter")
+        class CustomFilter(Filter):
+            def apply(self, value: str) -> str:
+                return f"custom:{value}"
+
+        instance = FilterFactory("custom-filter")
+        self.assertIsInstance(instance, CustomFilter)
+        self.assertEqual(instance("value"), "custom:value")
+
+        class AnotherFilter(Filter):
+            def apply(self, value: str) -> str:
+                return value
+
+        with self.assertRaises(ValueError):
+            register_filter("custom-filter")(AnotherFilter)

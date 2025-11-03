@@ -226,7 +226,7 @@ class TestCase(NamedMixin, ExecutableMixin, FilterMixin):
         else:
             filters = self.filters
 
-        for key in MatcherFactory.matchers():
+        for key in ("equals", "regex", "contains"):
             if key in case:
                 out = filters(getattr(output, on))
                 matcher = MatcherFactory(key, self._eval(case[key]), inverse=inverse)

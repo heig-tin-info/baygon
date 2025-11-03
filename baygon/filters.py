@@ -7,14 +7,15 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
-from functools import lru_cache
-import inspect
 import re
-import sys
+from typing import Callable, TypeVar
 
 from tinykernel import TinyKernel
 
 from .error import InvalidFilterError
+
+
+FilterType = TypeVar("FilterType", bound="Filter")
 
 
 class Filter(ABC):
@@ -50,6 +51,46 @@ class Filter(ABC):
         return cls.__name__.split("Filter", maxsplit=1)[1].lower()
 
 
+_FILTER_REGISTRY: dict[str, type[Filter]] = {}
+
+
+def register_filter(
+    name: str | None = None,
+) -> Callable[[type[FilterType]], type[FilterType]] | type[FilterType]:
+    """Register a filter so it can be referenced from configuration.
+
+    Usage examples:
+
+    >>> @register_filter
+    ... class FilterFoo(Filter):
+    ...     ...
+    >>>
+    >>> @register_filter("bar")
+    ... class CustomFilter(Filter):
+    ...     ...
+    """
+
+    def decorator(cls: type[FilterType]) -> type[FilterType]:
+        key = (name or cls.name()).lower()
+        existing = _FILTER_REGISTRY.get(key)
+        if existing is not None and existing is not cls:
+            raise ValueError(f"Filter '{key}' is already registered.")
+        _FILTER_REGISTRY[key] = cls
+        return cls
+
+    if isinstance(name, type):
+        cls = name
+        name = None
+        return decorator(cls)
+    return decorator
+
+
+def get_registered_filters() -> dict[str, type[Filter]]:
+    """Return a copy of the registered filters mapping."""
+    return dict(_FILTER_REGISTRY)
+
+
+@register_filter
 class FilterNone(Filter):
     """Filter that does nothing."""
 
@@ -57,6 +98,7 @@ class FilterNone(Filter):
         return value
 
 
+@register_filter
 class FilterUppercase(Filter):
     """Filter for uppercase strings.
     >>> f = FilterUppercase()
@@ -68,6 +110,7 @@ class FilterUppercase(Filter):
         return value.upper()
 
 
+@register_filter
 class FilterLowercase(Filter):
     """Filter for lowercase strings.
     >>> f = FilterLowercase()
@@ -79,6 +122,7 @@ class FilterLowercase(Filter):
         return value.lower()
 
 
+@register_filter
 class FilterTrim(Filter):
     """Filter for trimmed strings.
     >>> f = FilterTrim()
@@ -92,6 +136,7 @@ class FilterTrim(Filter):
         return value.strip()
 
 
+@register_filter
 class FilterIgnoreSpaces(Filter):
     """Filter for strings with no spaces.
     >>> f = FilterIgnoreSpaces()
@@ -103,6 +148,7 @@ class FilterIgnoreSpaces(Filter):
         return value.replace(" ", "")
 
 
+@register_filter
 class FilterReplace(Filter):
     """Filter for strings with simple replacements.
     >>> f = FilterReplace("hello", "world")
@@ -119,6 +165,7 @@ class FilterReplace(Filter):
         return value.replace(self.pattern, self.replacement)
 
 
+@register_filter
 class FilterRegex(Filter):
     """Filter for strings using regular expressions.
     >>> f = FilterRegex("[aeiou]", "-")
@@ -136,6 +183,7 @@ class FilterRegex(Filter):
         return self.regex.sub(self.replacement, value)
 
 
+@register_filter
 class FilterEval(Filter):
     """Filter for evaluating mustaches in strings."""
 
@@ -232,20 +280,14 @@ class Filters(Filter, Sequence):
 class FilterFactory:
     """Factory for filters."""
 
-    @classmethod
-    @lru_cache
-    def filters(cls):
-        """Helper to get all filters by their name."""
-        fmap = {}
-        for _, member in inspect.getmembers(sys.modules[__name__]):
-            if not inspect.isclass(member) or not hasattr(member, "name"):
-                continue
-            if member.name() == "base" or len(member.name()) < 2:
-                continue
-            fmap[member.name()] = member
-        return fmap
+    @staticmethod
+    def _get_filter_class(name: str) -> type[Filter]:
+        key = name.lower()
+        try:
+            return _FILTER_REGISTRY[key]
+        except KeyError as exc:
+            raise ValueError(f"Unknown filter: {name}") from exc
 
     def __new__(cls, name, *args, **kwargs) -> Filter:
-        if name not in cls.filters():
-            raise ValueError(f"Unknown matcher: {name}")
-        return cls.filters()[name](*args, **kwargs)
+        filter_cls = cls._get_filter_class(name)
+        return filter_cls(*args, **kwargs)

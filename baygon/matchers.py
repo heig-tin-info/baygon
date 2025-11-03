@@ -1,8 +1,13 @@
+"""Output matchers used to assert command results."""
+
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from functools import lru_cache
-import inspect
 import re
-import sys
+from typing import Callable, TypeVar
+
+
+MatchType = TypeVar("MatchType", bound="MatchBase")
 
 
 class InvalidCondition:
@@ -28,7 +33,7 @@ class InvalidExitStatus(InvalidCondition):
     """Invalid exit status error."""
 
     def __str__(self):
-        return f"Invalid exit status: " f"{self.value} != {self.expected}."
+        return f"Invalid exit status: {self.value} != {self.expected}."
 
 
 class InvalidContains(InvalidCondition):
@@ -56,7 +61,7 @@ class InvalidEquals(InvalidCondition):
 
     def __str__(self):
         value = "(empty)" if not self.value else f"'{self.value}'"
-        return f"Output {value} does not equal '{self.expected}' on " f"{self.on}."
+        return f"Output {value} does not equal '{self.expected}' on {self.on}."
 
 
 class MatchBase(ABC):
@@ -68,7 +73,7 @@ class MatchBase(ABC):
 
     @classmethod
     def name(cls):
-        """Return the name of the filter."""
+        """Return the registration name of the matcher."""
         return cls.__name__.split("Match", maxsplit=1)[1].lower()
 
     @abstractmethod
@@ -77,6 +82,35 @@ class MatchBase(ABC):
         raise NotImplementedError
 
 
+_MATCHER_REGISTRY: dict[str, type[MatchBase]] = {}
+
+
+def register_matcher(
+    name: str | None = None,
+) -> Callable[[type[MatchType]], type[MatchType]] | type[MatchType]:
+    """Register a matcher class that can be referenced from configuration."""
+
+    def decorator(cls: type[MatchType]) -> type[MatchType]:
+        key = (name or cls.name()).lower()
+        existing = _MATCHER_REGISTRY.get(key)
+        if existing is not None and existing is not cls:
+            raise ValueError(f"Matcher '{key}' is already registered.")
+        _MATCHER_REGISTRY[key] = cls
+        return cls
+
+    if isinstance(name, type):
+        cls = name
+        name = None
+        return decorator(cls)
+    return decorator
+
+
+def get_registered_matchers() -> dict[str, type[MatchBase]]:
+    """Return the registered matchers mapping."""
+    return dict(_MATCHER_REGISTRY)
+
+
+@register_matcher
 class MatchRegex(MatchBase):
     """Match a regex."""
 
@@ -91,6 +125,7 @@ class MatchRegex(MatchBase):
         return None
 
 
+@register_matcher
 class MatchContains(MatchBase):
     """Match if a string contains a specific value."""
 
@@ -105,6 +140,7 @@ class MatchContains(MatchBase):
         return None
 
 
+@register_matcher
 class MatchEquals(MatchBase):
     """Match if a string contains a specific value."""
 
@@ -122,20 +158,14 @@ class MatchEquals(MatchBase):
 class MatcherFactory:
     """Factory for matchers."""
 
-    @classmethod
-    @lru_cache
-    def matchers(cls):
-        """Helper to get all matchers by their name."""
-        fmap = {}
-        for _, member in inspect.getmembers(sys.modules[__name__]):
-            if not inspect.isclass(member) or not hasattr(member, "name"):
-                continue
-            if member.name() == "base":
-                continue
-            fmap[member.name()] = member
-        return fmap
+    @staticmethod
+    def _get_matcher_class(name: str) -> type[MatchBase]:
+        key = name.lower()
+        try:
+            return _MATCHER_REGISTRY[key]
+        except KeyError as exc:
+            raise ValueError(f"Unknown matcher: {name}") from exc
 
     def __new__(cls, name, *args, **kwargs) -> MatchBase:
-        if name not in cls.matchers():
-            raise ValueError(f"Unknown matcher: {name}")
-        return cls.matchers()[name](*args, **kwargs)
+        matcher_cls = cls._get_matcher_class(name)
+        return matcher_cls(*args, **kwargs)
