@@ -1,12 +1,15 @@
 from unittest import TestCase
 
-from baygon.suite import TestSuite
+from baygon.suite import SuiteService
 
 
 class TestEval(TestCase):
+    def setUp(self):
+        self.service = SuiteService()
+
     def test_eval(self):
-        ts = TestSuite(
-            {
+        report = self.service.run(
+            data={
                 "filters": {"trim": True},
                 "eval": True,
                 "tests": [
@@ -19,11 +22,11 @@ class TestEval(TestCase):
             },
             executable="/bin/echo",
         )
-        self.assertEqual(ts.run(), [[]])
+        self.assertEqual(report.failures, 0)
 
     def test_add(self):
-        ts = TestSuite(
-            {
+        report = self.service.run(
+            data={
                 "filters": {"trim": True},
                 "eval": True,
                 "tests": [
@@ -37,12 +40,12 @@ class TestEval(TestCase):
             },
             executable="/bin/perl",
         )
-        self.assertEqual(ts.run(), [[]])
+        self.assertEqual(report.failures, 0)
 
     def test_random(self):
         stdin = "({{ i = randint(10,1000) }} + {{ j = randint(1,10) }}) * 42"
-        ts = TestSuite(
-            {
+        report = self.service.run(
+            data={
                 "filters": {"trim": True},
                 "eval": True,
                 "tests": [
@@ -56,11 +59,11 @@ class TestEval(TestCase):
             },
             executable="/bin/perl",
         )
-        self.assertEqual(ts.run(), [[]])
+        self.assertEqual(report.failures, 0)
 
     def test_repeat(self):
-        ts = TestSuite(
-            {
+        report = self.service.run(
+            data={
                 "filters": {"trim": True},
                 "eval": True,
                 "tests": [
@@ -75,4 +78,4 @@ class TestEval(TestCase):
             },
             executable="/bin/perl",
         )
-        self.assertEqual(ts.run(), [[]])
+        self.assertEqual(report.failures, 0)

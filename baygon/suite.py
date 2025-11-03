@@ -1,9 +1,10 @@
-"""Test suite."""
+"""High-level services for loading and running Baygon suites."""
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
-import warnings
+from typing import Any, Callable, Mapping, MutableMapping
 
 from .config.loader import (
     discover_config,
@@ -11,294 +12,198 @@ from .config.loader import (
     load_config_dict,
 )
 from .core.models import SuiteModel, build_suite_model
-from .error import ConfigError, InvalidExecutableError
-from .executable import Executable, get_env
-from .filters import FilterEval, FilterNone, Filters
-from .id import Id
-from .matchers import InvalidExitStatus, MatcherFactory
-from .runtime.runner import BaygonRunner
+from .error import ConfigError
+from .runtime.runner import BaygonRunner, RunReport
 from .schema import Schema
 from .score import compute_points
 
 
-def find_testfile(path=None):
-    """Recursively find the tests description file."""
+def find_testfile(path: str | Path | None = None) -> Path | None:
+    """Return the path to the first Baygon configuration file found."""
     try:
         return discover_config(path)
     except ConfigError:
         return None
 
 
-def load_config(path=None):
-    """Load a configuration file (can be YAML or JSON)."""
+def load_config(path: str | Path | None = None) -> Mapping[str, Any]:
+    """Load and validate a configuration file (YAML or JSON)."""
     return load_config_dict(path)
 
 
-class BaseMixin:
-    """Base mixin to prevent super() failure.
-    Ensure it will be the last MRO (Method Resolution Order).
-    """
+@dataclass(frozen=True)
+class SuiteContext:
+    """Immutable bundle describing a suite ready to be executed."""
 
-    def __init__(self, *args, **kwargs):
-        self.parent = kwargs.get("parent")
+    config: Mapping[str, Any]
+    model: SuiteModel
+    base_dir: Path
+    source_path: Path | None
 
+    @property
+    def name(self) -> str:
+        return str(self.config.get("name", ""))
 
-class FilterMixin(BaseMixin):
-    """Mixin for tests that can have filters."""
+    @property
+    def version(self) -> int | None:
+        version = self.config.get("version")
+        return int(version) if version is not None else None
 
-    def __init__(self, *args, **kwargs):
-        config = args[0]
-
-        # Configure filters (copy parent filters to avoid shared mutations)
-        parent_filters = None
-        if "parent" in kwargs and hasattr(kwargs["parent"], "filters"):
-            parent_filters = kwargs["parent"].filters
-        self.filters = Filters(parent_filters)
-
-        if "filters" in config:
-            self.filters.extend(config["filters"])
-
-        # Eval
-        if "parent" in kwargs and hasattr(kwargs["parent"], "eval"):
-            self.eval = kwargs["parent"].eval
-        else:
-            self.eval = FilterNone()
-
-        if isinstance(config.get("eval"), dict):
-            self.eval = FilterEval(**config["eval"])
-
-        super().__init__(*args, **kwargs)
-
-
-class ExecutableMixin(BaseMixin):
-    """Mixin for tests that have an executable."""
-
-    def __init__(self, *args, **kwargs):
-        config = args[0]
-        self.cwd = kwargs["parent"].cwd
-
-        if hasattr(kwargs["parent"], "executable"):
-            executable = kwargs["parent"].executable
-        else:
-            executable = None
-
-        if executable is not None and config["executable"] is not None:
-            raise InvalidExecutableError("Executable can't be overridden")
-
-        if config["executable"] is not None:
-            exe = self.cwd.joinpath(config["executable"]).resolve(strict=True)
-            self.executable = Executable(exe)
-        else:
-            self.executable = Executable(executable)
-
-        super().__init__(*args, **kwargs)
-
-
-class NamedMixin(BaseMixin):
-    """Mixin for tests having a name."""
-
-    def __init__(self, *args, **kwargs):
-        config = args[0]
-
-        self.name = config["name"]
-        self.id = Id(config["test_id"])
-        self.points = config.get("points", 1)
-
-        super().__init__(*args, **kwargs)
-
-    def __repr__(self):
-        return f"{self.__class__.__name__}<{self.id}. {self.name}>"
-
-
-class GroupMixin(BaseMixin):
-    """Mixin for tests that can have sub-tests."""
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        config = args[0]
-        self.tests = []
-        for test in config["tests"]:
-            if "tests" in test:
-                self.tests.append(TestGroup(test, parent=self))
-            else:
-                self.tests.append(TestCase(test, parent=self))
-
-    def __len__(self):
-        return len(self.tests)
-
-    def __getitem__(self, item):
-        return self.tests[item]
-
-    def run(self, flatten=False):
-        """Run the tests."""
-        if flatten:
-            issues = []
-            for test in self.tests:
-                run = test.run()
-                issues += run if isinstance(run, list) else [run]
-        else:
-            issues = [test.run() for test in self.tests]
-        return issues
-
-    def get_points(self):
-        """Return the total number of points."""
-        return sum(test.points for test in self.tests)
-
-
-class TestCase(NamedMixin, ExecutableMixin, FilterMixin):
-    """A single test."""
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        config = args[0]
-
-        self.args = config.get("args", [])
-        self.env = config.get("env", {})
-
-        self.stdin = config.get("stdin", "")
-        self.stdout = config.get("stdout", [])
-        self.stderr = config.get("stderr", [])
-
-        self.exit = config.get("exit", None)
-
-        self.repeat = config.get("repeat", 1)
-
-        self.config = config
-        self.output = None
-        self.issues = []
-
-        self.filtered_args = None
-        self.filtered_exit = None
-        self.filtered_stdin = None
-        self.filtered_env = None
-
-    def _eval(self, data):
-        if not self.eval:
-            return data
-        if isinstance(data, list):
-            return [self.eval(arg) for arg in data]
-        return self.eval(data)
-
-    def run(self, hook=None):
-        """Run the tests."""
-        if not isinstance(self.executable, Executable):
-            raise InvalidExecutableError(
-                f"Test {self.id}, not a valid executable: {self.executable}"
-            )
-
-        self.issues = []
-        for _ in range(self.repeat):
-            self.filtered_args = self._eval(self.args)
-            self.filtered_stdin = self._eval(self.stdin)
-            self.filtered_env = self._eval_env()
-            self.filtered_exit = (
-                int(self._eval(str(self.exit))) if self.exit is not None else None
-            )
-
-            self.output = output = self.executable.run(
-                *self.filtered_args,
-                stdin=self.filtered_stdin,
-                env=get_env(self.filtered_env),
-                hook=hook,
-            )
-
-            for on in ["stdout", "stderr"]:
-                for case in getattr(self, on):
-                    self._match(on, case, output)
-                    if "not" in case:  # Check for negative match
-                        self._match(on, case["not"], output, inverse=True)
-
-            if (
-                self.filtered_exit is not None
-                and self.filtered_exit != output.exit_status
-            ):
-                self.issues.append(
-                    InvalidExitStatus(
-                        self.filtered_exit, output.exit_status, on="exit", test=self
-                    )
-                )
-
-        return self.issues
-
-    def _match(self, on, case, output, inverse=False):
-        """Match the output."""
-        if "filters" in case:
-            filters = Filters(self.filters).extend(case["filters"])
-        else:
-            filters = self.filters
-
-        for key in ("equals", "regex", "contains"):
-            if key in case:
-                out = filters(getattr(output, on))
-                matcher = MatcherFactory(key, self._eval(case[key]), inverse=inverse)
-                issue = matcher(out, on=on, test=self)
-                if issue:
-                    self.issues.append(issue)
-
-    def _eval_env(self):
-        """Evaluate environment variables with the configured evaluator."""
-        if not self.env:
-            return {}
-        if not self.eval:
-            return dict(self.env)
-        return {key: self.eval(value) for key, value in self.env.items()}
-
-
-class TestGroup(NamedMixin, ExecutableMixin, FilterMixin, GroupMixin):
-    """A group of tests."""
-
-
-class TestSuite(ExecutableMixin, FilterMixin, GroupMixin):
-    """Test suite."""
-
-    __test__ = False  # Don't run this class as a test
-
-    def __init__(
+    def create_runner(
         self,
-        data: dict | None = None,
-        path: Path | str | None = None,
-        executable: Path | str | None = None,
-        cwd: Path | str | None = None,
-    ):
-        self.model: SuiteModel | None = None
-
-        if isinstance(data, dict):
-            self.config = Schema(data)
-            compute_points(self.config)
-            base_dir = Path(cwd) if cwd is not None else Path.cwd()
-            self.model = build_suite_model(self.config)
-        else:
-            try:
-                self.path = discover_config(path)
-            except ConfigError as error:
-                raise ConfigError(
-                    f"Couldn't find configuration file for '{path}'."
-                ) from error
-            self.config = load_config_dict(self.path)
-            base_dir = self.path.parent
-            self.model = load_config_model(self.path)
-
-        self.base_dir = Path(base_dir).resolve()
-        self.runtime_runner = BaygonRunner(
+        *,
+        executable: str | Path | None = None,
+        runner_factory: Callable[..., BaygonRunner] = BaygonRunner,
+    ) -> BaygonRunner:
+        """Return a runner configured for this suite."""
+        return runner_factory(
             self.model,
             base_dir=self.base_dir,
             executable=executable,
         )
 
-        self.name = self.config.get("name", "Test Suite")
-        self.version = self.config.get("version")
 
-        class Root:
-            def __init__(self, executable, cwd):
-                self.executable = Executable(executable)
-                self.cwd = Path(cwd).resolve()
+class SuiteBuilder:
+    """Build immutable suite models from validated configuration mappings."""
 
-        super().__init__(self.config, parent=Root(executable, self.base_dir))
+    def __init__(
+        self,
+        *,
+        model_factory: Callable[[Mapping[str, Any]], SuiteModel] = build_suite_model,
+    ) -> None:
+        self._model_factory = model_factory
 
-    def run(self, flatten=False):  # type: ignore[override]
-        warnings.warn(
-            "TestSuite.run() is deprecated; use TestSuite.runtime_runner.run() instead.",
-            DeprecationWarning,
-            stacklevel=2,
+    def build(self, config: Mapping[str, Any]) -> SuiteModel:
+        """Return a SuiteModel derived from the given configuration."""
+        return self._model_factory(config)
+
+
+class SuiteLoader:
+    """Load suite configurations from files or raw mappings."""
+
+    def __init__(
+        self,
+        *,
+        schema_loader: Callable[[Any], MutableMapping[str, Any]] = Schema,
+        builder: SuiteBuilder | None = None,
+    ) -> None:
+        self._schema_loader = schema_loader
+        self._builder = builder or SuiteBuilder()
+
+    def from_mapping(
+        self,
+        data: Mapping[str, Any] | MutableMapping[str, Any],
+        *,
+        cwd: str | Path | None = None,
+    ) -> SuiteContext:
+        """Validate a raw mapping and build its execution context."""
+        validated = self._schema_loader(data)
+        compute_points(validated)
+
+        base_dir = Path(cwd) if cwd is not None else Path.cwd()
+        model = self._builder.build(validated)
+
+        return SuiteContext(
+            config=validated,
+            model=model,
+            base_dir=base_dir.resolve(),
+            source_path=None,
         )
-        return super().run(flatten=flatten)
+
+    def from_path(
+        self,
+        path: str | Path | None,
+    ) -> SuiteContext:
+        """Load configuration from disk and build its execution context."""
+        config_path = discover_config(path)
+        config = load_config_dict(config_path)
+        model = load_config_model(config_path)
+        base_dir = config_path.parent
+
+        return SuiteContext(
+            config=config,
+            model=model,
+            base_dir=base_dir.resolve(),
+            source_path=config_path,
+        )
+
+    def load(
+        self,
+        *,
+        data: Mapping[str, Any] | MutableMapping[str, Any] | None = None,
+        path: str | Path | None = None,
+        cwd: str | Path | None = None,
+    ) -> SuiteContext:
+        """Load a suite configuration from a mapping or a path."""
+        if data is not None and path is not None:
+            raise ValueError("Provide either 'data' or 'path', not both.")
+
+        if data is not None:
+            return self.from_mapping(data, cwd=cwd)
+
+        return self.from_path(path)
+
+
+class SuiteExecutor:
+    """Execute suites described by `SuiteContext`."""
+
+    def __init__(
+        self,
+        *,
+        runner_factory: Callable[..., BaygonRunner] = BaygonRunner,
+    ) -> None:
+        self._runner_factory = runner_factory
+
+    def run(
+        self,
+        context: SuiteContext,
+        *,
+        executable: str | Path | None = None,
+        limit: int = -1,
+    ) -> RunReport:
+        """Run the suite described by the provided context."""
+        runner = context.create_runner(
+            executable=executable,
+            runner_factory=self._runner_factory,
+        )
+        return runner.run(limit=limit)
+
+
+class SuiteService:
+    """Facade coordinating loading and execution of Baygon suites."""
+
+    def __init__(
+        self,
+        loader: SuiteLoader | None = None,
+        executor: SuiteExecutor | None = None,
+    ) -> None:
+        self._loader = loader or SuiteLoader()
+        self._executor = executor or SuiteExecutor()
+
+    def load(
+        self,
+        *,
+        data: Mapping[str, Any] | MutableMapping[str, Any] | None = None,
+        path: str | Path | None = None,
+        cwd: str | Path | None = None,
+    ) -> SuiteContext:
+        """Return a validated suite context without running it."""
+        return self._loader.load(data=data, path=path, cwd=cwd)
+
+    def run(
+        self,
+        *,
+        data: Mapping[str, Any] | MutableMapping[str, Any] | None = None,
+        path: str | Path | None = None,
+        cwd: str | Path | None = None,
+        executable: str | Path | None = None,
+        limit: int = -1,
+    ) -> RunReport:
+        """Load and execute a suite in one call."""
+        context = self._loader.load(data=data, path=path, cwd=cwd)
+        return self._executor.run(
+            context,
+            executable=executable,
+            limit=limit,
+        )
+

@@ -209,6 +209,7 @@ class BaygonRunner:
                 _match_streams(
                     case,
                     filters,
+                    eval_filter,
                     output,
                     "stdout",
                     case.stdout,
@@ -218,6 +219,7 @@ class BaygonRunner:
                 _match_streams(
                     case,
                     filters,
+                    eval_filter,
                     output,
                     "stderr",
                     case.stderr,
@@ -340,6 +342,7 @@ def _capture_hook(storage: list[CommandLog]) -> Callable[..., None]:
 def _match_streams(
     case: CaseModel,
     base_filters: FilterType,
+    eval_filter: EvalType,
     output: Outputs,
     stream_name: str,
     conditions: Sequence[ConditionModel],
@@ -357,6 +360,7 @@ def _match_streams(
                 stream_name,
                 case,
                 inverse=False,
+                eval_filter=eval_filter,
             )
         )
         for negated in condition.negated:
@@ -367,6 +371,7 @@ def _match_streams(
                     stream_name,
                     case,
                     inverse=True,
+                    eval_filter=eval_filter,
                 )
             )
     return issues
@@ -379,12 +384,14 @@ def _evaluate_condition(
     case: CaseModel,
     *,
     inverse: bool,
+    eval_filter: EvalType,
 ) -> list[Any]:
     issues: list[Any] = []
     for matcher_name, expected in expectations:
+        evaluated = _apply_eval(eval_filter, expected)
         matcher = MatcherFactory(
             matcher_name,
-            expected,
+            evaluated,
             inverse=inverse,
         )
         issue = matcher(value, on=stream_name, test=case)

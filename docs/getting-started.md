@@ -17,7 +17,7 @@ Have fun squashing bugs!
 
 Baygon is a CLI tool that runs tests described in a JSON or YAML file. It can be used to test any kind of executable, including binaries, scripts, and even web applications. It's designed to be used for student assignments.
 
-Based on the description file, a `TestSuite` is built. A `TestSuite` is a collection of `TestCases` that are executed sequentially. Each `TestCase` is a collection of `TestSteps` that are executed sequentially.
+Baygon first validates the configuration file and converts it into an immutable `SuiteModel`. The runtime then walks that model, inherits shared settings such as filters and executables, and executes each case sequentially.
 
 By default Baygon will run all the tests in the description file.
 

@@ -18,14 +18,15 @@ from .core.models import (
 from .executable import Executable
 from .runtime.runner import BaygonRunner, CaseResult, CommandLog, RunReport
 from .schema import Schema
-from .suite import TestCase, TestGroup, TestSuite
+from .suite import SuiteContext, SuiteExecutor, SuiteLoader, SuiteService
 
 
 __all__ = [
-    # Legacy surface
-    "TestCase",
-    "TestGroup",
-    "TestSuite",
+    # Services
+    "SuiteContext",
+    "SuiteLoader",
+    "SuiteExecutor",
+    "SuiteService",
     "Executable",
     "Schema",
     # Domain models

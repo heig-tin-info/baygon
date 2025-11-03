@@ -6,18 +6,21 @@ Here is an example of a test runner using Baygon:
 
 ```python
 from pathlib import Path
-import baygon
+from baygon.suite import SuiteService
 
-ts = baygon.TestSuite({
+service = SuiteService()
+report = service.run(
+    data={
         'filters': {'uppercase': True},
         'tests': [{
             'args': ['--version'],
-            'stderr': [{'contains': 'VERSION'}]
-        }]
-    }, executable=Path('myapp'))
-t = ts.run()
+            'stderr': [{'contains': 'VERSION'}],
+        }],
+    },
+    executable=Path('myapp'),
+)
 
-assert(t, [[]])
+assert report.failures == 0
 ```
 
 ## Validation

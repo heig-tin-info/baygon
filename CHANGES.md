@@ -49,7 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Deprecated
 
 - Drop support for Python 3.6, 3.7 and 3.8
-- `TestSuite.run()`; prefer `TestSuite.runtime_runner.run()`
+- The legacy object wrappers (`TestSuite`, `TestGroup`, `TestCase`) have been removed in favor of the service-based API (`SuiteLoader`, `SuiteExecutor`, `SuiteService`).
 - The legacy `-t` short flag for `--config` (still accepted in this release)
 
 ## 0.6.0 (2025-10-14)

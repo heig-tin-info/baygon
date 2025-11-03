@@ -21,7 +21,7 @@ from .presentation.rich import (
 )
 from .presentation.text import render_case_results, render_summary
 from .runtime.runner import RunReport
-from .suite import TestSuite
+from .suite import SuiteExecutor, SuiteLoader
 
 
 logging.basicConfig(level=logging.INFO)
@@ -149,16 +149,16 @@ def cli(
 
     resolved_executable = str(executable) if executable else None
 
+    loader = SuiteLoader()
+    executor = SuiteExecutor()
+
     try:
-        suite = TestSuite(
-            path=str(config) if config else None,
-            executable=resolved_executable,
-        )
-    except ConfigError as error:
+        context = loader.load(path=str(config) if config else None)
+    except (ConfigError, ValueError) as error:
         typer.secho(f"\nError: {error}", fg="red", bold=True, err=True)
         raise typer.Exit(code=1) from error
 
-    config_path = getattr(suite, "path", None) or config
+    config_path = context.source_path or config
     typer.secho(f"Using configuration file: {config_path}")
 
     if verbose > 0:
@@ -170,7 +170,11 @@ def cli(
         logger.debug("Debug mode enabled.")
 
     try:
-        report_result = suite.runtime_runner.run(limit=limit)
+        report_result = executor.run(
+            context,
+            executable=resolved_executable,
+            limit=limit,
+        )
     except InvalidExecutableError as error:
         typer.secho(f"\nError: {error}", fg="red", bold=True, err=True)
         raise typer.Exit(code=1) from error

@@ -10,6 +10,22 @@ class TestId(TestCase):
         self.assertEqual(tuple(i), (1, 2, 3, 4))
         self.assertEqual(list(i), [1, 2, 3, 4])
 
+    def test_hash_and_pad(self):
+        value = Id([1, 2])
+        self.assertEqual(len(value), 2)
+        self.assertEqual(value[1], 2)
+        self.assertEqual(value.pad("."), ".")
+        self.assertEqual(hash(value), hash(tuple(value)))
+
+    def test_arithmetic_and_invalid_input(self):
+        base = Id()
+        incremented = base + 2
+        self.assertEqual(str(incremented), "3")
+        self.assertEqual(str(base.next()), "2")
+        self.assertEqual(str(base.down(5)), "1.5")
+        with self.assertRaises(ValueError):
+            Id(object())
+
     def test_trackid(self):
         t = TrackId()
         t.down()

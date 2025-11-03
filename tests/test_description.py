@@ -1,19 +1,27 @@
 from unittest import TestCase
 
-from baygon.suite import TestSuite
+from baygon.suite import SuiteLoader
 
 
 class TestDescription(TestCase):
+    def setUp(self):
+        self.loader = SuiteLoader()
+
     def get_sample(self, name="foobar"):
-        return TestSuite({"name": name, "version": 1, "tests": [{"exit": 0}]})
+        return self.loader.load(
+            data={
+                "name": name,
+                "version": 1,
+                "tests": [{"exit": 0}],
+            }
+        )
 
     def test_build(self):
         name = "foobar"
-        td = self.get_sample(name)
-        self.assertEqual(td.name, name)
-        self.assertEqual(td.version, 1)
+        context = self.get_sample(name)
+        self.assertEqual(context.name, name)
+        self.assertEqual(context.version, 1)
 
     def test_len(self):
-        name = "foobar"
-        td = self.get_sample(name)
-        self.assertEqual(len(td), 1)
+        context = self.get_sample("foobar")
+        self.assertEqual(len(context.model.tests), 1)

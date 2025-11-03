@@ -62,12 +62,10 @@ def register_filter(
     Usage examples:
 
     >>> @register_filter
-    ... class FilterFoo(Filter):
-    ...     ...
+    ... class FilterFoo(Filter): ...
     >>>
     >>> @register_filter("bar")
-    ... class CustomFilter(Filter):
-    ...     ...
+    ... class CustomFilter(Filter): ...
     """
 
     def decorator(cls: type[FilterType]) -> type[FilterType]:
