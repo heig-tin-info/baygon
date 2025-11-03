@@ -25,6 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Upgrade dependencies
 - Migration to Poetry, Ruff and Black
+- Development tooling now relies on Nox sessions backed by uv groups instead of tox
+- Contributor documentation now explains the uv-powered workflow for development and docs builds
 - Adopted keepachangelog format
 - Configuration validation now relies on Pydantic instead of Voluptuous for clearer errors
 - YAML parsing errors raise `ConfigSyntaxError` with line and column details
@@ -37,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Summary table now shows failed and skipped tests with the correct status labels.
 - '4 failed, 0 passed (0.0%% ok).' remove the duplicated pecentage sign
 - Fix output by adding quotes and `(empty)` for empty strings
+- Self-test now targets the repository binary and reports the resolved configuration path, so `uv run baygon $(which baygon)` succeeds again
 - More tests (89% coverage), enabled doctests
 
 ### Deprecated

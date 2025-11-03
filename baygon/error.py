@@ -1,5 +1,7 @@
 """Errors for Baygon"""
 
+from __future__ import annotations
+
 
 class BaygonError(Exception):
     """Base class for Baygon errors"""

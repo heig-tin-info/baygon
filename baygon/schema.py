@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import Any, Literal
+from typing import Any, Literal, Union
 
 from pydantic import (
     AliasChoices,
@@ -222,7 +222,7 @@ class TestGroupModel(CommonSettings):
     test_id: list[int] = Field(default_factory=list, alias="test_id")
 
 
-BaygonTest = TestCaseModel | TestGroupModel
+BaygonTest = Union[TestCaseModel, TestGroupModel]
 
 TestGroupModel.model_rebuild()
 

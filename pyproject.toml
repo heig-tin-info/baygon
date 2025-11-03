@@ -48,6 +48,7 @@ dependencies = [
   "termynal>=0.13.1,<0.14",
   "click>=8.1,<8.2",
   "typer>=0.12.5,<0.13",
+  "eval-type-backport>=0.2.0,<0.3",
 ]
 
 [project.urls]
