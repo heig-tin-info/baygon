@@ -1,5 +1,10 @@
 name: Build and Deploy
-on: [push]
+on:
+  push:
+    branches:
+      - "**"
+    tags:
+      - "*"
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -29,7 +34,7 @@ jobs:
         uses: codecov/codecov-action@v3
   documentation:
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags')
+    if: github.ref_type == 'tag'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -45,7 +50,7 @@ jobs:
     name: Create Release
     needs: build
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags')
+    if: github.ref_type == 'tag'
     steps:
       - uses: actions/checkout@v4
       - run: git fetch --prune --unshallow
@@ -76,7 +81,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: release
-    if: startsWith(github.ref, 'refs/tags')
+    if: github.ref_type == 'tag'
     steps:
       - name: Download artifacts
         uses: actions/download-artifact@v4
