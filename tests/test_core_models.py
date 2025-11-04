@@ -4,7 +4,14 @@ from pathlib import Path
 
 import pytest
 
-from baygon.core.models import CaseModel, GroupModel, build_suite_model
+from baygon.core.models import (
+    CaseModel,
+    GroupModel,
+    SuiteModel,
+    build_suite_model,
+    _as_id_tuple,
+    _deep_freeze,
+)
 from baygon.schema import Schema
 
 
@@ -43,3 +50,67 @@ def test_suite_model_freezes_mappings() -> None:
 
     with pytest.raises(TypeError):
         suite.filters["trim"] = True  # type: ignore[index]
+
+
+def test_deep_freeze_handles_nested_sequences() -> None:
+    frozen = _deep_freeze([{"value": [1, 2]}])
+    assert isinstance(frozen, tuple)
+    nested = frozen[0]["value"]
+    assert isinstance(nested, tuple)
+
+
+def test_as_id_tuple_handles_none() -> None:
+    assert _as_id_tuple(None) == ()
+
+
+def test_group_and_suite_iter_cases_nested() -> None:
+    case = CaseModel(
+        id=(1, 1),
+        name="leaf",
+        min_points=0.1,
+        points=1,
+        executable=None,
+        args=(),
+        env={},
+        stdin=None,
+        stdout=(),
+        stderr=(),
+        repeat=1,
+        exit=0,
+        filters={},
+        eval=None,
+    )
+    inner_group = GroupModel(
+        id=(1,),
+        name="inner",
+        min_points=0.1,
+        points=None,
+        executable=None,
+        filters={},
+        tests=(case,),
+        eval=None,
+    )
+    outer_group = GroupModel(
+        id=(2,),
+        name="outer",
+        min_points=0.1,
+        points=None,
+        executable=None,
+        filters={},
+        tests=(inner_group,),
+        eval=None,
+    )
+    suite = SuiteModel(
+        name="suite",
+        version=1,
+        min_points=0.1,
+        points=None,
+        executable=None,
+        filters={},
+        tests=(outer_group,),
+        eval=None,
+    )
+
+    collected = list(outer_group.iter_cases())
+    assert collected == [case]
+    assert list(suite.iter_cases()) == [case]

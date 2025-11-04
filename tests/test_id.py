@@ -9,6 +9,9 @@ class TestId(TestCase):
         self.assertEqual(str(i), "1.2.3.4")
         self.assertEqual(tuple(i), (1, 2, 3, 4))
         self.assertEqual(list(i), [1, 2, 3, 4])
+        self.assertEqual(Id(5).__list__(), [5])
+        clone = Id(Id([1, 2, 3]))
+        self.assertEqual(tuple(clone), (1, 2, 3))
 
     def test_hash_and_pad(self):
         value = Id([1, 2])

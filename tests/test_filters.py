@@ -1,6 +1,7 @@
 """Test filters."""
 
 from unittest import TestCase
+from unittest.mock import patch
 
 from baygon.error import InvalidFilterError
 from baygon.filters import (
@@ -15,6 +16,7 @@ from baygon.filters import (
     Filters,
     FilterTrim,
     FilterUppercase,
+    get_registered_filters,
     register_filter,
 )
 
@@ -81,6 +83,32 @@ class TestFilters(TestCase):
         self.assertIsNone(evaluator.exec("import math"))
         self.assertIn("FilterEval(", repr(evaluator))
 
+    def test_filters_accept_existing_collection(self):
+        base = Filters({"uppercase": True})
+        clone = Filters(base)
+        self.assertIsNot(clone, base)
+        self.assertEqual(clone.apply("hello"), "HELLO")
+
+    def test_filters_parse_filters_branch(self):
+        base = Filters({"uppercase": True})
+        from baygon import filters as module
+
+        import builtins
+
+        real_isinstance = builtins.isinstance
+
+        def fake_isinstance(obj, cls):
+            if obj is base and cls is module.Filter:
+                return False
+            return real_isinstance(obj, cls)
+
+        with patch.dict(
+            Filters._parse_filter.__globals__, {"isinstance": fake_isinstance}
+        ):
+            clone = module.Filters(base)
+
+        self.assertEqual(len(clone), len(base))
+
     def test_filter_factory_unknown(self):
         with self.assertRaises(ValueError):
             FilterFactory("doesnotexist")
@@ -101,3 +129,8 @@ class TestFilters(TestCase):
 
         with self.assertRaises(ValueError):
             register_filter("custom-filter")(AnotherFilter)
+
+    def test_get_registered_filters_returns_copy(self):
+        registry = get_registered_filters()
+        registry["fake"] = FilterNone
+        self.assertNotIn("fake", get_registered_filters())

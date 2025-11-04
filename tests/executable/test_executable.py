@@ -78,3 +78,13 @@ class TestExecutable(TestCase):
         output = e.run(dir_path.joinpath("test.txt"))
         print(output)
         self.assertEqual(output.stdout, "Hello World\n")
+
+    def test_rewrap_existing_executable(self):
+        base = Executable(shutil.which("echo"))
+        wrapped = Executable(base)
+        self.assertIs(wrapped, base)
+        self.assertEqual(wrapped.encoding, base.encoding)
+
+    def test_forbidden_binary(self):
+        with self.assertRaises(InvalidExecutableError):
+            Executable("rm")

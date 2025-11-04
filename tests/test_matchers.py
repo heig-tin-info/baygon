@@ -1,7 +1,14 @@
 from unittest import TestCase
 
 import baygon.matchers
-from baygon.matchers import MatcherFactory, register_matcher
+from baygon.matchers import (
+    InvalidCondition,
+    InvalidRegex,
+    MatchBase,
+    MatcherFactory,
+    get_registered_matchers,
+    register_matcher,
+)
 
 
 class TestMatchers(TestCase):
@@ -45,3 +52,23 @@ class TestMatchers(TestCase):
 
         with self.assertRaises(ValueError):
             register_matcher("alwayspass")(MatchOther)
+
+    def test_invalid_condition_messages_and_registry(self):
+        issue = InvalidCondition("value", "expected", on="stdout")
+        self.assertIn("expected", str(issue))
+        self.assertIn("InvalidCondition", repr(issue))
+
+        regex_issue = InvalidRegex("output", "pattern", on="stdout")
+        self.assertIn("pattern", str(regex_issue))
+
+        registry = get_registered_matchers()
+        registry["new"] = MatchBase  # mutate copy
+        self.assertNotIn("new", get_registered_matchers())
+
+    def test_match_base_not_implemented(self):
+        class DummyMatch(MatchBase):
+            def __call__(self, value, **kwargs):
+                return super().__call__(value, **kwargs)
+
+        with self.assertRaises(NotImplementedError):
+            DummyMatch()("value")

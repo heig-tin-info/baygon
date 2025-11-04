@@ -9,7 +9,8 @@ import pytest
 from baygon.core.models import build_suite_model
 from baygon.error import InvalidExecutableError
 from baygon.executable import Outputs
-from baygon.runtime.runner import BaygonRunner
+from baygon.filters import FilterEval, FilterNone
+from baygon.runtime.runner import BaygonRunner, _apply_eval, _apply_eval_env
 from baygon.schema import Schema
 
 
@@ -183,3 +184,30 @@ def test_case_cannot_override_parent_executable(tmp_path: Path) -> None:
     )
     with pytest.raises(InvalidExecutableError):
         runner.run()
+
+
+def test_runner_suite_property(tmp_path: Path) -> None:
+    suite = _suite_from_dict({"version": 1, "tests": [{"stdout": []}]})
+    runner = BaygonRunner(
+        suite,
+        base_dir=tmp_path,
+        executable="prog",
+        executable_factory=_fake_factory({(): (0, "", "")}),
+    )
+    assert runner.suite is suite
+
+
+def test_runner_requires_executable(tmp_path: Path) -> None:
+    suite = _suite_from_dict({"version": 1, "tests": [{"stdout": []}]})
+    runner = BaygonRunner(suite, base_dir=tmp_path)
+    with pytest.raises(InvalidExecutableError):
+        runner.run()
+
+
+def test_apply_eval_helpers() -> None:
+    assert _apply_eval(FilterNone(), (1, 2)) == (1, 2)
+    assert _apply_eval(FilterNone(), None) is None
+
+    evaluator = FilterEval()
+    values = _apply_eval_env(evaluator, {"value": "{{ 1 + 1 }}"})
+    assert values["value"] == "2"
