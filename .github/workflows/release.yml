@@ -33,20 +33,6 @@ jobs:
           python-version: "3.12"
       - name: Install uv
         uses: astral-sh/setup-uv@v7
-      - name: Validate tag matches project version
-        run: |
-          TAG="${GITHUB_REF_NAME#v}"
-          VERSION="$(python - <<'PY'
-          import tomllib
-          from pathlib import Path
-          data = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
-          print(data["project"]["version"])
-          PY
-          )"
-          test "$TAG" = "$VERSION" || {
-            echo "Tag '$TAG' does not match project version '$VERSION' in pyproject.toml"
-            exit 1
-          }
       - name: Build distribution
         run: uv build
       - name: Upload build artifacts

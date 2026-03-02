@@ -63,7 +63,6 @@ wheels = [
 
 [[package]]
 name = "baygon"
-version = "0.6.0"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
@@ -158,7 +157,7 @@ requires-dist = [
     { name = "tinykernel", specifier = ">=0.0.2,<0.0.3" },
     { name = "typer", specifier = ">=0.24.1,<0.25" },
 ]
-provides-extras = ["test", "lint", "docs", "dev"]
+provides-extras = ["dev", "docs", "lint", "test"]
 
 [package.metadata.requires-dev]
 dev = [
