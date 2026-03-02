@@ -50,8 +50,7 @@ class InvalidRegex(InvalidCondition):
 
     def __str__(self):
         return (
-            f"Output '{self.on}' does not match /{self.expected}/ "
-            f'on "{self.value}".'
+            f"Output '{self.on}' does not match /{self.expected}/ on \"{self.value}\"."
         )
 
 
