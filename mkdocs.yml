@@ -120,7 +120,6 @@ plugins:
             show_source: true
             filters:
               - "!^_"
-  # - mike:
-  #     alias_type: symlink
-  #     canonical_version: latest
+  - mike:
+      alias_type: redirect
   - search
