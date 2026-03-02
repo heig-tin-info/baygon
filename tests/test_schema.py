@@ -217,13 +217,11 @@ class TestSchema(TestCase):
             Schema(["not-a-mapping"])
 
     def test_yaml_string(self):
-        config = Schema(
-            dedent("""
+        config = Schema(dedent("""
                 version: 1
                 tests:
                   - exit: 0
-                """)
-        )
+                """))
         self.assertEqual(config["tests"][0]["exit"], 0)
 
     def test_yaml_syntax_error(self):
