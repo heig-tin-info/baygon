@@ -10,7 +10,6 @@ import typing
 
 from .error import InvalidExecutableError
 
-
 logger = logging.getLogger("baygon")
 
 Outputs = namedtuple("Outputs", ["exit_status", "stdout", "stderr"])

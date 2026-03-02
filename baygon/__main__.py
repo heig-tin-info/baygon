@@ -1,13 +1,10 @@
 """Main CLI command."""
 
-# ruff: noqa: UP007
-
 from __future__ import annotations
 
 import json
 import logging
 from pathlib import Path
-from typing import Optional
 
 from rich.console import Console
 import typer
@@ -22,7 +19,6 @@ from .presentation.rich import (
 from .presentation.text import render_case_results, render_summary
 from .runtime.runner import RunReport
 from .suite import SuiteExecutor, SuiteLoader
-
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("baygon")
@@ -71,7 +67,7 @@ def _version_callback(version_requested: bool) -> None:
         raise typer.Exit()
 
 
-def _format_callback(value: Optional[str]) -> Optional[str]:
+def _format_callback(value: str | None) -> str | None:
     if value is None:
         return None
     normalized = value.lower()
@@ -82,7 +78,7 @@ def _format_callback(value: Optional[str]) -> Optional[str]:
 
 @app.callback(invoke_without_command=True)
 def cli(
-    executable: Optional[Path] = typer.Argument(
+    executable: Path | None = typer.Argument(
         None,
         exists=True,
         dir_okay=False,
@@ -106,7 +102,7 @@ def cli(
     ),
     limit: int = typer.Option(-1, "-l", "--limit", help="Limit errors to N."),
     debug: bool = typer.Option(False, "-d", "--debug", help="Enable debug mode."),
-    report: Optional[Path] = typer.Option(
+    report: Path | None = typer.Option(
         None,
         "-r",
         "--report",
@@ -123,7 +119,7 @@ def cli(
         "--pretty",
         help="Display nested frames for failing tests.",
     ),
-    report_format: Optional[str] = typer.Option(
+    report_format: str | None = typer.Option(
         None,
         "-f",
         "--format",
@@ -131,7 +127,7 @@ def cli(
         help="Report format (json or yaml).",
         callback=_format_callback,
     ),
-    config: Optional[Path] = typer.Option(
+    config: Path | None = typer.Option(
         None,
         "-c",
         "-t",

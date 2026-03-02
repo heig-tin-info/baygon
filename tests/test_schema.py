@@ -8,9 +8,9 @@ from baygon import Schema
 from baygon.error import ConfigError, ConfigSyntaxError
 from baygon.schema import (
     BaygonConfig,
-    FiltersConfig,
-    EvalConfig,
     CaseCondition,
+    EvalConfig,
+    FiltersConfig,
     NegatedCondition,
     TestCaseModel,
     _coerce_match_list,
@@ -217,15 +217,11 @@ class TestSchema(TestCase):
             Schema(["not-a-mapping"])
 
     def test_yaml_string(self):
-        config = Schema(
-            dedent(
-                """
+        config = Schema(dedent("""
                 version: 1
                 tests:
                   - exit: 0
-                """
-            )
-        )
+                """))
         self.assertEqual(config["tests"][0]["exit"], 0)
 
     def test_yaml_syntax_error(self):

@@ -6,7 +6,6 @@ from typing import Callable
 
 from baygon.runtime.runner import RunReport
 
-
 Writer = Callable[[str], None]
 
 

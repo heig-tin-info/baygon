@@ -11,7 +11,6 @@ from baygon.error import ConfigError
 from baygon.schema import Schema
 from baygon.score import compute_points
 
-
 _CANDIDATE_BASENAMES: tuple[str, ...] = ("baygon", "t", "test", "tests")
 _SUPPORTED_EXTENSIONS: tuple[str, ...] = (".json", ".yml", ".yaml")
 

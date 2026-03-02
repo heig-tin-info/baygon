@@ -1,18 +1,54 @@
-name: Build and Deploy
-on: [push]
+name: CI
+
+on:
+  push:
+    branches: [master, dev]
+    tags: ["*"]
+  pull_request:
+    branches: [master, dev]
+  workflow_dispatch:
+
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  UV_LINK_MODE: copy
+
 jobs:
-  build:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install uv
+        uses: astral-sh/uv-action@v2
+        with:
+          version: latest
+      - name: Sync dependencies
+        run: uv sync --frozen --group dev
+      - name: Run lint session
+        run: uv run --frozen --group dev nox -s lint
+
+  tests:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
-    env:
-      UV_LINK_MODE: copy
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+    permissions:
+      contents: read
+      id-token: write
     steps:
-      - uses: actions/checkout@v4
-      - run: git fetch --prune --unshallow
+      - name: Checkout
+        uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
@@ -23,18 +59,16 @@ jobs:
           version: latest
       - name: Sync dependencies
         run: uv sync --frozen --group dev
-      - name: Run lint session
-        if: matrix.python-version == '3.12'
-        run: uv run --frozen --group dev nox -s lint
       - name: Run test session
         run: uv run --frozen --group dev nox -s tests-${{ matrix.python-version }}
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
-  documentation:
+        if: matrix.python-version == '3.12'
+        uses: codecov/codecov-action@v5
+        with:
+          use_oidc: true
+
+  docs:
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags')
-    env:
-      UV_LINK_MODE: copy
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -50,54 +84,89 @@ jobs:
         run: uv sync --frozen --group dev
       - name: Build documentation
         run: uv run --frozen --group dev nox -s docs
-      - name: Deploy documentation
-        uses: JamesIves/github-pages-deploy-action@4.7.3
-        with:
-          folder: site
+
   release:
     name: Create Release
-    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [lint, tests, docs]
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags')
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@v4
-      - run: git fetch --prune --unshallow
-      - uses: actions/setup-python@v5
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
-          python-version: "3.x"
+          fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
       - name: Install uv
         uses: astral-sh/uv-action@v2
         with:
           version: latest
       - name: Build distribution
         run: uv build
-      - uses: actions/upload-artifact@v4
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
         with:
-          name: release
-          path: dist
+          name: release-dist
+          path: dist/
           if-no-files-found: error
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
+      - name: Create GitHub release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          draft: false
-          prerelease: false
-  deploy:
-    runs-on: ubuntu-latest
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release create "${{ github.ref_name }}" dist/* --generate-notes --verify-tag
+
+  publish:
+    name: Publish to PyPI
+    if: startsWith(github.ref, 'refs/tags/')
     needs: release
-    if: startsWith(github.ref, 'refs/tags')
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
     steps:
-      - name: Download artifacts
+      - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
-          name: release
+          name: release-dist
           path: dist/
       - name: Publish a Python distribution to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
+
+  docs-deploy:
+    name: Deploy Docs
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: docs
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          user: __token__
-          password: ${{ secrets.pypi_token }}
+          python-version: "3.12"
+      - name: Install uv
+        uses: astral-sh/uv-action@v2
+        with:
+          version: latest
+      - name: Sync dependencies
+        run: uv sync --frozen --group dev
+      - name: Build documentation
+        run: uv run --frozen --group dev nox -s docs
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

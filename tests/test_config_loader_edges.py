@@ -6,10 +6,10 @@ from pathlib import Path
 import pytest
 
 from baygon.config.loader import (
-    discover_config,
-    load_config_dict,
-    load_config,
     _read_config_mapping,
+    discover_config,
+    load_config,
+    load_config_dict,
 )
 from baygon.error import ConfigError
 

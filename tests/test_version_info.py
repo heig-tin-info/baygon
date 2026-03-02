@@ -62,7 +62,7 @@ def test_version_defaults_to_none_when_no_metadata(monkeypatch, restore_baygon_m
         raise real_metadata.PackageNotFoundError
 
     monkeypatch.setattr(real_metadata, "version", fake_version)
-    monkeypatch.setattr("baygon.Path.exists", lambda self: False)
+    monkeypatch.setattr("baygon.Path.exists", lambda _self: False)
 
     importlib.reload(baygon)
 

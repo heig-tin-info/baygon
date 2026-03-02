@@ -1,13 +1,10 @@
 """Unit tests targeting CLI helpers and presenters."""
 
-# ruff: noqa: UP007
-
 from __future__ import annotations
 
 from io import StringIO
 import json
 from pathlib import Path
-from typing import Optional
 
 import pytest
 from rich.console import Console
@@ -34,7 +31,7 @@ def _make_case(
     *,
     identifier: tuple[int, ...],
     name: str,
-    points: Optional[int] = 1,
+    points: int | None = 1,
 ) -> CaseModel:
     return CaseModel(
         id=identifier,
@@ -173,7 +170,7 @@ def test_rich_pretty_failure_hides_empty_stdin() -> None:
 
 
 def test_rich_command_panels_include_streams() -> None:
-    report, failing_result = _build_report()
+    _report, failing_result = _build_report()
     capture_console = Console(width=120, record=True)
     render_command_panels(
         failing_result,

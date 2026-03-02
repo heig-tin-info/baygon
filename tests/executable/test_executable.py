@@ -6,7 +6,6 @@ from baygon import Executable
 from baygon.error import InvalidExecutableError
 from baygon.helpers import GreppableString
 
-
 dir_path = Path(__file__).resolve(strict=True).parent
 
 

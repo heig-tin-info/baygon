@@ -5,7 +5,6 @@ import baygon
 from baygon import error
 from baygon.suite import SuiteExecutor, SuiteLoader, SuiteService
 
-
 dir_path = Path(__file__).resolve(strict=True).parent
 
 
@@ -40,16 +39,12 @@ class TestDemo(TestCase):
         self.assertIsInstance(report.cases[0].issues[0], error.InvalidExitStatus)
 
     def test_error_stdout(self):
-        report = self._run_from_data(
-            {"tests": [{"args": [30, 40], "stdout": 42}]}
-        )
+        report = self._run_from_data({"tests": [{"args": [30, 40], "stdout": 42}]})
         self.assertEqual(report.failures, 1)
         self.assertIsInstance(report.cases[0].issues[0], error.InvalidEquals)
 
     def test_error_stderr(self):
-        report = self._run_from_data(
-            {"tests": [{"args": ["--version"], "stderr": 42}]}
-        )
+        report = self._run_from_data({"tests": [{"args": ["--version"], "stderr": 42}]})
         self.assertEqual(report.failures, 1)
         self.assertIsInstance(report.cases[0].issues[0], error.InvalidEquals)
 
@@ -63,9 +58,7 @@ class TestDemo(TestCase):
         report = self._run_from_data(
             {
                 "filters": {"uppercase": True},
-                "tests": [
-                    {"args": ["--version"], "stderr": [{"contains": "VERSION"}]}
-                ],
+                "tests": [{"args": ["--version"], "stderr": [{"contains": "VERSION"}]}],
             }
         )
 
@@ -75,9 +68,7 @@ class TestDemo(TestCase):
         report = self._run_from_data(
             {
                 "filters": {"lowercase": True},
-                "tests": [
-                    {"args": ["--version"], "stderr": [{"contains": "version"}]}
-                ],
+                "tests": [{"args": ["--version"], "stderr": [{"contains": "version"}]}],
             }
         )
         self.assertEqual(report.failures, 0)

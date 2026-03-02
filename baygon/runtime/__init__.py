@@ -7,7 +7,6 @@ from .runner import (
     RunReport,
 )
 
-
 __all__ = [
     "BaygonRunner",
     "CaseResult",

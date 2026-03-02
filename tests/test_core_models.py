@@ -8,9 +8,9 @@ from baygon.core.models import (
     CaseModel,
     GroupModel,
     SuiteModel,
-    build_suite_model,
     _as_id_tuple,
     _deep_freeze,
+    build_suite_model,
 )
 from baygon.schema import Schema
 

@@ -91,9 +91,9 @@ class TestFilters(TestCase):
 
     def test_filters_parse_filters_branch(self):
         base = Filters({"uppercase": True})
-        from baygon import filters as module
-
         import builtins
+
+        from baygon import filters as module
 
         real_isinstance = builtins.isinstance
 

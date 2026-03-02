@@ -14,7 +14,6 @@ from tinykernel import TinyKernel
 
 from .error import InvalidFilterError
 
-
 FilterType = TypeVar("FilterType", bound="Filter")
 
 

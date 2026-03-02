@@ -61,7 +61,7 @@ class Id(Sequence):
         return f"Id({self!s})"
 
     def __add__(self, other):
-        return Id(self.ids[:-1] + [self.ids[-1] + other])
+        return Id([*self.ids[:-1], self.ids[-1] + other])
 
     def __list__(self):
         return self.ids

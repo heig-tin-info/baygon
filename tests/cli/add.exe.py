@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import sys
 
-
 if len(sys.argv) > 1 and sys.argv[1] == "--version":
     print("Version 0.1.1", file=sys.stderr)
     sys.exit(0)

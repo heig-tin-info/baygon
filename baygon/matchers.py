@@ -6,7 +6,6 @@ from abc import ABC, abstractmethod
 import re
 from typing import Callable, TypeVar
 
-
 MatchType = TypeVar("MatchType", bound="MatchBase")
 
 

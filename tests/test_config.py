@@ -5,7 +5,6 @@ from unittest import TestCase
 
 from baygon.suite import SuiteLoader
 
-
 dir_path = Path(__file__).resolve(strict=True).parent
 
 

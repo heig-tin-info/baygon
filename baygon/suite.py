@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping, MutableMapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Mapping, MutableMapping
+from typing import Any, Callable
 
 from .config.loader import (
     discover_config,
@@ -206,4 +207,3 @@ class SuiteService:
             executable=executable,
             limit=limit,
         )
-

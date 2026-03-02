@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import List
-
 from baygon.core.models import CaseModel
 from baygon.presentation import text as text_presentation
 from baygon.runtime.runner import CaseResult, RunReport
@@ -34,7 +32,7 @@ def _case(name: str, status: str, issues=None) -> CaseResult:
 
 
 def test_render_case_results_variants() -> None:
-    output: List[str] = []
+    output: list[str] = []
     results = (
         _case("pass", "passed"),
         _case("fail", "failed", issues=["broken"]),
@@ -52,7 +50,9 @@ def test_render_case_results_variants() -> None:
         cases=results,
     )
 
-    text_presentation.render_case_results(report, write=output.append, include_issues=False)
+    text_presentation.render_case_results(
+        report, write=output.append, include_issues=False
+    )
     assert any("PASSED" in line for line in output)
     assert any("FAILED" in line for line in output)
     assert any("SKIPPED" in line for line in output)
@@ -60,7 +60,7 @@ def test_render_case_results_variants() -> None:
 
 
 def test_render_summary_reports_points_and_failures() -> None:
-    output: List[str] = []
+    output: list[str] = []
     report = RunReport(
         suite=None,  # type: ignore[arg-type]
         successes=1,

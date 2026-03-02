@@ -121,8 +121,8 @@ class TestPoints(TestCase):
         self.assertEqual(child_points, [3, 3])
 
     def test_assign_points_weight_branch(self):
-        from baygon.score import assign_points
         import baygon.score as score_module
+        from baygon.score import assign_points
 
         parent = {"points": 8, "tests": []}
         child = {"weight": 2}
@@ -158,16 +158,14 @@ class TestPoints(TestCase):
             def __len__(self):
                 return 0
 
-        with patch.dict(
-            assign_points.__globals__, {"list": NoWeightList}, clear=False
-        ):
+        with patch.dict(assign_points.__globals__, {"list": NoWeightList}, clear=False):
             assign_points(parent)
 
         for child in parent["tests"]:
             self.assertIn("points", child)
 
     def test_score_manual_branch_coverage(self):
-        from baygon.score import Decimal, ROUND_HALF_UP, float_or_int
+        from baygon.score import ROUND_HALF_UP, Decimal, float_or_int
 
         namespace = {
             "Decimal": Decimal,

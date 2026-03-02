@@ -13,7 +13,9 @@ def test_find_testfile_returns_none(tmp_path: Path) -> None:
 
 def test_suite_loader_rejects_both_sources() -> None:
     loader = SuiteLoader()
-    with pytest.raises(ValueError):
+    with pytest.raises(
+        ValueError, match=r"Provide either 'data' or 'path', not both\."
+    ):
         loader.load(data={}, path="somepath")
 
 
