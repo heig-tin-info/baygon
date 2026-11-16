@@ -3,10 +3,10 @@ name: CI
 on:
   push:
     branches: [master, dev]
-    tags: ["*"]
   pull_request:
     branches: [master, dev]
   workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read
@@ -23,47 +23,47 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
-        with:
-          version: latest
+        uses: astral-sh/setup-uv@v10.3.3
       - name: Sync dependencies
         run: uv sync --frozen --group dev
       - name: Run lint session
         run: uv run --frozen --group dev nox -s lint
 
   tests:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        os: [ubuntu-latest]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14", "3.15"]
+        include:
+          - os: macos-latest
+            python-version: "3.13"
     permissions:
       contents: read
       id-token: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
-        with:
-          version: latest
-      - name: Sync dependencies
-        run: uv sync --frozen --group dev
+        uses: astral-sh/setup-uv@v10.3.3
       - name: Run test session
-        run: uv run --frozen --group dev nox -s tests-${{ matrix.python-version }}
+        # nox builds its own environment, no need to sync the dev group
+        # (its docs dependencies do not support every Python version).
+        run: uvx --from "nox>=2026.2.9" nox -s tests-${{ matrix.python-version }}
       - name: Upload coverage to Codecov
-        if: matrix.python-version == '3.12'
-        uses: codecov/codecov-action@v5
+        if: matrix.python-version == '3.12' && matrix.os == 'ubuntu-latest'
+        uses: codecov/codecov-action@v7
         with:
           use_oidc: true
 
@@ -71,15 +71,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
-        with:
-          version: latest
+        uses: astral-sh/setup-uv@v10.3.3
       - name: Sync dependencies
         run: uv sync --frozen --group dev
       - name: Build documentation

@@ -8,6 +8,8 @@ from .models import (
     NegatedConditionModel,
     SuiteModel,
     build_suite_model,
+    parse_test_id,
+    select_tests,
 )
 
 __all__ = [
@@ -18,4 +20,6 @@ __all__ = [
     "NegatedConditionModel",
     "SuiteModel",
     "build_suite_model",
+    "parse_test_id",
+    "select_tests",
 ]

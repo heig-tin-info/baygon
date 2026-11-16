@@ -1,8 +1,12 @@
-from unittest import TestCase
+import shutil
+from unittest import TestCase, skipIf
 
 from baygon.suite import SuiteService
 
+PERL = shutil.which("perl")
 
+
+@skipIf(PERL is None, "perl is required")
 class TestEval(TestCase):
     def setUp(self):
         self.service = SuiteService()
@@ -38,7 +42,7 @@ class TestEval(TestCase):
                     }
                 ],
             },
-            executable="/bin/perl",
+            executable=PERL,
         )
         self.assertEqual(report.failures, 0)
 
@@ -57,7 +61,7 @@ class TestEval(TestCase):
                     }
                 ],
             },
-            executable="/bin/perl",
+            executable=PERL,
         )
         self.assertEqual(report.failures, 0)
 
@@ -76,6 +80,6 @@ class TestEval(TestCase):
                     }
                 ],
             },
-            executable="/bin/perl",
+            executable=PERL,
         )
         self.assertEqual(report.failures, 0)

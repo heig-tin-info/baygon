@@ -6,7 +6,7 @@ Here is an example of a test runner using Baygon:
 
 ```python
 from pathlib import Path
-from baygon.suite import SuiteService
+from baygon.suite import SuiteExecutor, SuiteService
 
 service = SuiteService()
 report = service.run(
@@ -21,6 +21,16 @@ report = service.run(
 )
 
 assert report.failures == 0
+```
+
+`report.as_dict()` returns the same data as the `--report` file. Limits and
+test selection are available too:
+
+```python
+context = service.load(path='tests.yml')
+context = context.select(ids=['2'])  # Same as --only 2
+report = SuiteExecutor().run(context, timeout=5)  # Same as --timeout 5
+print(report.as_dict()['groups'])
 ```
 
 ## Validation

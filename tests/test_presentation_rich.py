@@ -53,3 +53,16 @@ def test_command_panels_with_bytes_streams() -> None:
     assert len(panels) == 1
     assert "Command #1" in panels[0].title
     assert rich_presentation._normalize_stream_value(b"bin") == "bin"
+
+
+def test_command_panel_shows_why_the_program_was_killed() -> None:
+    console = Console(record=True, width=100)
+    for flags, text in (
+        ({"timed_out": True}, "time limit reached"),
+        ({"output_limit_exceeded": True}, "output limit exceeded"),
+    ):
+        command = CommandLog(
+            argv=("prog",), stdin=None, stdout="", stderr="", exit_status=-9, **flags
+        )
+        console.print(rich_presentation._command_panels((command,), hide_empty=True)[0])
+        assert text in console.export_text()

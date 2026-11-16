@@ -71,4 +71,43 @@ Alternatively you may want to use the report feature to generate a report in JSO
 baygon --report=report.json
 ```
 
+```json
+{
+  "failures": 1,
+  "successes": 2,
+  "skipped": 0,
+  "total": 3,
+  "time": 0.012,
+  "points": { "earned": 6, "total": 10 },
+  "cases": [
+    {
+      "id": "1.1",
+      "name": "No errors if two arguments",
+      "status": "passed",
+      "points": { "earned": 2, "total": 2 },
+      "time": 0.004,
+      "issues": []
+    }
+  ],
+  "groups": [
+    {
+      "id": "1",
+      "name": "Arguments check",
+      "successes": 2,
+      "failures": 0,
+      "skipped": 0,
+      "total": 2,
+      "points": { "earned": 6, "total": 6 }
+    }
+  ]
+}
+```
+
+To grade one part of the assignment at a time, combine the report with
+`--only`. The totals then cover the selected tests only:
+
+```console
+baygon --only 2 --report=part2.json
+```
+
 This report could be used by a grading system to automatically assign grades to students.

@@ -62,6 +62,9 @@ CLI highlights:
 - Use `--pretty` to render rich panels for failing tests, including captured command telemetry.
 - Pass `-T`/`--table` to display an aggregated summary table once the run completes.
 - Provide a custom test definition with `-c`/`--config`. The legacy `-t` flag is still recognised but deprecated.
+- Run a subset of the tests with `--only 2.1` (by id) or `-k parsing` (by name).
+- Limit the time of each test with `--timeout 5`, or with `timeout:` in the configuration.
+- Use `--strict` to exit with status 1 when a test fails.
 
 ## Programmatic usage
 

@@ -2,21 +2,35 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping, MutableMapping
-from dataclasses import dataclass
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
+from dataclasses import dataclass, replace
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from .config.loader import (
     discover_config,
     load_config as load_config_model,
     load_config_dict,
 )
-from .core.models import SuiteModel, build_suite_model
+from .core.models import SuiteModel, build_suite_model, select_tests
 from .error import ConfigError
 from .runtime.runner import BaygonRunner, RunReport
 from .schema import Schema
 from .score import compute_points
+
+
+def _limits(timeout: float | None, max_output: int | None) -> dict[str, Any]:
+    """Keyword arguments for the limits that are set.
+
+    Unset limits are left out, so custom factories that do not know them
+    keep working.
+    """
+    limits: dict[str, Any] = {}
+    if timeout is not None:
+        limits["timeout"] = timeout
+    if max_output is not None:
+        limits["max_output"] = max_output
+    return limits
 
 
 def find_testfile(path: str | Path | None = None) -> Path | None:
@@ -55,13 +69,32 @@ class SuiteContext:
         *,
         executable: str | Path | None = None,
         runner_factory: Callable[..., BaygonRunner] = BaygonRunner,
+        timeout: float | None = None,
+        max_output: int | None = None,
     ) -> BaygonRunner:
-        """Return a runner configured for this suite."""
+        """Return a runner configured for this suite.
+
+        ``timeout`` and ``max_output`` are the defaults of the tests that set
+        no limit in the configuration.
+        """
         return runner_factory(
             self.model,
             base_dir=self.base_dir,
             executable=executable,
+            **_limits(timeout, max_output),
         )
+
+    def select(
+        self,
+        *,
+        ids: Sequence[str] | None = None,
+        keywords: Sequence[str] | None = None,
+    ) -> SuiteContext:
+        """Return a context running only the selected tests.
+
+        See `baygon.core.models.select_tests`.
+        """
+        return replace(self, model=select_tests(self.model, ids=ids, keywords=keywords))
 
 
 class SuiteBuilder:
@@ -161,11 +194,14 @@ class SuiteExecutor:
         *,
         executable: str | Path | None = None,
         limit: int = -1,
+        timeout: float | None = None,
+        max_output: int | None = None,
     ) -> RunReport:
         """Run the suite described by the provided context."""
         runner = context.create_runner(
             executable=executable,
             runner_factory=self._runner_factory,
+            **_limits(timeout, max_output),
         )
         return runner.run(limit=limit)
 
@@ -199,6 +235,8 @@ class SuiteService:
         cwd: str | Path | None = None,
         executable: str | Path | None = None,
         limit: int = -1,
+        timeout: float | None = None,
+        max_output: int | None = None,
     ) -> RunReport:
         """Load and execute a suite in one call."""
         context = self._loader.load(data=data, path=path, cwd=cwd)
@@ -206,4 +244,5 @@ class SuiteService:
             context,
             executable=executable,
             limit=limit,
+            **_limits(timeout, max_output),
         )

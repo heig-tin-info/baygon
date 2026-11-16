@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 import re
-from typing import Callable, TypeVar
+from typing import TypeVar
 
 MatchType = TypeVar("MatchType", bound="MatchBase")
 
@@ -12,11 +13,12 @@ MatchType = TypeVar("MatchType", bound="MatchBase")
 class InvalidCondition:
     """Invalid test case condition."""
 
-    def __init__(self, value, expected, on=None, test=None, **kwargs):
+    def __init__(self, value, expected, on=None, test=None, inverse=False, **kwargs):
         self.on = on
         self.test = test
         self.value = value
         self.expected = expected
+        self.inverse = inverse
 
     def __str__(self):
         return (
@@ -35,10 +37,62 @@ class InvalidExitStatus(InvalidCondition):
         return f"Invalid exit status: {self.value} != {self.expected}."
 
 
+class ExecutionTimeout(InvalidCondition):
+    """The program was killed after its time limit.
+
+    >>> str(ExecutionTimeout(None, 1.5))
+    'Timeout after 1.5 s.'
+    """
+
+    def __init__(self, value, expected, **kwargs):
+        super().__init__(value, expected, **kwargs)
+        self.on = self.on or "exit"
+
+    def __str__(self):
+        return f"Timeout after {self.expected:g} s."
+
+
+class OutputLimitExceeded(InvalidCondition):
+    """An output stream went over the size limit, the program was killed.
+
+    >>> str(OutputLimitExceeded(None, 1024))
+    'Output limit exceeded (more than 1024 bytes), the program was killed.'
+    """
+
+    def __str__(self):
+        return (
+            f"Output limit exceeded (more than {self.expected} bytes), "
+            "the program was killed."
+        )
+
+
+class ExecutionFailed(InvalidCondition):
+    """The program could not be started."""
+
+    def __str__(self):
+        return f"Unable to execute {self.expected}: {self.value}"
+
+
+class InvalidTestDefinition(InvalidCondition):
+    """The test could not be evaluated (invalid regex, eval error...).
+
+    >>> str(InvalidTestDefinition(ValueError("bad"), None))
+    'Invalid test: ValueError: bad'
+    """
+
+    def __str__(self):
+        return f"Invalid test: {type(self.value).__name__}: {self.value}"
+
+
 class InvalidContains(InvalidCondition):
     """Invalid contains error."""
 
     def __str__(self):
+        if self.inverse:
+            return (
+                f"Output {self.on} should not contain {self.expected}. "
+                f'Found "{self.value}".'
+            )
         return (
             f"Output {self.on} does not contain {self.expected}. "
             f'Found "{self.value}" instead.'
@@ -49,6 +103,11 @@ class InvalidRegex(InvalidCondition):
     """Invalid regex error."""
 
     def __str__(self):
+        if self.inverse:
+            return (
+                f"Output '{self.on}' should not match /{self.expected}/ "
+                f'on "{self.value}".'
+            )
         return (
             f"Output '{self.on}' does not match /{self.expected}/ on \"{self.value}\"."
         )
@@ -59,6 +118,8 @@ class InvalidEquals(InvalidCondition):
 
     def __str__(self):
         value = "(empty)" if not self.value else f"'{self.value}'"
+        if self.inverse:
+            return f"Output {value} should not equal '{self.expected}' on {self.on}."
         return f"Output {value} does not equal '{self.expected}' on {self.on}."
 
 
@@ -119,7 +180,9 @@ class MatchRegex(MatchBase):
 
     def __call__(self, value, **kwargs):
         if (not self.pattern.findall(value)) ^ self.inverse:
-            return InvalidRegex(value, self.pattern.pattern, **kwargs)
+            return InvalidRegex(
+                value, self.pattern.pattern, inverse=self.inverse, **kwargs
+            )
         return None
 
 
@@ -134,7 +197,7 @@ class MatchContains(MatchBase):
 
     def __call__(self, value, **kwargs):
         if (self.contains not in value) ^ self.inverse:
-            return InvalidContains(value, self.contains, **kwargs)
+            return InvalidContains(value, self.contains, inverse=self.inverse, **kwargs)
         return None
 
 
@@ -149,7 +212,7 @@ class MatchEquals(MatchBase):
 
     def __call__(self, value, **kwargs):
         if (self.equal != value) ^ self.inverse:
-            return InvalidEquals(value, self.equal, **kwargs)
+            return InvalidEquals(value, self.equal, inverse=self.inverse, **kwargs)
         return None
 
 

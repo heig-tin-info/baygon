@@ -17,7 +17,7 @@ from baygon.__main__ import (
     console as global_console,
     save_report,
 )
-from baygon.core.models import CaseModel, ConditionModel, SuiteModel
+from baygon.core.models import CaseModel, SuiteModel
 from baygon.presentation.rich import (
     render_command_panels,
     render_pretty_failures,

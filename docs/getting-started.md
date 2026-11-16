@@ -102,6 +102,11 @@ Baygon offers a few handy flags to tailor the feedback you receive during a run:
 
 - `--pretty` formats failing tests as rich panels, highlighting issues and the commands that were executed.
 - `-T`/`--table` prints a summary table once the run finishes, so you can quickly scan the status and points of each test.
+- `--only ID` runs only the tests whose id starts with `ID` (`--only 2` runs group 2, `--only 2.1` runs test 2.1). Repeat it, or separate ids with commas, to run several.
+- `-k TEXT`/`--keyword TEXT` runs only the tests whose name, or the name of one of their groups, contains `TEXT` (case insensitive).
+- `--timeout SECONDS` sets a time limit on every test that has none in the configuration.
+- `--strict` exits with status 1 when a test fails, so `make test` or a CI step fails too. Without it Baygon exits with 0 even when tests fail.
+- `-r`/`--report FILE` writes a JSON or YAML report with the totals, the result of every test (`cases`) and a subtotal per group (`groups`).
 
 !!! tip
     You may need to use `pip3` instead of `pip` depending on your system.
