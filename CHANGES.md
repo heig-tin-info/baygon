@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Changed
+
+- The Claude Code plugin follows the Baygon releases: each release publishes `plugins/baygon` to the `claude-plugin` branch with the version of the release, and the marketplace serves that branch. Plugin users get the skill of the latest release only, and `claude plugin update` sees each release as an update
+- The plugin has an icon and its own README
+
 ## 0.9.0 (2026-11-16)
 
 ### Added

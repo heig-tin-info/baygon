@@ -47,7 +47,15 @@ def test_plugin_and_marketplace_manifests() -> None:
     assert plugin["name"] == "baygon"
     (entry,) = market["plugins"]
     assert entry["name"] == plugin["name"]
-    assert (ROOT / entry["source"] / "skills/baygon/SKILL.md").is_file()
+    # Released by .github/workflows/claude-plugin.yml from plugins/baygon,
+    # with the version of the release: no version on master.
+    assert entry["source"] == {
+        "source": "github",
+        "repo": "heig-tin-info/baygon",
+        "ref": "claude-plugin",
+    }
+    assert "version" not in plugin
+    assert (ROOT / "plugins/baygon/skills/baygon/SKILL.md").is_file()
 
 
 def test_install_for_user_and_project(tmp_path: Path) -> None:

@@ -1,0 +1,79 @@
+name: Claude Code plugin
+
+# Publishes plugins/baygon to the `claude-plugin` branch, with the version of
+# the release, so that the marketplace (.claude-plugin/marketplace.json on
+# master) only serves released skills. Called by the release workflow, or run
+# by hand for an existing tag.
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: Release tag (e.g. 0.9.0)
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag (e.g. 0.9.0)
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: claude-plugin
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the release
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag }}
+          path: source
+      - name: Build the plugin tree
+        env:
+          TAG: ${{ inputs.tag }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          version="${TAG#v}"
+          remote="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          if git ls-remote --exit-code --heads "$remote" claude-plugin >/dev/null; then
+            git clone -q --branch claude-plugin --single-branch "$remote" plugin
+          else
+            git init -q -b claude-plugin plugin # First publication
+          fi
+          find plugin -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp -R source/plugins/baygon/. plugin/
+          python3 - "plugin/.claude-plugin/plugin.json" "$version" <<'PY'
+          import json, sys
+          path, version = sys.argv[1], sys.argv[2]
+          with open(path, encoding="utf-8") as fp:
+              manifest = json.load(fp)
+          manifest["version"] = version
+          with open(path, "w", encoding="utf-8") as fp:
+              json.dump(manifest, fp, indent=2)
+              fp.write("\n")
+          PY
+          cat plugin/.claude-plugin/plugin.json
+      - name: Push the plugin branch
+        env:
+          TAG: ${{ inputs.tag }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          cd plugin
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Plugin already published for ${TAG}."
+            exit 0
+          fi
+          git commit -q -m "Baygon Claude Code plugin ${TAG#v}"
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:claude-plugin
