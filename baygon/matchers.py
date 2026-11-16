@@ -389,9 +389,9 @@ class MatchNumber(_RangeMatch):
 class _CountMatch(_RangeMatch):
     unit = "characters"
 
+    @abstractmethod
     def measure(self, value):
         """Return the measured quantity of the output."""
-        raise NotImplementedError
 
     def describe(self):
         """Describe the expected count."""

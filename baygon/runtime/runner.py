@@ -621,7 +621,7 @@ def _match_streams(
     stream_name: str,
     conditions: Sequence[ConditionModel],
     *,
-    reference: Callable[[str], Outputs] | None = None,
+    reference: Callable[[str], Outputs],
 ) -> list[Any]:
     issues: list[Any] = []
     stream_value = getattr(output, stream_name)
@@ -630,8 +630,6 @@ def _match_streams(
         filters = _merge_filters(base_filters, condition.filters)
         filtered_value = filters(value)
         if condition.same_as is not None:
-            if reference is None:
-                raise ValueError("'same-as' needs a reference runner")
             reference_output = getattr(reference(condition.same_as), stream_name)
             expected = filters(str(reference_output or ""))
             if filtered_value != expected:

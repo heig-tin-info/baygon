@@ -134,6 +134,10 @@ def test_schema_stdin_command() -> None:
     assert model.stdin is None
     assert model.stdin_command.executable == "./gen"
     assert model.stdin_command.args == ("1",)
+    no_args = Schema(
+        {"version": 1, "tests": [{"stdin": {"executable": "./gen", "args": None}}]}
+    )
+    assert no_args["tests"][0]["stdin"] == {"executable": "./gen", "args": []}
     with pytest.raises(ValidationError):
         Schema({"version": 1, "tests": [{"stdin": {"args": []}}]})
     with pytest.raises(ValidationError):
@@ -168,6 +172,7 @@ def programs(tmp_path: Path) -> Path:
     _script(tmp_path, "fail.py", "import sys; sys.exit(3)")
     _script(tmp_path, "hang.py", "import time; time.sleep(60)")
     _script(tmp_path, "args.py", "import sys; print(*sys.argv[1:])")
+    _script(tmp_path, "flood.py", "while True: print('menu')")
     return tmp_path
 
 
@@ -264,6 +269,14 @@ def test_reference_filters_apply_to_both_outputs(programs: Path) -> None:
             {"stdout": [{"same-as": "./hang.py"}]},
             "Reference ./hang.py failed: timeout after 0.3 s.",
         ),
+        (
+            {"stdin": {"executable": "./flood.py"}},
+            "Generator ./flood.py failed: output limit exceeded.",
+        ),
+        (
+            {"stdout": [{"same-as": "./flood.py"}]},
+            "Reference ./flood.py failed: output limit exceeded.",
+        ),
     ],
 )
 def test_helper_failures_fail_only_their_test(programs: Path, data, message) -> None:
@@ -272,6 +285,7 @@ def test_helper_failures_fail_only_their_test(programs: Path, data, message) -> 
         {
             "executable": "./args.py",
             "timeout": 0.3,
+            "max-output": "4K",
             "tests": [{"name": "helper", **data}, {"name": "fine", "args": ["x"]}],
         },
     )
@@ -386,3 +400,33 @@ def test_filters_on_tests_and_groups(tmp_path: Path) -> None:
         },
     )
     assert report.successes == 3, [str(i) for c in report.cases for i in c.issues]
+
+
+def test_explicit_null_limits_and_valid_min_points() -> None:
+    config = Schema(
+        {
+            "version": 1,
+            "timeout": None,
+            "max-output": None,
+            "min-points": 0.5,
+            "tests": [],
+        }
+    )
+    assert "timeout" not in config
+    assert "max-output" not in config
+    assert config["min-points"] == 0.5
+
+
+def test_filter_with_a_single_argument() -> None:
+    from baygon.filters import Filter, register_filter
+
+    @register_filter("test-suffix")
+    class FilterSuffix(Filter):
+        def __init__(self, suffix: str) -> None:
+            super().__init__()
+            self.suffix = suffix
+
+        def apply(self, value: str) -> str:
+            return value + self.suffix
+
+    assert Filters({"test-suffix": "!"})("hi") == "hi!"
