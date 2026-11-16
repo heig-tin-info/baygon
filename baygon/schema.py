@@ -49,6 +49,44 @@ def _coerce_match_list(value: Any) -> list[Any]:
     raise TypeError("Invalid match definition")
 
 
+_SIZE_UNITS = {"": 1, "K": 1024, "M": 1024**2, "G": 1024**3}
+
+
+def _parse_size(value: Any) -> int | None:
+    """Parse a size in bytes, given as a number or a string such as ``"10M"``.
+
+    >>> _parse_size("64K")
+    65536
+    >>> _parse_size(" 1.5 MiB ")
+    1572864
+    >>> _parse_size(512)
+    512
+    """
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        raise ValueError("must be a size in bytes")  # noqa: TRY004 (pydantic)
+    if isinstance(value, (int, float)):
+        size = value
+    elif isinstance(value, str):
+        text = value.strip().upper()
+        for suffix in ("IB", "B"):
+            if text.endswith(suffix):
+                text = text[: -len(suffix)].strip()
+                break
+        unit = text[-1:] if text[-1:] in _SIZE_UNITS else ""
+        number = text[: len(text) - len(unit)].strip()
+        try:
+            size = float(number) * _SIZE_UNITS[unit]
+        except ValueError as exc:
+            raise ValueError(f"invalid size '{value}'") from exc
+    else:
+        raise ValueError("must be a size in bytes")  # noqa: TRY004 (pydantic)
+    if size < 0:
+        raise ValueError("must not be negative")
+    return int(size)
+
+
 class FiltersConfig(BaseModel):
     """Filters available at the configuration or case level."""
 
@@ -160,6 +198,24 @@ class CommonSettings(BaseModel):
     points: float | int | None = None
     weight: float | int | None = None
     min_points: float | int = Field(0.1, alias="min-points")
+    timeout: float | None = None
+    max_output: int | None = Field(None, alias="max-output")
+
+    @field_validator("timeout", mode="before")
+    @classmethod
+    def _validate_timeout(cls, value: Any):
+        if value is None:
+            return None
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise ValueError("timeout must be a number of seconds")  # noqa: TRY004
+        if value <= 0:
+            raise ValueError("timeout must be greater than 0")
+        return value
+
+    @field_validator("max_output", mode="before")
+    @classmethod
+    def _validate_max_output(cls, value: Any):
+        return _parse_size(value)
 
     @model_validator(mode="after")
     def _check_points_weight(self):

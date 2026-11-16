@@ -6,6 +6,7 @@ import json
 import logging
 from pathlib import Path
 
+from pydantic import ValidationError
 from rich.console import Console
 import typer
 
@@ -18,6 +19,7 @@ from .presentation.rich import (
 )
 from .presentation.text import render_case_results, render_summary
 from .runtime.runner import RunReport
+from .schema import _humanize_errors
 from .suite import SuiteExecutor, SuiteLoader
 
 logging.basicConfig(level=logging.INFO)
@@ -31,17 +33,12 @@ app = typer.Typer(
 
 
 def _report_payload(report: RunReport) -> dict:
-    return {
-        "failures": report.failures,
-        "successes": report.successes,
-        "skipped": report.skipped,
-        "total": report.total,
-        "time": report.duration,
-        "points": {
-            "total": report.points_total,
-            "earned": report.points_earned,
-        },
-    }
+    return report.as_dict()
+
+
+def _split_ids(values: list[str] | None) -> list[str]:
+    """Accept both ``--only 1 --only 2`` and ``--only 1,2``."""
+    return [part for value in values or () for part in value.split(",") if part]
 
 
 def save_report(data, filename, output_format):
@@ -65,6 +62,12 @@ def _version_callback(version_requested: bool) -> None:
     if version_requested:
         version()
         raise typer.Exit()
+
+
+def _timeout_callback(value: float | None) -> float | None:
+    if value is not None and value <= 0:
+        raise typer.BadParameter("Timeout must be greater than 0.")
+    return value
 
 
 def _format_callback(value: str | None) -> str | None:
@@ -138,6 +141,33 @@ def cli(
         resolve_path=True,
         help="Choose config file (.yml or .json).",
     ),
+    only: list[str] | None = typer.Option(
+        None,
+        "--only",
+        metavar="ID",
+        help="Run only the tests whose id starts with ID (e.g. 2 or 2.1). "
+        "Repeatable, or comma separated.",
+    ),
+    keyword: list[str] | None = typer.Option(
+        None,
+        "-k",
+        "--keyword",
+        metavar="TEXT",
+        help="Run only the tests whose name, or group name, contains TEXT. "
+        "Repeatable.",
+    ),
+    timeout: float | None = typer.Option(
+        None,
+        "--timeout",
+        metavar="SECONDS",
+        callback=_timeout_callback,
+        help="Time limit of each test that sets none in the configuration.",
+    ),
+    strict: bool = typer.Option(
+        False,
+        "--strict",
+        help="Exit with status 1 when a test fails.",
+    ),
 ) -> None:
     """Baygon functional test runner."""
 
@@ -150,6 +180,14 @@ def cli(
 
     try:
         context = loader.load(path=str(config) if config else None)
+    except ValidationError as error:
+        typer.secho(
+            f"\nError: invalid configuration\n{_humanize_errors(error)}",
+            fg="red",
+            bold=True,
+            err=True,
+        )
+        raise typer.Exit(code=1) from error
     except (ConfigError, ValueError) as error:
         typer.secho(f"\nError: {error}", fg="red", bold=True, err=True)
         raise typer.Exit(code=1) from error
@@ -165,11 +203,22 @@ def cli(
         logging.getLogger().setLevel(logging.DEBUG)
         logger.debug("Debug mode enabled.")
 
+    if only or keyword:
+        try:
+            context = context.select(ids=_split_ids(only), keywords=keyword)
+        except ValueError as error:
+            typer.secho(f"\nError: {error}", fg="red", bold=True, err=True)
+            raise typer.Exit(code=1) from error
+        if not context.model.tests:
+            typer.secho("\nError: no test selected.", fg="red", bold=True, err=True)
+            raise typer.Exit(code=1)
+
     try:
         report_result = executor.run(
             context,
             executable=resolved_executable,
             limit=limit,
+            timeout=timeout,
         )
     except InvalidExecutableError as error:
         typer.secho(f"\nError: {error}", fg="red", bold=True, err=True)
@@ -207,6 +256,9 @@ def cli(
         save_report(_report_payload(report_result), destination, output_format)
 
     typer.echo("")
+
+    if strict and report_result.failures > 0:
+        raise typer.Exit(code=1)
 
 
 def run() -> None:

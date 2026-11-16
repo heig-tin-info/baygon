@@ -247,6 +247,11 @@ class Filters(Filter, Sequence):
         if isinstance(filters, dict):
             instances = []
             for name, args in filters.items():
+                # ``uppercase: false`` disables the filter instead of enabling it.
+                if args is None or args is False:
+                    continue
+                if args is True:
+                    args = []
                 if not isinstance(args, list):
                     args = [args]
                 instances.append(FilterFactory(name, *args))

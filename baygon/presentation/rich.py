@@ -143,6 +143,10 @@ def _build_command_panel(
     meta_table.add_column()
     meta_table.add_row("command", create_command_line(command.argv))
     meta_table.add_row("exit", str(command.exit_status))
+    if getattr(command, "timed_out", False):
+        meta_table.add_row("killed", Text("time limit reached", style="red"))
+    if getattr(command, "output_limit_exceeded", False):
+        meta_table.add_row("killed", Text("output limit exceeded", style="red"))
 
     args_panel = _build_stream_panel(
         title="args",

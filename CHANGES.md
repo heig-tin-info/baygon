@@ -22,6 +22,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Adds API documentation
 - Expose a programmatic runner via `baygon.runtime.BaygonRunner` and configuration helpers in `baygon.config`
 - Provide public dataclasses in `baygon.core.models` to represent suites, groups and cases
+- `timeout` key (seconds) at suite, group and test level, and `--timeout` option: a program that hangs is killed, with the processes it started, and only its test fails (#47)
+- `max-output` key (bytes, or sizes such as `64K`): a program that prints without end is killed once a stream goes over the limit. Output is capped at 16 MiB by default (#51)
+- The report written by `--report` lists every test (`cases`) and a subtotal per group (`groups`); also available as `RunReport.as_dict()` (#51)
+- `--only ID` and `-k/--keyword TEXT` run a subset of the tests; `SuiteContext.select()` and `baygon.core.select_tests()` do the same from Python (#51)
+- `--strict` exits with status 1 when a test fails (#51)
 
 ### Changed
 
@@ -37,10 +42,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `--config` accepts both `-c` and legacy `-t` short flags; the summary table flag now maps to `-T`.
 - CLI rendering now delegates to dedicated presentation modules and the core runtime service
 - Filters and matchers rely on explicit registries instead of module introspection
+- A group or a test can override an inherited `executable`; the nearest one wins (#51)
+- Invalid configurations are reported as one line per error, without a traceback (#26)
 
 ### Fixed
 
 - Summary table now shows failed and skipped tests with the correct status labels.
+- A failed negated matcher (`not: contains`) now says the output should not contain the value, instead of the opposite (#51)
+- A boolean filter set to `false` (e.g. `uppercase: false`) is no longer applied
+- Output that is not valid UTF-8 no longer stops the run; invalid bytes are replaced
+- A program that cannot be started (e.g. a script without shebang) fails its test instead of stopping the run
+- `Executable(path, encoding=...)` no longer raises a `TypeError`
+- Documentation: the filter is `ignorespaces` (`ignore-spaces` is an accepted alias) (#32)
 - '4 failed, 0 passed (0.0%% ok).' remove the duplicated pecentage sign
 - Fix output by adding quotes and `(empty)` for empty strings
 - Self-test now targets the repository binary and reports the resolved configuration path, so `uv run baygon $(which baygon)` succeeds again

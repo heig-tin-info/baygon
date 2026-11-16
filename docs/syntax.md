@@ -18,11 +18,13 @@ Global filters can be applied to all outputs of every tests. The outputs are `st
 - `uppercase`: All outputs are transformed into uppercase.
 - `lowercase`: All outputs are transformed into lowercase.
 - `trim`: All outputs are trimmed (spaces are removed from both ends, on each line
-- `ignore-spaces`: All spaces are removed from all outputs.
+- `ignorespaces`: All spaces are removed from all outputs (`ignore-spaces` is accepted as an alias).
 - `regex`: A remplacement is made using regular expressions.
 - `replace`: A remplacement is made using a string.
 
 If more than one filter is applied, they are applied in the order they are written.
+
+A boolean filter set to `false` (e.g. `uppercase: false`) is not applied.
 
 In the following, both standard output and standard error will be in lowercase and every occurrences of `foo` or `foobar` will be replaced by `bar`:
 
@@ -131,14 +133,26 @@ tests:
         exit: 0
 ```
 
-The executable is propagated through the test tree. But you cannot override an existing executable. The following is invalid:
+The executable is propagated through the test tree, and the nearest one wins: a group or a test can set its own executable even when a parent already has one.
 
 ```yaml
+version: 1
+executable: ./app
 tests:
-  - executable: ./foo
-    tests:
-      - executable: ./bar
+  - name: Run
+    stdin: "0\n"
+  - name: No compiler warning
+    executable: /bin/cat # Replaces ./app for this test only
+    args: [obj/gcc_output.cmd]
+    stdout:
+      - not:
+          - contains: 'warning:'
 ```
+
+!!! note
+    Up to Baygon 0.7, overriding an inherited executable was an error
+    (`Executable can't be overridden`). An executable given on the command line
+    still cannot be combined with one at the top level of the configuration.
 
 One approach is name the executable at the top level:
 
@@ -157,6 +171,48 @@ baygon ./foobar
 ```
 
 Note that the working directory is the directory of the config file, except if you specify the executable from the shell. In this case the working directory is the current directory.
+
+## Time and output limits
+
+A program that never ends, or that prints without end (a menu shown again and
+again at the end of input is a classic), must not block the whole run. Two keys,
+accepted at the top level, on a group or on a test, limit each run of a program.
+Like `executable`, the nearest value wins.
+
+- `timeout`: wall-clock limit in seconds (an integer or a decimal number).
+- `max-output`: number of bytes kept from each output stream (`stdout` and
+  `stderr`). A number of bytes, or a size such as `64K`, `10M` or `1G`.
+  `0` removes the limit.
+
+```yaml
+version: 1
+executable: ./app
+timeout: 5 # Default of every test
+tests:
+  - name: Exits with code 1 on EOF
+    timeout: 1 # This test only
+    stdin: ""
+    exit: 1
+  - name: Prints the menu
+    max-output: 64K
+    stdout:
+      - contains: Menu
+```
+
+When a limit is reached, the program and every process it started are killed,
+the test fails with `Timeout after 1 s.` or `Output limit exceeded`, and the
+rest of the suite goes on. A test with `repeat` stops at the first run that
+reaches a limit.
+
+There is no time limit by default. The `--timeout` option sets one for every
+test whose configuration has none:
+
+```console
+baygon --timeout 10
+```
+
+The output of each stream is capped at 16 MiB by default, so Baygon never
+holds an unbounded amount of output in memory.
 
 ## Configuration file
 

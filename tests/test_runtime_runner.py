@@ -164,26 +164,37 @@ def test_cli_executable_cannot_override_config(tmp_path: Path) -> None:
         )
 
 
-def test_case_cannot_override_parent_executable(tmp_path: Path) -> None:
+def test_case_overrides_parent_executable(tmp_path: Path) -> None:
     suite = _suite_from_dict(
         {
             "version": 1,
             "executable": "root-bin",
             "tests": [
+                {"name": "Root", "stdout": []},
+                {"name": "Other", "executable": "other", "stdout": []},
                 {
-                    "name": "Invalid",
-                    "executable": "other",
-                    "stdout": [],
-                }
+                    "name": "Group",
+                    "executable": "/abs/group-bin",
+                    "tests": [
+                        {"name": "Inherits", "stdout": []},
+                        {"name": "Nearest", "executable": "leaf", "stdout": []},
+                    ],
+                },
             ],
         }
     )
-    runner = BaygonRunner(
-        suite,
-        base_dir=tmp_path,
-    )
-    with pytest.raises(InvalidExecutableError):
-        runner.run()
+    used: list[str] = []
+
+    def _factory(path: str) -> FakeExecutable:
+        used.append(path)
+        return FakeExecutable(path=path, responses={(): (0, "", "")})
+
+    runner = BaygonRunner(suite, base_dir=tmp_path, executable_factory=_factory)
+    report = runner.run()
+
+    assert report.successes == 4
+    assert [Path(p).name for p in used] == ["root-bin", "other", "group-bin", "leaf"]
+    assert used[2] == "/abs/group-bin"
 
 
 def test_runner_suite_property(tmp_path: Path) -> None:
