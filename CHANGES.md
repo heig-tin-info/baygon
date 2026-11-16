@@ -7,21 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## 0.8.0 (2026-11-16)
+
 ### Added
 
-- Support for Python 3.13, 3.14 and 3.15
-- Adds `--report=filename` to generate a test report
-- Adds `--format=[json|yaml]` to specify the report format
-- Points are reported in the test report and on the output
-- CLI arguments can now be passed in the configuration file
-- Adds pretty table summary using rich
-- Points distribution mechanism
-- Adds `baygon.yml` self-test so Baygon can validate itself with Baygon
-- `Schema()` accepts YAML strings and file-like objects in addition to mappings
-- Changelog is now published inside the MkDocs documentation
-- Adds API documentation
-- Expose a programmatic runner via `baygon.runtime.BaygonRunner` and configuration helpers in `baygon.config`
-- Provide public dataclasses in `baygon.core.models` to represent suites, groups and cases
+- Support for Python 3.14 and 3.15
 - `timeout` key (seconds) at suite, group and test level, and `--timeout` option: a program that hangs is killed, with the processes it started, and only its test fails (#47)
 - `max-output` key (bytes, or sizes such as `64K`): a program that prints without end is killed once a stream goes over the limit. Output is capped at 16 MiB by default (#51)
 - The report written by `--report` lists every test (`cases`) and a subtotal per group (`groups`); also available as `RunReport.as_dict()` (#51)
@@ -32,23 +22,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Upgrade dependencies (typer up to 0.29, rich 15); `termynal` is now a docs-only dependency and the unused `eval-type-backport` dependency is dropped
 - CI: up-to-date actions, Python 3.10 to 3.15 and macOS; a release now runs the whole CI before publishing to PyPI
-- Migration to Poetry, Ruff and Black
-- Development tooling now relies on Nox sessions backed by uv groups instead of tox
-- Contributor documentation now explains the uv-powered workflow for development and docs builds
-- Adopted keepachangelog format
-- Configuration validation now relies on Pydantic instead of Voluptuous for clearer errors
-- YAML parsing errors raise `ConfigSyntaxError` with line and column details
-- Documentation migrated from VuePress to MkDocs Material with refreshed navigation
-- Migrate documentation from VuePress to MkDocs Material
-- `--config` accepts both `-c` and legacy `-t` short flags; the summary table flag now maps to `-T`.
-- CLI rendering now delegates to dedicated presentation modules and the core runtime service
-- Filters and matchers rely on explicit registries instead of module introspection
 - A group or a test can override an inherited `executable`; the nearest one wins (#51)
 - Invalid configurations are reported as one line per error, without a traceback (#26)
 
 ### Fixed
 
-- Summary table now shows failed and skipped tests with the correct status labels.
 - A failed negated matcher (`not: contains`) now says the output should not contain the value, instead of the opposite (#51)
 - A boolean filter set to `false` (e.g. `uppercase: false`) is no longer applied
 - Output that is not valid UTF-8 no longer stops the run; invalid bytes are replaced
@@ -65,6 +43,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Configuration errors point to the test case or group that is wrong, instead of both
 - Documentation: the filters are applied in a fixed order; the program runs in the current directory
 - Documentation: the filter is `ignorespaces` (`ignore-spaces` is an accepted alias) (#32)
+
+## 0.7.0 (2026-03-02)
+
+### Added
+
+- Support for Python 3.13
+- Adds `--report=filename` to generate a test report
+- Adds `--format=[json|yaml]` to specify the report format
+- Points are reported in the test report and on the output
+- CLI arguments can now be passed in the configuration file
+- Adds pretty table summary using rich
+- Points distribution mechanism
+- Adds `baygon.yml` self-test so Baygon can validate itself with Baygon
+- `Schema()` accepts YAML strings and file-like objects in addition to mappings
+- Changelog is now published inside the MkDocs documentation
+- Adds API documentation
+- Expose a programmatic runner via `baygon.runtime.BaygonRunner` and configuration helpers in `baygon.config`
+- Provide public dataclasses in `baygon.core.models` to represent suites, groups and cases
+
+### Changed
+
+- Migration to Poetry, Ruff and Black
+- Development tooling now relies on Nox sessions backed by uv groups instead of tox
+- Contributor documentation now explains the uv-powered workflow for development and docs builds
+- Adopted keepachangelog format
+- Configuration validation now relies on Pydantic instead of Voluptuous for clearer errors
+- YAML parsing errors raise `ConfigSyntaxError` with line and column details
+- Documentation migrated from VuePress to MkDocs Material with refreshed navigation
+- Migrate documentation from VuePress to MkDocs Material
+- `--config` accepts both `-c` and legacy `-t` short flags; the summary table flag now maps to `-T`.
+- CLI rendering now delegates to dedicated presentation modules and the core runtime service
+- Filters and matchers rely on explicit registries instead of module introspection
+
+### Fixed
+
+- Summary table now shows failed and skipped tests with the correct status labels.
 - '4 failed, 0 passed (0.0%% ok).' remove the duplicated pecentage sign
 - Fix output by adding quotes and `(empty)` for empty strings
 - Self-test now targets the repository binary and reports the resolved configuration path, so `uv run baygon $(which baygon)` succeeds again
