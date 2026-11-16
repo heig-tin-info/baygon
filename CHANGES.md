@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `filters` can be set on a test or a group, as the documentation said
 - A bare executable name such as `grep` is looked up in the `PATH` when it is not a file next to the configuration
 - Documentation: matchers, expressions (`eval`), and a page of recipes to check the source code (#21)
+- Claude Code skill to write and run Baygon tests, available as a plugin (`claude plugin marketplace add heig-tin-info/baygon`) and from the package with `baygon --install-skill user|project`
 
 ### Changed
 
@@ -26,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `regex` and `replace` filters given in the configuration crashed the run
 - Summary percentage without float noise (`14.29% ok`)
 - Documentation examples that were invalid (YAML syntax, unknown `match` matcher, `stdin` used as a file name)
+- Documentation: `trim` removes whitespace at both ends of the output, not on each line
 
 ## 0.8.0 (2026-11-16)
 

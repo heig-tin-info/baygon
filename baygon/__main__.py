@@ -20,6 +20,7 @@ from .presentation.rich import (
 from .presentation.text import render_case_results, render_summary
 from .runtime.runner import RunReport
 from .schema import _humanize_errors
+from .skill import install_skill
 from .suite import SuiteExecutor, SuiteLoader
 
 logging.basicConfig(level=logging.INFO)
@@ -68,6 +69,19 @@ def _timeout_callback(value: float | None) -> float | None:
     if value is not None and value <= 0:
         raise typer.BadParameter("Timeout must be greater than 0.")
     return value
+
+
+def _install_skill_callback(scope: str | None) -> None:
+    if scope is None:
+        return
+    try:
+        destination = install_skill(scope)
+    except (OSError, FileExistsError) as error:
+        typer.secho(f"Error: {error}", fg="red", bold=True, err=True)
+        raise typer.Exit(code=1) from error
+    typer.echo(f"Baygon skill installed in {destination}")
+    typer.echo("Start a new Claude Code session to load it.")
+    raise typer.Exit()
 
 
 def _format_callback(value: str | None) -> str | None:
@@ -168,10 +182,19 @@ def cli(
         "--strict",
         help="Exit with status 1 when a test fails.",
     ),
+    _install_skill: str | None = typer.Option(
+        None,
+        "--install-skill",
+        metavar="SCOPE",
+        callback=_install_skill_callback,
+        is_eager=True,
+        help="Install the Baygon skill for Claude Code and exit: 'user' "
+        "(~/.claude/skills), 'project' (./.claude/skills) or a skills directory.",
+    ),
 ) -> None:
     """Baygon functional test runner."""
 
-    del _version  # Trigger callback evaluation & silence linters.
+    del _version, _install_skill  # Handled by their callbacks.
 
     resolved_executable = str(executable) if executable else None
 

@@ -120,6 +120,10 @@ dev = [
 [tool.hatch.build.targets.wheel]
 packages = ["baygon"]
 
+[tool.hatch.build.targets.wheel.force-include]
+# Single source of the Claude Code skill, shipped for `baygon --install-skill`.
+"plugins/baygon/skills/baygon" = "baygon/skill"
+
 [tool.hatch.version]
 source = "vcs"
 
@@ -137,6 +141,8 @@ include = [
   "mkdocs.yml",
   "tests",
   "noxfile.py",
+  "plugins",
+  ".claude-plugin",
 ]
 
 [tool.check-manifest]

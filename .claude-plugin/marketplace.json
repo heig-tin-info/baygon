@@ -1,0 +1,14 @@
+{
+  "name": "baygon",
+  "owner": { "name": "HEIG-VD" },
+  "metadata": {
+    "description": "Claude Code plugin for Baygon, the functional test runner for teaching."
+  },
+  "plugins": [
+    {
+      "name": "baygon",
+      "source": "./plugins/baygon",
+      "description": "Skill to write, run and debug Baygon tests (baygon.yml)."
+    }
+  ]
+}

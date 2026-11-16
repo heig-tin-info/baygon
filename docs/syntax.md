@@ -17,7 +17,7 @@ Global filters can be applied to all outputs of every tests. The outputs are `st
 
 - `uppercase`: All outputs are transformed into uppercase.
 - `lowercase`: All outputs are transformed into lowercase.
-- `trim`: All outputs are trimmed (spaces are removed from both ends, on each line
+- `trim`: Whitespace (spaces, tabs, newlines) is removed from both ends of the output.
 - `ignorespaces`: All spaces are removed from all outputs (`ignore-spaces` is accepted as an alias).
 - `regex`: A remplacement is made using regular expressions.
 - `replace`: A remplacement is made using a string.
