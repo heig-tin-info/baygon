@@ -29,7 +29,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install uv
-        uses: astral-sh/setup-uv@v10
+        uses: astral-sh/setup-uv@v10.3.3
       - name: Sync dependencies
         run: uv sync --frozen --group dev
       - name: Run lint session
@@ -56,7 +56,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install uv
-        uses: astral-sh/setup-uv@v10
+        uses: astral-sh/setup-uv@v10.3.3
       - name: Run test session
         # nox builds its own environment, no need to sync the dev group
         # (its docs dependencies do not support every Python version).
@@ -77,7 +77,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install uv
-        uses: astral-sh/setup-uv@v10
+        uses: astral-sh/setup-uv@v10.3.3
       - name: Sync dependencies
         run: uv sync --frozen --group dev
       - name: Build documentation
