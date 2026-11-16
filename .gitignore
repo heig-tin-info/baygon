@@ -102,3 +102,6 @@ baygon/version.py
 node_modules
 .uv_cache/
 .uv_cache_local/
+
+# MkDocs build output
+/site/
