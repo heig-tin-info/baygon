@@ -1,0 +1,17 @@
+{
+  "name": "baygon",
+  "description": "Write, run and debug Baygon functional tests for command-line programs and student assignments.",
+  "author": {
+    "name": "HEIG-VD"
+  },
+  "homepage": "https://heig-tin-info.github.io/baygon/",
+  "repository": "https://github.com/heig-tin-info/baygon",
+  "license": "MIT",
+  "keywords": [
+    "testing",
+    "functional-testing",
+    "education",
+    "grading"
+  ],
+  "version": "0.9.0"
+}
