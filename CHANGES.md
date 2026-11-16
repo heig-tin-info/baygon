@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## 0.9.0 (2026-11-16)
+
 ### Added
 
 - `number` matcher: the output is a number equal to a value, with an optional `tolerance`, or within `min`/`max` (#27)
