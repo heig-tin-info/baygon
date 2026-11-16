@@ -47,7 +47,7 @@ def render_summary(report: RunReport, *, write: Writer) -> None:
 
     if report.failures > 0:
         denominator = max(report.failures + report.successes, 1)
-        ratio = 100 - round((report.failures / denominator) * 100, 2)
+        ratio = round(100 - (report.failures / denominator) * 100, 2)
         write(f"{report.failures} failed, {report.successes} passed ({ratio}% ok).")
         write("fail.")
     else:

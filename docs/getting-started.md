@@ -60,7 +60,7 @@ tests:
   - name: Version on stderr
     args: ['--version']
     stderr:
-      - match: 'm/\b\d\.\d\.\d\b/'
+      - regex: '\b\d\.\d\.\d\b'
       - contains: 'Version'
 ```
 

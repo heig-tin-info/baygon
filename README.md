@@ -66,6 +66,12 @@ CLI highlights:
 - Limit the time of each test with `--timeout 5`, or with `timeout:` in the configuration.
 - Use `--strict` to exit with status 1 when a test fails.
 
+Configuration highlights:
+
+- Match outputs with `equals`, `contains`, `regex`, `number` (with a tolerance or a range), `length` and `lines`, or compare them to a reference program with `same-as`.
+- Generate the standard input with another program: `stdin: {executable: ./generate, args: ["{{ iter() }}"]}`.
+- Check the source code (headers, forbidden functions, warnings, formatting) with `grep`, `gcc` or `clang-format` as the executable of a test.
+
 ## Programmatic usage
 
 Baygon now exposes the same building blocks used by the CLI so you can embed

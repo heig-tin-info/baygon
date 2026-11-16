@@ -72,6 +72,7 @@ nav:
       - syntax.md
       - scripting.md
       - score.md
+      - source-checks.md
       - advanced.md
       - contributing.md
       #- classroom.md

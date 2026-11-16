@@ -194,7 +194,11 @@ def _build_command_panel(
         renderables.append(Rule(style="grey37"))
         renderables.append(Group(*stream_panels))
 
-    return Panel(Group(*renderables), title=f"Command #{index}", border_style="cyan")
+    title = f"Command #{index}"
+    role = getattr(command, "role", None)
+    if role:
+        title += f" ({role})"
+    return Panel(Group(*renderables), title=title, border_style="cyan")
 
 
 def _build_stream_panel(

@@ -140,6 +140,88 @@ class EvalConfig(BaseModel):
         raise TypeError("eval.init must be a string or a list of strings")
 
 
+Bound = float | int | str
+
+
+class _RangeSpec(BaseModel):
+    """Expected value or range, e.g. ``3``, ``{min: 1, max: 5}``.
+
+    Bounds may be strings holding ``{{ }}`` expressions, evaluated at run time.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    value: Bound | None = None
+    min: Bound | None = None
+    max: Bound | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _shorthand(cls, data: Any):
+        if isinstance(data, Mapping):
+            return data
+        return {"value": data}
+
+    @field_validator("value", "min", "max", mode="before")
+    @classmethod
+    def _reject_bool(cls, value: Any):
+        if isinstance(value, bool):
+            raise ValueError("must be a number")  # noqa: TRY004 (pydantic)
+        return value
+
+    @model_validator(mode="after")
+    def _check_bounds(self):
+        if self.value is None and self.min is None and self.max is None:
+            raise ValueError("define 'value', or 'min' and/or 'max'")
+        if self.value is not None and (self.min is not None or self.max is not None):
+            raise ValueError("'value' cannot be used with 'min' or 'max'")
+        low, high = self.min, self.max
+        if (
+            isinstance(low, (int, float))
+            and isinstance(high, (int, float))
+            and low > high
+        ):
+            raise ValueError("'min' must not be greater than 'max'")
+        return self
+
+
+class NumberSpec(_RangeSpec):
+    """Expected number: ``12.3``, ``{value: 12.3, tolerance: 0.1}``, ``{min: 0}``."""
+
+    tolerance: float | None = None
+
+    @field_validator("tolerance")
+    @classmethod
+    def _check_tolerance(cls, value: float | None):
+        if value is not None and value < 0:
+            raise ValueError("tolerance must not be negative")
+        return value
+
+    @model_validator(mode="after")
+    def _tolerance_needs_value(self):
+        if self.tolerance is not None and self.value is None:
+            raise ValueError("'tolerance' needs a 'value'")
+        return self
+
+
+class CountSpec(_RangeSpec):
+    """Expected count (characters, lines): ``3``, ``{min: 1, max: 10}``."""
+
+    @field_validator("value", "min", "max")
+    @classmethod
+    def _check_count(cls, value: Bound | None):
+        if isinstance(value, float):
+            if not value.is_integer():
+                raise ValueError("must be a whole number")
+            value = int(value)
+        if isinstance(value, int) and value < 0:
+            raise ValueError("must not be negative")
+        return value
+
+
+_MATCHER_FIELDS = ("equals", "regex", "contains", "number", "length", "lines")
+
+
 class NegatedCondition(BaseModel):
     """Negative matcher definition."""
 
@@ -148,6 +230,9 @@ class NegatedCondition(BaseModel):
     equals: str | None = None
     regex: str | None = None
     contains: str | None = None
+    number: NumberSpec | None = None
+    length: CountSpec | None = None
+    lines: CountSpec | None = None
 
     @field_validator("equals", "regex", "contains", mode="before")
     @classmethod
@@ -158,7 +243,7 @@ class NegatedCondition(BaseModel):
 
     @model_validator(mode="after")
     def _ensure_single_matcher(self):
-        provided = [self.equals, self.regex, self.contains]
+        provided = [getattr(self, name) for name in _MATCHER_FIELDS]
         if sum(value is not None for value in provided) != 1:
             raise ValueError("A negated condition must define exactly one matcher")
         return self
@@ -173,6 +258,10 @@ class CaseCondition(BaseModel):
     equals: str | None = None
     regex: str | None = None
     contains: str | None = None
+    number: NumberSpec | None = None
+    length: CountSpec | None = None
+    lines: CountSpec | None = None
+    same_as: str | None = Field(default=None, alias="same-as")
     expected: str | None = None
     not_conditions: list[NegatedCondition] | None = Field(default=None, alias="not")
 
@@ -185,7 +274,8 @@ class CaseCondition(BaseModel):
 
     @model_validator(mode="after")
     def _ensure_matcher(self):
-        matchers = [self.equals, self.regex, self.contains, self.not_conditions]
+        matchers = [getattr(self, name) for name in _MATCHER_FIELDS]
+        matchers += [self.same_as, self.not_conditions]
         if all(matcher is None for matcher in matchers):
             raise ValueError("A condition must define at least one matcher")
         return self
@@ -234,6 +324,24 @@ class CommonSettings(BaseModel):
         return self
 
 
+class StdinCommand(BaseModel):
+    """Program whose output is given as standard input to the test."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    executable: str
+    args: list[str] = Field(default_factory=list)
+
+    @field_validator("args", mode="before")
+    @classmethod
+    def _convert_args(cls, value: Any):
+        if value is None:
+            return []
+        if not isinstance(value, Sequence) or isinstance(value, str):
+            raise ValueError("args must be a list")  # noqa: TRY004 (pydantic)
+        return [_coerce_value(item) for item in value]
+
+
 class TestCaseModel(CommonSettings):
     """Single executable test case."""
 
@@ -241,11 +349,12 @@ class TestCaseModel(CommonSettings):
 
     args: list[str] = Field(default_factory=list)
     env: dict[str, str] = Field(default_factory=dict)
-    stdin: str | None = ""
+    stdin: str | StdinCommand | None = ""
     stdout: list[CaseCondition] = Field(default_factory=list)
     stderr: list[CaseCondition] = Field(default_factory=list)
     repeat: int = 1
     exit: int | str | bool | None = None
+    filters: FiltersConfig | None = None
     test_id: list[int] = Field(default_factory=list, alias="test_id")
 
     @field_validator("exit", mode="before")
@@ -277,8 +386,8 @@ class TestCaseModel(CommonSettings):
     @field_validator("stdin", mode="before")
     @classmethod
     def _convert_stdin(cls, value: Any):
-        if value is None:
-            return None
+        if value is None or isinstance(value, (Mapping, StdinCommand)):
+            return value
         return _coerce_value(value)
 
     @field_validator("stdout", "stderr", mode="before")
@@ -293,6 +402,7 @@ class TestGroupModel(CommonSettings):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
     tests: list[BaygonTest]
+    filters: FiltersConfig | None = None
     test_id: list[int] = Field(default_factory=list, alias="test_id")
 
 
