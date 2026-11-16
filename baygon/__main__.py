@@ -251,7 +251,7 @@ def cli(
     if report:
         destination = str(report)
         output_format = report_format or (
-            "yaml" if destination.endswith(".yaml") else "json"
+            "yaml" if destination.endswith((".yaml", ".yml")) else "json"
         )
         save_report(_report_payload(report_result), destination, output_format)
 

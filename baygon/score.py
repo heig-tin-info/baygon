@@ -126,7 +126,9 @@ def assign_points(test, parent=None):
 
         if weights and points_to_distribute > 0:
             allocated_points = distribute(weights, points_to_distribute, min_point)
-            for subtest, points in zip(subtests_to_distribute, allocated_points):
+            for subtest, points in zip(
+                subtests_to_distribute, allocated_points, strict=True
+            ):
                 subtest["points"] = points
         elif not weights and points_to_distribute > 0:
             # Case 3: No weights but points are given to all tests

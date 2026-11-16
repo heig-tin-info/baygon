@@ -3,13 +3,15 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import Any, Literal, Union
+from typing import Annotated, Any, Literal
 
 from pydantic import (
     AliasChoices,
     BaseModel,
     ConfigDict,
+    Discriminator,
     Field,
+    Tag,
     ValidationError,
     field_validator,
     model_validator,
@@ -183,7 +185,8 @@ class CaseCondition(BaseModel):
 
     @model_validator(mode="after")
     def _ensure_matcher(self):
-        if not any([self.equals, self.regex, self.contains, self.not_conditions]):
+        matchers = [self.equals, self.regex, self.contains, self.not_conditions]
+        if all(matcher is None for matcher in matchers):
             raise ValueError("A condition must define at least one matcher")
         return self
 
@@ -200,6 +203,13 @@ class CommonSettings(BaseModel):
     min_points: float | int = Field(0.1, alias="min-points")
     timeout: float | None = None
     max_output: int | None = Field(None, alias="max-output")
+
+    @field_validator("min_points")
+    @classmethod
+    def _validate_min_points(cls, value: float | int):
+        if value <= 0:
+            raise ValueError("min-points must be greater than 0")
+        return value
 
     @field_validator("timeout", mode="before")
     @classmethod
@@ -237,6 +247,14 @@ class TestCaseModel(CommonSettings):
     repeat: int = 1
     exit: int | str | bool | None = None
     test_id: list[int] = Field(default_factory=list, alias="test_id")
+
+    @field_validator("exit", mode="before")
+    @classmethod
+    def _validate_exit(cls, value: Any):
+        # Like the other values, booleans are read as 0 and 1.
+        if isinstance(value, bool):
+            return int(value)
+        return value
 
     @field_validator("args", mode="before")
     @classmethod
@@ -278,7 +296,19 @@ class TestGroupModel(CommonSettings):
     test_id: list[int] = Field(default_factory=list, alias="test_id")
 
 
-BaygonTest = Union[TestCaseModel, TestGroupModel]
+def _test_kind(value: Any) -> str:
+    """Tell a group (it has ``tests``) from a test case."""
+    if isinstance(value, Mapping):
+        return "group" if "tests" in value else "case"
+    return "group" if isinstance(value, TestGroupModel) else "case"
+
+
+# The discriminator reports errors against the right model only, instead of
+# against both a test case and a group.
+BaygonTest = Annotated[
+    Annotated[TestCaseModel, Tag("case")] | Annotated[TestGroupModel, Tag("group")],
+    Discriminator(_test_kind),
+]
 
 TestGroupModel.model_rebuild()
 
@@ -309,7 +339,9 @@ class BaygonConfig(CommonSettings):
     @field_validator("eval", mode="before")
     @classmethod
     def _convert_eval(cls, value: Any):
-        if isinstance(value, bool):
+        if value is False:
+            return None
+        if value is True:
             return {"init": []}
         return value
 
@@ -384,7 +416,7 @@ def _dump_config(
             eval_data = config.eval.model_dump(
                 by_alias=True, exclude_none=True, mode="python"
             )
-            if raw_eval_value in {True, False, None}:
+            if raw_eval_value is None or isinstance(raw_eval_value, bool):
                 eval_data.pop("start", None)
                 eval_data.pop("end", None)
             eval_data.setdefault("init", [])
@@ -417,7 +449,14 @@ def _load_yaml(text: str) -> Mapping[str, Any]:
 def _humanize_errors(error: ValidationError) -> str:
     messages: list[str] = []
     for err in error.errors():
-        location = ".".join(str(part) for part in err["loc"])
+        parts: list[str] = []
+        previous: Any = None
+        for part in err["loc"]:
+            # Skip the discriminator tag that follows a test index.
+            if not (isinstance(previous, int) and part in {"case", "group"}):
+                parts.append(str(part))
+            previous = part
+        location = ".".join(parts)
         messages.append(f"{location or 'config'}: {err['msg']}")
     return "\n".join(messages)
 
@@ -433,7 +472,7 @@ def Schema(data: Any, humanize: bool = False):  # noqa: N802
     if not isinstance(data, Mapping):
         raise ConfigError("Schema expects a mapping or YAML string")
 
-    include_eval = "eval" in data
+    include_eval = data.get("eval", False) is not False
     raw_eval_value = data.get("eval") if include_eval else None
 
     try:

@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Support for Python 3.13
+- Support for Python 3.13, 3.14 and 3.15
 - Adds `--report=filename` to generate a test report
 - Adds `--format=[json|yaml]` to specify the report format
 - Points are reported in the test report and on the output
@@ -30,7 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Upgrade dependencies
+- Upgrade dependencies (typer up to 0.29, rich 15); `termynal` is now a docs-only dependency and the unused `eval-type-backport` dependency is dropped
+- CI: up-to-date actions, Python 3.10 to 3.15 and macOS; a release now runs the whole CI before publishing to PyPI
 - Migration to Poetry, Ruff and Black
 - Development tooling now relies on Nox sessions backed by uv groups instead of tox
 - Contributor documentation now explains the uv-powered workflow for development and docs builds
@@ -53,6 +54,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Output that is not valid UTF-8 no longer stops the run; invalid bytes are replaced
 - A program that cannot be started (e.g. a script without shebang) fails its test instead of stopping the run
 - `Executable(path, encoding=...)` no longer raises a `TypeError`
+- `eval` given as a mapping (`start`, `end`, `init`) no longer crashes on load (regression of 0.7.0), and `eval: false` no longer enables eval
+- `eval` delimiters are literal text (`start: "[["` works) and `iter()` works inside nested calls such as `iter(int(5), 1)`
+- `exit: true`/`exit: false` are read as 1 and 0 instead of crashing the run
+- An empty expected output (`stdout: ""`, `equals: ""`) is accepted
+- `min-points` must be greater than 0 (0 crashed the score computation)
+- An invalid regex, a non-numeric `exit` or an eval error fails its test instead of stopping the run
+- `--report report.yml` writes YAML (only `.yaml` was recognised)
+- Point totals no longer show float noise (`0.30000000000000004`)
+- Configuration errors point to the test case or group that is wrong, instead of both
+- Documentation: the filters are applied in a fixed order; the program runs in the current directory
 - Documentation: the filter is `ignorespaces` (`ignore-spaces` is an accepted alias) (#32)
 - '4 failed, 0 passed (0.0%% ok).' remove the duplicated pecentage sign
 - Fix output by adding quotes and `(empty)` for empty strings

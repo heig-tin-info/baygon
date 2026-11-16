@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 import re
-from typing import Callable, TypeVar
+from typing import TypeVar
 
 MatchType = TypeVar("MatchType", bound="MatchBase")
 
@@ -70,6 +71,17 @@ class ExecutionFailed(InvalidCondition):
 
     def __str__(self):
         return f"Unable to execute {self.expected}: {self.value}"
+
+
+class InvalidTestDefinition(InvalidCondition):
+    """The test could not be evaluated (invalid regex, eval error...).
+
+    >>> str(InvalidTestDefinition(ValueError("bad"), None))
+    'Invalid test: ValueError: bad'
+    """
+
+    def __str__(self):
+        return f"Invalid test: {type(self.value).__name__}: {self.value}"
 
 
 class InvalidContains(InvalidCondition):

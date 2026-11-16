@@ -22,7 +22,7 @@ Global filters can be applied to all outputs of every tests. The outputs are `st
 - `regex`: A remplacement is made using regular expressions.
 - `replace`: A remplacement is made using a string.
 
-If more than one filter is applied, they are applied in the order they are written.
+If more than one filter is set, they are applied in this order, whatever the order in the file: `uppercase`, `lowercase`, `trim`, `ignorespaces`, `regex`, `replace`.
 
 A boolean filter set to `false` (e.g. `uppercase: false`) is not applied.
 
@@ -170,7 +170,7 @@ Or even from the shell:
 baygon ./foobar
 ```
 
-Note that the working directory is the directory of the config file, except if you specify the executable from the shell. In this case the working directory is the current directory.
+Note that a relative `executable` in the config file is relative to the directory of the config file, while an executable given from the shell is relative to the current directory. In both cases the program runs in the current directory, so relative paths in `args` are relative to the directory Baygon is started from.
 
 ## Time and output limits
 

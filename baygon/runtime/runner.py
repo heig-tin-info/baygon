@@ -3,11 +3,18 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Iterable, Iterator, Mapping, MutableMapping, Sequence
-from dataclasses import dataclass, field, replace
+from collections.abc import (
+    Callable,
+    Iterable,
+    Iterator,
+    Mapping,
+    MutableMapping,
+    Sequence,
+)
+from dataclasses import dataclass, replace
 from pathlib import Path
 import time
-from typing import Any, Callable, Union
+from typing import Any
 
 from baygon.core.models import CaseModel, ConditionModel, GroupModel, SuiteModel
 from baygon.error import InvalidExecutableError
@@ -17,9 +24,11 @@ from baygon.matchers import (
     ExecutionFailed,
     ExecutionTimeout,
     InvalidExitStatus,
+    InvalidTestDefinition,
     MatcherFactory,
     OutputLimitExceeded,
 )
+from baygon.score import float_or_int
 
 
 @dataclass(frozen=True)
@@ -84,6 +93,11 @@ class RunReport:
         return data
 
 
+def _round_points(value: float | int) -> float | int:
+    """Remove the float noise of a sum of points (0.1 + 0.2 -> 0.3)."""
+    return float_or_int(round(value, 9))
+
+
 def _case_payload(result: CaseResult) -> dict[str, Any]:
     case = result.case
     return {
@@ -123,8 +137,12 @@ def _groups_payload(
                         "skipped": counts["skipped"],
                         "total": len(ran),
                         "points": {
-                            "total": sum(r.case.points or 0 for r in ran),
-                            "earned": sum(r.points_earned or 0 for r in ran),
+                            "total": _round_points(
+                                sum(r.case.points or 0 for r in ran)
+                            ),
+                            "earned": _round_points(
+                                sum(r.points_earned or 0 for r in ran)
+                            ),
                         },
                     }
                 )
@@ -135,7 +153,7 @@ def _groups_payload(
 
 
 FilterType = Filters
-EvalType = Union[FilterNone, FilterEval]
+EvalType = FilterNone | FilterEval
 
 
 @dataclass
@@ -233,8 +251,8 @@ class BaygonRunner:
             successes=counters["passed"],
             failures=counters["failed"],
             skipped=counters["skipped"],
-            points_total=points_total,
-            points_earned=points_earned,
+            points_total=_round_points(points_total),
+            points_earned=_round_points(points_earned),
             duration=duration,
             cases=tuple(results),
         )
@@ -256,10 +274,8 @@ class BaygonRunner:
             executable=_inherit_executable(
                 parent_context.executable, node.executable, self._base_dir
             ),
-            timeout=_first_set(getattr(node, "timeout", None), parent_context.timeout),
-            max_output=_first_set(
-                getattr(node, "max_output", None), parent_context.max_output
-            ),
+            timeout=_first_set(node.timeout, parent_context.timeout),
+            max_output=_first_set(node.max_output, parent_context.max_output),
         )
         if isinstance(node, CaseModel):
             yield (node, context)
@@ -283,14 +299,14 @@ class BaygonRunner:
         eval_filter = context.eval_filter
 
         for _ in range(case.repeat):
-            filtered_args = tuple(_apply_eval(eval_filter, list(case.args)))
-            filtered_stdin = _apply_eval(eval_filter, case.stdin)
-            filtered_env = _apply_eval_env(eval_filter, case.env)
-            expected_exit = (
-                int(_apply_eval(eval_filter, str(case.exit)))
-                if case.exit is not None
-                else None
-            )
+            try:
+                filtered_args = tuple(_apply_eval(eval_filter, list(case.args)))
+                filtered_stdin = _apply_eval(eval_filter, case.stdin)
+                filtered_env = _apply_eval_env(eval_filter, case.env)
+                expected_exit = _expected_exit(eval_filter, case.exit)
+            except Exception as error:
+                issues.append(InvalidTestDefinition(error, None, test=case))
+                break
 
             hook = _capture_hook(command_logs)
             # Limits are only passed when set, so a custom executable whose
@@ -303,7 +319,7 @@ class BaygonRunner:
             try:
                 output = exec_obj.run(
                     *filtered_args,
-                    stdin=filtered_stdin if filtered_stdin is not None else None,
+                    stdin=filtered_stdin,
                     env=get_env(filtered_env),
                     hook=hook,
                     **limits,
@@ -330,26 +346,21 @@ class BaygonRunner:
                 issues.append(OutputLimitExceeded(output, limit, on="exit", test=case))
                 break
 
-            issues.extend(
-                _match_streams(
-                    case,
-                    filters,
-                    eval_filter,
-                    output,
-                    "stdout",
-                    case.stdout,
-                )
-            )
-            issues.extend(
-                _match_streams(
-                    case,
-                    filters,
-                    eval_filter,
-                    output,
-                    "stderr",
-                    case.stderr,
-                )
-            )
+            try:
+                for stream in ("stdout", "stderr"):
+                    issues.extend(
+                        _match_streams(
+                            case,
+                            filters,
+                            eval_filter,
+                            output,
+                            stream,
+                            getattr(case, stream),
+                        )
+                    )
+            except Exception as error:
+                issues.append(InvalidTestDefinition(error, None, test=case))
+                break
 
             if expected_exit is not None and expected_exit != output.exit_status:
                 issues.append(
@@ -387,6 +398,16 @@ class BaygonRunner:
         if not path.is_absolute():
             path = (self._base_dir / path).resolve()
         return str(path)
+
+
+def _expected_exit(eval_filter: EvalType, value: int | str | None) -> int | None:
+    if value is None:
+        return None
+    evaluated = _apply_eval(eval_filter, str(value))
+    try:
+        return int(evaluated)
+    except ValueError:
+        raise ValueError(f"exit must be an integer, got '{evaluated}'") from None
 
 
 def _first_set(*values: Any) -> Any:

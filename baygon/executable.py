@@ -1,6 +1,7 @@
 """Executable class. To be used with the Test class."""
 
 from collections import namedtuple
+from collections.abc import Mapping
 import contextlib
 import logging
 import os
@@ -10,7 +11,6 @@ import signal
 import subprocess
 import threading
 import time
-import typing
 
 from .error import InvalidExecutableError
 
@@ -59,7 +59,7 @@ class Outputs(namedtuple("Outputs", ["exit_status", "stdout", "stderr"])):
         return self
 
 
-def get_env(env: typing.Optional[str] = None) -> dict:
+def get_env(env: Mapping[str, str] | None = None) -> dict:
     """Get the environment variables to be used for the subprocess."""
     return {**os.environ, **(env or {})}
 

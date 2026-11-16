@@ -6,9 +6,9 @@ A filter is used to modify `stdout` and `stderr` before they are tested.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 import re
-from typing import Callable, TypeVar
+from typing import TypeVar
 
 from tinykernel import TinyKernel
 
@@ -188,7 +188,7 @@ class FilterEval(Filter):
         self, start: str = "{{", end: str = "}}", init: list[str] | None = None
     ):
         super().__init__()
-        self._mustache = re.compile(f"{start}(.*?){end}")
+        self._mustache = re.compile(f"{re.escape(start)}(.*?){re.escape(end)}")
         self._kernel = TinyKernel()
 
         seed = list(init) if init is not None else []
@@ -196,7 +196,12 @@ class FilterEval(Filter):
             "from math import *",
             "from random import *",
             "from statistics import *",
-            "from baygon.eval import iter",
+            # ``iter()`` keeps one counter per mustache: the mustache being
+            # evaluated is given to it through ``_baygon_ctx``.
+            "from baygon.eval import iter as _baygon_iter",
+            "_baygon_ctx = None",
+            "iter = lambda start=0, step=1, ctx=None: _baygon_iter("
+            "start, step, _baygon_ctx if ctx is None else ctx)",
         ]
 
         for item in seed:
@@ -216,8 +221,7 @@ class FilterEval(Filter):
     def exec(self, code: str):
         """Execute code in the kernel."""
 
-        # Inject context to custom functions
-        code = re.sub(r"((?<=\b)iter\(.*?)(\))", f"\\1,ctx={hash(code)}\\2", code)
+        self._kernel.glb["_baygon_ctx"] = hash(code)
 
         # Workaround to get the value of assignments
         try:
@@ -240,10 +244,10 @@ class Filters(Filter, Sequence):
     def _parse_filter(self, filters):
         if filters is None:
             return []
-        if isinstance(filters, Filter):
-            return [filters]
         if isinstance(filters, Filters):
             return list(filters)
+        if isinstance(filters, Filter):
+            return [filters]
         if isinstance(filters, dict):
             instances = []
             for name, args in filters.items():
