@@ -353,7 +353,7 @@ def test_report_details(tmp_path: Path) -> None:
     omega = payload["cases"][-1]
     assert omega["status"] == "failed"
     assert omega["points"] == {"total": 5, "earned": 0}
-    assert omega["issues"] == ["Invalid exit status: 0 != 1."]
+    assert omega["issues"] == ["Invalid exit status: expected 0, got 1."]
     groups = {group["id"]: group for group in payload["groups"]}
     assert groups["2"]["points"] == {"total": 8, "earned": 8}
     assert groups["2"]["total"] == 3

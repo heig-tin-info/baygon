@@ -21,6 +21,10 @@ def _deep_freeze(value: Any) -> Any:
     return value
 
 
+def _freeze_optional(value: Any) -> Any:
+    return None if value is None else _deep_freeze(value)
+
+
 def _as_id_tuple(identifier: Sequence[int] | None) -> tuple[int, ...]:
     """Normalize hierarchical identifiers to tuples."""
     if identifier is None:
@@ -35,6 +39,13 @@ class NegatedConditionModel:
     equals: str | None = None
     regex: str | None = None
     contains: str | None = None
+    number: Mapping[str, Any] | None = None
+    length: Mapping[str, Any] | None = None
+    lines: Mapping[str, Any] | None = None
+
+    def __post_init__(self) -> None:
+        for name in ("number", "length", "lines"):
+            object.__setattr__(self, name, _freeze_optional(getattr(self, name)))
 
 
 @dataclass(frozen=True)
@@ -47,9 +58,23 @@ class ConditionModel:
     contains: str | None = None
     expected: str | None = None
     negated: tuple[NegatedConditionModel, ...] = field(default_factory=tuple)
+    number: Mapping[str, Any] | None = None
+    length: Mapping[str, Any] | None = None
+    lines: Mapping[str, Any] | None = None
+    same_as: str | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "filters", _deep_freeze(self.filters))
+        for name in ("number", "length", "lines"):
+            object.__setattr__(self, name, _freeze_optional(getattr(self, name)))
+
+
+@dataclass(frozen=True)
+class StdinCommandModel:
+    """Program whose standard output is given as input to a test."""
+
+    executable: str
+    args: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -72,6 +97,7 @@ class CaseModel:
     eval: Mapping[str, Any] | None = None
     timeout: float | None = None
     max_output: int | None = None
+    stdin_command: StdinCommandModel | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "env", _deep_freeze(self.env))
@@ -273,6 +299,14 @@ def _build_node(config: Mapping[str, Any]) -> TestNode:
             timeout=config.get("timeout"),
             max_output=config.get("max-output"),
         )
+    stdin = config.get("stdin")
+    stdin_command = None
+    if isinstance(stdin, Mapping):
+        stdin_command = StdinCommandModel(
+            executable=str(stdin["executable"]),
+            args=tuple(stdin.get("args") or ()),
+        )
+        stdin = None
     return CaseModel(
         id=_as_id_tuple(config.get("test_id")),
         name=config.get("name", ""),
@@ -281,7 +315,7 @@ def _build_node(config: Mapping[str, Any]) -> TestNode:
         executable=config.get("executable"),
         args=tuple(config.get("args") or ()),
         env=config.get("env") or {},
-        stdin=config.get("stdin"),
+        stdin=stdin,
         stdout=tuple(_build_condition(item) for item in config.get("stdout") or ()),
         stderr=tuple(_build_condition(item) for item in config.get("stderr") or ()),
         repeat=int(config.get("repeat", 1)),
@@ -290,6 +324,7 @@ def _build_node(config: Mapping[str, Any]) -> TestNode:
         eval=config.get("eval"),
         timeout=config.get("timeout"),
         max_output=config.get("max-output"),
+        stdin_command=stdin_command,
     )
 
 
@@ -299,6 +334,9 @@ def _build_condition(config: Mapping[str, Any]) -> ConditionModel:
             equals=item.get("equals"),
             regex=item.get("regex"),
             contains=item.get("contains"),
+            number=item.get("number"),
+            length=item.get("length"),
+            lines=item.get("lines"),
         )
         for item in config.get("not") or ()
     )
@@ -309,4 +347,8 @@ def _build_condition(config: Mapping[str, Any]) -> ConditionModel:
         contains=config.get("contains"),
         expected=config.get("expected"),
         negated=negated,
+        number=config.get("number"),
+        length=config.get("length"),
+        lines=config.get("lines"),
+        same_as=config.get("same-as"),
     )

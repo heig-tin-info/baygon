@@ -256,7 +256,8 @@ class Filters(Filter, Sequence):
                     continue
                 if args is True:
                     args = []
-                if not isinstance(args, list):
+                # Models freeze lists into tuples.
+                if not isinstance(args, (list, tuple)):
                     args = [args]
                 instances.append(FilterFactory(name, *args))
             return instances

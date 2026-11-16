@@ -66,6 +66,22 @@ CLI highlights:
 - Limit the time of each test with `--timeout 5`, or with `timeout:` in the configuration.
 - Use `--strict` to exit with status 1 when a test fails.
 
+Configuration highlights:
+
+- Match outputs with `equals`, `contains`, `regex`, `number` (with a tolerance or a range), `length` and `lines`, or compare them to a reference program with `same-as`.
+- Generate the standard input with another program: `stdin: {executable: ./generate, args: ["{{ iter() }}"]}`.
+- Check the source code (headers, forbidden functions, warnings, formatting) with `grep`, `gcc` or `clang-format` as the executable of a test.
+
+## Claude Code skill
+
+Baygon comes with a skill that teaches [Claude Code](https://code.claude.com) how to write and run Baygon tests. Install it as a plugin:
+
+```console
+/plugin install baygon --marketplace heig-tin-info/baygon
+```
+
+or, with older Claude Code versions, `claude plugin marketplace add heig-tin-info/baygon` then `claude plugin install baygon@baygon`. It can also be copied from the Python package: `baygon --install-skill user` (all projects) or `baygon --install-skill project` (this project).
+
 ## Programmatic usage
 
 Baygon now exposes the same building blocks used by the CLI so you can embed

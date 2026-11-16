@@ -12,7 +12,9 @@ from collections.abc import (
     Sequence,
 )
 from dataclasses import dataclass, replace
+import os
 from pathlib import Path
+import shutil
 import time
 from typing import Any
 
@@ -23,7 +25,9 @@ from baygon.filters import FilterEval, FilterNone, Filters
 from baygon.matchers import (
     ExecutionFailed,
     ExecutionTimeout,
+    HelperProgramFailed,
     InvalidExitStatus,
+    InvalidSameAs,
     InvalidTestDefinition,
     MatcherFactory,
     OutputLimitExceeded,
@@ -42,6 +46,9 @@ class CommandLog:
     exit_status: int
     timed_out: bool = False
     output_limit_exceeded: bool = False
+    #: ``None`` for the program under test, ``"generator"`` or ``"reference"``
+    #: for the programs a test uses to build its input or expected output.
+    role: str | None = None
 
 
 @dataclass(frozen=True)
@@ -297,32 +304,46 @@ class BaygonRunner:
         exec_obj = self._get_executable(exec_path)
         filters = context.filters
         eval_filter = context.eval_filter
+        generator = case.stdin_command
 
         for _ in range(case.repeat):
             try:
                 filtered_args = tuple(_apply_eval(eval_filter, list(case.args)))
                 filtered_stdin = _apply_eval(eval_filter, case.stdin)
-                filtered_env = _apply_eval_env(eval_filter, case.env)
+                filtered_env = get_env(_apply_eval_env(eval_filter, case.env))
                 expected_exit = _expected_exit(eval_filter, case.exit)
+                generator_args = (
+                    tuple(_apply_eval(eval_filter, list(generator.args)))
+                    if generator is not None
+                    else ()
+                )
             except Exception as error:
                 issues.append(InvalidTestDefinition(error, None, test=case))
                 break
 
+            if generator is not None:
+                try:
+                    filtered_stdin = self._run_helper(
+                        "generator",
+                        generator.executable,
+                        generator_args,
+                        stdin=None,
+                        env=filtered_env,
+                        context=context,
+                        logs=command_logs,
+                    ).stdout
+                except _HelperProgramError as failure:
+                    issues.append(failure.to_issue(case))
+                    break
+
             hook = _capture_hook(command_logs)
-            # Limits are only passed when set, so a custom executable whose
-            # ``run`` does not know them keeps working.
-            limits: dict[str, Any] = {}
-            if context.timeout is not None:
-                limits["timeout"] = context.timeout
-            if context.max_output is not None:
-                limits["max_output"] = context.max_output
             try:
                 output = exec_obj.run(
                     *filtered_args,
                     stdin=filtered_stdin,
-                    env=get_env(filtered_env),
+                    env=filtered_env,
                     hook=hook,
-                    **limits,
+                    **_limits(context),
                 )
             except OSError as error:
                 issues.append(ExecutionFailed(error, exec_path, on="exit", test=case))
@@ -346,6 +367,27 @@ class BaygonRunner:
                 issues.append(OutputLimitExceeded(output, limit, on="exit", test=case))
                 break
 
+            references: dict[str, Outputs] = {}
+
+            def _reference(
+                path: str,
+                args: tuple[str, ...] = filtered_args,
+                stdin: str | None = filtered_stdin,
+                env: dict[str, Any] = filtered_env,
+                cache: dict[str, Outputs] = references,
+            ) -> Outputs:
+                if path not in cache:
+                    cache[path] = self._run_helper(
+                        "reference",
+                        path,
+                        args,
+                        stdin=stdin,
+                        env=env,
+                        context=context,
+                        logs=command_logs,
+                    )
+                return cache[path]
+
             try:
                 for stream in ("stdout", "stderr"):
                     issues.extend(
@@ -356,8 +398,12 @@ class BaygonRunner:
                             output,
                             stream,
                             getattr(case, stream),
+                            reference=_reference,
                         )
                     )
+            except _HelperProgramError as failure:
+                issues.append(failure.to_issue(case))
+                break
             except Exception as error:
                 issues.append(InvalidTestDefinition(error, None, test=case))
                 break
@@ -386,18 +432,70 @@ class BaygonRunner:
             points_earned=earned,
         )
 
+    def _run_helper(
+        self,
+        role: str,
+        path: str,
+        args: Sequence[str],
+        *,
+        stdin: str | None,
+        env: dict[str, Any],
+        context: _ExecutionContext,
+        logs: list[CommandLog],
+    ) -> Outputs:
+        """Run a generator or reference program used by a test."""
+        label = f"{role.capitalize()} {path}"
+        try:
+            program = self._get_executable(self._resolve_path(path))
+            output = program.run(
+                *args,
+                stdin=stdin,
+                env=env,
+                hook=_capture_hook(logs, role=role),
+                **_limits(context),
+            )
+        except (OSError, InvalidExecutableError) as error:
+            raise _HelperProgramError(label, str(error)) from error
+        if getattr(output, "timed_out", False):
+            raise _HelperProgramError(label, f"timeout after {context.timeout:g} s")
+        if getattr(output, "output_limit_exceeded", False):
+            raise _HelperProgramError(label, "output limit exceeded")
+        if role == "generator" and output.exit_status != 0:
+            raise _HelperProgramError(label, f"exit status {output.exit_status}")
+        return output
+
     def _get_executable(self, path: str) -> Executable:
         if path not in self._executables:
             self._executables[path] = self._executable_factory(path)
         return self._executables[path]
 
     def _resolve_path(self, value: str | Path | None) -> str | None:
-        if value is None:
-            return None
-        path = Path(value)
-        if not path.is_absolute():
-            path = (self._base_dir / path).resolve()
-        return str(path)
+        return _resolve_executable(value, self._base_dir)
+
+
+class _HelperProgramError(Exception):
+    """A generator or reference program failed."""
+
+    def __init__(self, label: str, reason: str) -> None:
+        super().__init__(f"{label} failed: {reason}")
+        self.label = label
+        self.reason = reason
+
+    def to_issue(self, case: CaseModel) -> HelperProgramFailed:
+        return HelperProgramFailed(self.reason, self.label, on="exit", test=case)
+
+
+def _limits(context: _ExecutionContext) -> dict[str, Any]:
+    """Limits to pass to ``run``, only when set.
+
+    A custom executable whose ``run`` does not know them keeps working.
+    """
+    limits: dict[str, Any] = {}
+    if context.timeout is not None:
+        limits["timeout"] = context.timeout
+    if context.max_output is not None:
+        limits["max_output"] = context.max_output
+    return limits
 
 
 def _expected_exit(eval_filter: EvalType, value: int | str | None) -> int | None:
@@ -423,10 +521,31 @@ def _inherit_executable(
     """Return the executable of a node: its own one if set, else the parent's."""
     if child is None:
         return parent
-    path = Path(child)
-    if not path.is_absolute():
-        path = (base_dir / path).resolve()
-    return str(path)
+    return _resolve_executable(child, base_dir)
+
+
+def _resolve_executable(value: str | Path | None, base_dir: Path) -> str | None:
+    """Resolve an executable given in the configuration.
+
+    A relative path is relative to ``base_dir`` (the directory of the
+    configuration file). A bare name such as ``grep`` that is not a file in
+    ``base_dir`` is looked up in the ``PATH``.
+    """
+    if value is None:
+        return None
+    path = Path(value)
+    if path.is_absolute():
+        return str(path)
+    resolved = (base_dir / path).resolve()
+    name = str(value)
+    if (
+        not resolved.exists()
+        and "/" not in name
+        and os.sep not in name
+        and shutil.which(name) is not None
+    ):
+        return name  # Found in the PATH by Executable.
+    return str(resolved)
 
 
 def _merge_filters(
@@ -453,9 +572,11 @@ def _apply_eval(eval_filter: EvalType, value: Any) -> Any:
         return [_apply_eval(eval_filter, item) for item in value]
     if isinstance(value, tuple):
         return tuple(_apply_eval(eval_filter, item) for item in value)
+    if isinstance(value, Mapping):
+        return {key: _apply_eval(eval_filter, item) for key, item in value.items()}
     if value is None:
         return None
-    if isinstance(eval_filter, FilterNone):
+    if isinstance(eval_filter, FilterNone) or not isinstance(value, str):
         return value
     return eval_filter(value)
 
@@ -466,7 +587,9 @@ def _apply_eval_env(eval_filter: EvalType, env: Mapping[str, Any]) -> dict[str, 
     return {key: _apply_eval(eval_filter, value) for key, value in env.items()}
 
 
-def _capture_hook(storage: list[CommandLog]) -> Callable[..., None]:
+def _capture_hook(
+    storage: list[CommandLog], role: str | None = None
+) -> Callable[..., None]:
     def _hook(**kwargs: Any) -> None:
         cmd = tuple(str(arg) for arg in kwargs.get("cmd", ()))
         stdin = kwargs.get("stdin")
@@ -483,6 +606,7 @@ def _capture_hook(storage: list[CommandLog]) -> Callable[..., None]:
                 stdout="" if stdout_value is None else str(stdout_value),
                 stderr="" if stderr_value is None else str(stderr_value),
                 exit_status=int(kwargs.get("exit_status", 0)),
+                role=role,
             )
         )
 
@@ -496,6 +620,8 @@ def _match_streams(
     output: Outputs,
     stream_name: str,
     conditions: Sequence[ConditionModel],
+    *,
+    reference: Callable[[str], Outputs],
 ) -> list[Any]:
     issues: list[Any] = []
     stream_value = getattr(output, stream_name)
@@ -503,6 +629,19 @@ def _match_streams(
     for condition in conditions:
         filters = _merge_filters(base_filters, condition.filters)
         filtered_value = filters(value)
+        if condition.same_as is not None:
+            reference_output = getattr(reference(condition.same_as), stream_name)
+            expected = filters(str(reference_output or ""))
+            if filtered_value != expected:
+                issues.append(
+                    InvalidSameAs(
+                        filtered_value,
+                        expected,
+                        reference=condition.same_as,
+                        on=stream_name,
+                        test=case,
+                    )
+                )
         issues.extend(
             _evaluate_condition(
                 _iter_condition_expectations(condition),
@@ -553,7 +692,7 @@ def _evaluate_condition(
 def _iter_condition_expectations(
     condition: ConditionModel | Any,
 ) -> Iterator[tuple[str, str]]:
-    for matcher_name in ("equals", "regex", "contains"):
+    for matcher_name in ("equals", "regex", "contains", "number", "length", "lines"):
         expected = getattr(condition, matcher_name, None)
         if expected is not None:
             yield matcher_name, expected

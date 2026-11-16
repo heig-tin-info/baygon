@@ -41,9 +41,8 @@ def test_eval_false_disables_eval() -> None:
 @pytest.mark.skipif(shutil.which("perl") is None, reason="perl is required")
 def test_eval_example_file_runs() -> None:
     report = SuiteService().run(path=HERE / "eval.yml")
-    # Test 4 of the example compares two different formulas, it always fails.
-    statuses = {case.case.id_str: case.status for case in report.cases}
-    assert statuses == {"1": "passed", "2": "passed", "3": "passed", "4": "failed"}
+    assert report.failures == 0, [str(i) for c in report.cases for i in c.issues]
+    assert report.successes == 4
 
 
 def test_iter_keeps_one_counter_per_mustache() -> None:

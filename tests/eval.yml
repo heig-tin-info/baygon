@@ -33,9 +33,12 @@ tests:
     repeat: 42
     args:
       - -e
-      - print -($ARGV[1] * sqrt($ARGV[1] * $ARGV[1] - 4 * $ARGV[0] * $ARGV[2])) / (2 * $ARGV[0])
-      - "{{ a = uniform(0, 100) }}"
+      - print((-$ARGV[1] + sqrt($ARGV[1] * $ARGV[1] - 4 * $ARGV[0] * $ARGV[2])) / (2 * $ARGV[0]))
+      - "{{ a = uniform(1, 100) }}"
       - "{{ b = uniform(0, 100) }}"
       - "{{ c = uniform(0, -100) }}"
     stdout:
-      - contains: "{{ -b + sqrt(b * b - 4 * a * c) / (2 * a) }}"
+      # Floating point values are compared with a tolerance
+      - number:
+          value: "{{ (-b + sqrt(b * b - 4 * a * c)) / (2 * a) }}"
+          tolerance: 1e-9

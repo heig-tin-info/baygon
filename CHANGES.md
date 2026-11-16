@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## 0.9.0 (2026-11-16)
+
+### Added
+
+- `number` matcher: the output is a number equal to a value, with an optional `tolerance`, or within `min`/`max` (#27)
+- `length` and `lines` matchers: number of characters or lines of the output, exact or within a range (#27)
+- `stdin` can be the output of a generator program: `stdin: {executable, args}` (#30)
+- `same-as` matcher: compare an output with the output of a reference program run with the same arguments and input (#30)
+- `filters` can be set on a test or a group, as the documentation said
+- A bare executable name such as `grep` is looked up in the `PATH` when it is not a file next to the configuration
+- Documentation: matchers, expressions (`eval`), and a page of recipes to check the source code (#21)
+- Claude Code skill to write and run Baygon tests, available as a plugin (`claude plugin marketplace add heig-tin-info/baygon`) and from the package with `baygon --install-skill user|project`
+
+### Changed
+
+- Exit status failures read `Invalid exit status: expected 1, got 0.` instead of `1 != 0`
+
+### Fixed
+
+- `regex` and `replace` filters given in the configuration crashed the run
+- Summary percentage without float noise (`14.29% ok`)
+- Documentation examples that were invalid (YAML syntax, unknown `match` matcher, `stdin` used as a file name)
+- Documentation: `trim` removes whitespace at both ends of the output, not on each line
+
 ## 0.8.0 (2026-11-16)
 
 ### Added
