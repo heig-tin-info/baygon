@@ -18,8 +18,13 @@ claude plugin install baygon@baygon
 ```
 
 The same commands work inside a session as `/plugin marketplace add
-heig-tin-info/baygon` and `/plugin install baygon@baygon`. The plugin follows
-the repository, and `/plugin` lists, updates or removes it.
+heig-tin-info/baygon` and `/plugin install baygon@baygon`. `/plugin` lists,
+updates or removes it.
+
+The plugin version is the Baygon version: each release publishes the skill of
+that release, so `claude plugin update baygon@baygon` brings the skill in line
+with the latest Baygon. Turn on auto-update for the `baygon` marketplace in
+`/plugin` to get it without asking.
 
 ## Install from the Python package
 
@@ -38,6 +43,16 @@ a new Claude Code session to load the skill.
 
 A project skill can be committed with the assignment, so that everyone working
 on it with Claude Code gets it.
+
+## Maintaining the skill
+
+The skill lives in `plugins/baygon/skills/baygon/` on `master`; it is the single
+source for the plugin and for the copy shipped in the Python package. The tests
+check that its YAML examples are valid. On each release tag,
+`.github/workflows/claude-plugin.yml` copies `plugins/baygon` to the
+`claude-plugin` branch with `"version"` set to the tag, which is what the
+marketplace serves. To republish an existing release, run that workflow by hand
+with the tag.
 
 ## What the skill contains
 
