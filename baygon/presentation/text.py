@@ -4,9 +4,34 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from baygon.runtime.runner import RunReport
+from baygon.helpers import display_command
+from baygon.runtime.runner import CaseResult, RunReport
 
 Writer = Callable[[str], None]
+
+INDENT = "    "
+
+
+def failure_details(result: CaseResult) -> list[str]:
+    """Lines explaining why a test failed, for a student.
+
+    The command to run it again comes first, then the explanations written by
+    the author of the test, each followed by the issue it explains.
+    """
+    lines: list[str] = []
+    command = result.command
+    if command is not None:
+        lines.extend(display_command(command.argv, command.stdin))
+        if result.failed_run is not None and result.case.repeat > 1:
+            lines[0] += f"  # run {result.failed_run} of {result.case.repeat}"
+    if result.message:
+        lines.append(result.message)
+    for issue in result.issues:
+        message = getattr(issue, "message", None)
+        if message and message != result.message:
+            lines.append(message)
+        lines.extend(str(issue).splitlines())
+    return lines
 
 
 def render_case_results(
@@ -27,9 +52,9 @@ def render_case_results(
             write(f"{header} PASSED")
         elif status == "failed":
             write(f"{header} FAILED")
-            if include_issues and result.issues:
-                for issue in result.issues:
-                    write(str(issue))
+            if include_issues:
+                for line in failure_details(result):
+                    write(INDENT + line)
         elif status == "skipped":
             write(f"{header} SKIPPED")
         else:

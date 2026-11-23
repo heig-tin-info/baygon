@@ -55,7 +55,7 @@ inherited from parents; the nearest value wins. Ids are automatic: `1`, `2.1`...
 Keys of a test: `name`, `args` (list), `stdin` (text, or a generator program),
 `env` (mapping), `exit` (expected status), `stdout`, `stderr` (lists of
 conditions), `repeat`, `filters`, `timeout`, `max-output`, `executable`,
-`points`/`weight`.
+`points`/`weight`, `message`.
 
 Matchers in a `stdout`/`stderr` condition (after filters):
 
@@ -97,6 +97,28 @@ tests:
 Filters: `trim`, `lowercase`, `uppercase`, `ignorespaces`, `regex: [pattern,
 replacement]`, `replace: [old, new]`. They are applied in that fixed order, on
 the whole file, a group, a test or a single condition.
+
+## Messages for students
+
+A failing test prints the command to run it again (`$ ./prog abc`), then the
+issue. For beginners, add a `message` in their language saying what to fix. It
+goes on a test, a group (inherited by its tests), a `stdout`/`stderr`
+condition, or the exit status:
+
+```yaml
+version: 1
+executable: ./prog
+tests:
+  - name: Invalid argument
+    args: [abc]
+    exit: { value: 2, message: "main must end with return 2;" }
+    stdout:
+      - regex: '^usage: '
+        message: Print the usage with printf.
+```
+
+Messages accept `{{ }}` expressions, evaluated with the values of the failing
+run. Prefer a message to a clever regex: the regex is shown to the student.
 
 ## Random and repeated inputs
 
@@ -171,5 +193,8 @@ with 1 on configuration errors (printed one per line, e.g.
 - `regex` searches anywhere; anchor with `^`/`$` (single line) or `\A`/`\Z`.
 - Quote regexes and strings with `:` `{` `[` `#` in YAML: `regex: '^\d+: ok$'`.
 - Each item of `not` must hold exactly one matcher; `same-as` cannot be negated.
+- `iter()` keeps one counter per expression text: two tests with the very same
+  `{{ n = iter(1) }}` share it. Vary the text or pass `ctx="name"`.
+- A repeated test stops at its first failing run.
 - Destructive programs (`rm`, `mv`, `dd`, `mkfs`, `wget`) are refused as
   executables.

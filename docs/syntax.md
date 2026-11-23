@@ -101,6 +101,16 @@ tests:
   - exit: 0
 ```
 
+With a [message](#messages), `exit` is a mapping:
+
+```yaml
+tests:
+  - args: [abc]
+    exit:
+      value: 2
+      message: "On an error, main must end with return 2;"
+```
+
 ## Standard input
 
 `stdin` is the text given to the program on its standard input:
@@ -148,6 +158,50 @@ tests:
     stderr:
       - equals: foobar # Must be exactly equal to foobar
 ```
+
+## Messages
+
+Students are often beginners: a failing test should tell them what to fix, in
+their language. `message` explains a failure in the words of the teacher. It
+can be set on a test, on a group (its tests inherit it unless they set their
+own), on a condition of `stdout`/`stderr` and on the [exit status](#exit-status):
+
+```yaml
+version: 1
+executable: ./collatz
+tests:
+  - name: Invalid arguments
+    message: The usage is printed, then the program returns 2.
+    tests:
+      - args: [abc]
+        exit: { value: 2, message: "main must end with return 2;" }
+        stdout:
+          - regex: '^usage: '
+            message: Print the usage with printf, on the standard output.
+```
+
+A failing test shows the command to run it again, then the messages, each
+followed by the issue it explains:
+
+```text
+Test 1.1: Invalid arguments FAILED
+    $ ./collatz abc
+    The usage is printed, then the program returns 2.
+    main must end with return 2;
+    Invalid exit status: expected 2, got 1.
+```
+
+Messages accept [expressions](#expressions), evaluated with the values of the
+failing run:
+
+```yaml
+  - repeat: 4
+    args: [next, "{{ n = [2, 6, 16, 100000][iter()] }}"]
+    stdout: "{{ n // 2 }}\n"
+    message: "next_term({{ n }}) must return {{ n // 2 }}."
+```
+
+Messages are also written in the report, under `messages`.
 
 ## Executable
 
@@ -241,8 +295,11 @@ tests:
 
 When a limit is reached, the program and every process it started are killed,
 the test fails with `Timeout after 1 s.` or `Output limit exceeded`, and the
-rest of the suite goes on. A test with `repeat` stops at the first run that
-reaches a limit.
+rest of the suite goes on.
+
+A test with `repeat` stops at its first failing run, whatever the cause: one
+failure is shown, with the command that caused it (`# run 3 of 1000`), instead
+of hundreds of them.
 
 There is no time limit by default. The `--timeout` option sets one for every
 test whose configuration has none:

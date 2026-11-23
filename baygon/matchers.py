@@ -10,9 +10,126 @@ from typing import TypeVar
 
 MatchType = TypeVar("MatchType", bound="MatchBase")
 
+#: Lines longer than this are cut around their first difference.
+LINE_WIDTH = 72
+
+#: Outputs quoted in a message are cut after this many characters.
+PREVIEW_LENGTH = 200
+
+
+def _show(line):
+    """Quote a line, making tabs and carriage returns visible.
+
+    >>> print(_show("a\\tb "))
+    'a\\tb '
+    """
+    return "'" + line.replace("\t", "\\t").replace("\r", "\\r") + "'"
+
+
+def _preview(text):
+    """Cut a long output quoted in a message.
+
+    >>> _preview("abc")
+    'abc'
+    >>> len(_preview("x" * 500))
+    201
+    """
+    if len(text) <= PREVIEW_LENGTH:
+        return text
+    return text[:PREVIEW_LENGTH] + "…"
+
+
+def _window(expected, found, width=LINE_WIDTH):
+    """Cut two lines around their first difference, keeping them aligned.
+
+    >>> _window("short", "shirt")
+    ('short', 'shirt')
+    >>> _window("a" * 100 + "X", "a" * 100 + "Y", width=10)
+    ('…aaaaaaaaaX', '…aaaaaaaaaY')
+    >>> _window("1 -> " * 30, "1", width=12)
+    ('1 -> 1 -> 1 …', '1')
+    """
+    longest = max(len(expected), len(found))
+    if longest <= width:
+        return expected, found
+    column = next(
+        (i for i, (a, b) in enumerate(zip(expected, found, strict=False)) if a != b),
+        min(len(expected), len(found)),
+    )
+    start = max(0, min(column - width // 3, longest - width))
+
+    def _cut(line):
+        part = line[start : start + width]
+        if start > 0:
+            part = "…" + part
+        if start + width < len(line):
+            part += "…"
+        return part
+
+    return _cut(expected), _cut(found)
+
+
+def describe_difference(stream, expected, found):
+    """Explain where an output first differs from the expected one.
+
+    >>> print(describe_difference("stdout", "a\\nb\\n", "a\\nc\\n"))
+    Output stdout differs from the expected output on line 2:
+      expected: 'b'
+      found:    'c'
+    >>> print(describe_difference("stdout", "a\\nb\\n", "a\\n"))
+    Output stdout differs from the expected output on line 2:
+      expected: 'b'
+      found:    (end of output)
+    >>> print(describe_difference("stdout", "a\\n", ""))
+    Output stdout differs from the expected output on line 1:
+      expected: 'a'
+      found:    (empty output)
+    >>> print(describe_difference("stdout", "1 -> " * 20 + "\\n", ""))
+    Output stdout differs from the expected output on line 1:
+      expected: '1 -> 1 -> 1 -> 1 -> 1 -> 1 -> 1 -> 1 -> 1 -> 1 -> 1 -> 1 -> 1 -> 1 -> 1 …'
+      found:    (empty output)
+    >>> print(describe_difference("stdout", "a\\n", "a"))
+    Output stdout has the expected lines, but the newline at the end is missing.
+    """
+    expected_lines = expected.splitlines()
+    found_lines = found.splitlines()
+    for index in range(max(len(expected_lines), len(found_lines))):
+        want = expected_lines[index] if index < len(expected_lines) else None
+        got = found_lines[index] if index < len(found_lines) else None
+        if want != got:
+            break
+    else:
+        if expected.endswith("\n") and not found.endswith("\n"):
+            reason = "the newline at the end is missing"
+        elif found.endswith("\n") and not expected.endswith("\n"):
+            reason = "there is an extra newline at the end"
+        else:
+            reason = "the line endings differ"
+        return f"Output {stream} has the expected lines, but {reason}."
+
+    cut_want, cut_got = _window(want or "", got or "")
+    want = None if want is None else cut_want
+    got = None if got is None else cut_got
+    shown_want = "(end of output)" if want is None else _show(want)
+    if got is not None:
+        shown_got = _show(got)
+    else:
+        shown_got = "(empty output)" if not found else "(end of output)"
+    return (
+        f"Output {stream} differs from the expected output on line {index + 1}:\n"
+        f"  expected: {shown_want}\n"
+        f"  found:    {shown_got}"
+    )
+
 
 class InvalidCondition:
-    """Invalid test case condition."""
+    """Invalid test case condition.
+
+    ``message`` is the explanation written by the author of the test, shown
+    with the issue when it is set.
+    """
+
+    message = None
 
     def __init__(self, value, expected, on=None, test=None, inverse=False, **kwargs):
         self.on = on
@@ -171,11 +288,11 @@ class InvalidContains(InvalidCondition):
         if self.inverse:
             return (
                 f"Output {self.on} should not contain {self.expected}. "
-                f'Found "{self.value}".'
+                f'Found "{_preview(self.value)}".'
             )
         return (
             f"Output {self.on} does not contain {self.expected}. "
-            f'Found "{self.value}" instead.'
+            f'Found "{_preview(self.value)}" instead.'
         )
 
 
@@ -183,24 +300,43 @@ class InvalidRegex(InvalidCondition):
     """Invalid regex error."""
 
     def __str__(self):
+        value = _preview(self.value)
         if self.inverse:
             return (
-                f"Output '{self.on}' should not match /{self.expected}/ "
-                f'on "{self.value}".'
+                f"Output '{self.on}' should not match /{self.expected}/ on \"{value}\"."
             )
-        return (
-            f"Output '{self.on}' does not match /{self.expected}/ on \"{self.value}\"."
-        )
+        return f"Output '{self.on}' does not match /{self.expected}/ on \"{value}\"."
 
 
 class InvalidEquals(InvalidCondition):
-    """Invalid equals error."""
+    """Invalid equals error.
+
+    Short one-line outputs are quoted whole, longer ones are described by
+    their first differing line.
+
+    >>> str(InvalidEquals("4", "3", on="stdout"))
+    "Output '4' does not equal '3' on stdout."
+    >>> print(InvalidEquals("1\\n", "1 (0 steps)\\n", on="stdout"))
+    Output stdout differs from the expected output on line 1:
+      expected: '1 (0 steps)'
+      found:    '1'
+    """
 
     def __str__(self):
-        value = "(empty)" if not self.value else f"'{self.value}'"
+        value = "(empty)" if not self.value else f"'{_preview(self.value)}'"
         if self.inverse:
-            return f"Output {value} should not equal '{self.expected}' on {self.on}."
-        return f"Output {value} does not equal '{self.expected}' on {self.on}."
+            return (
+                f"Output {value} should not equal '{_preview(self.expected)}' "
+                f"on {self.on}."
+            )
+        if _is_short(self.value) and _is_short(self.expected):
+            return f"Output {value} does not equal '{self.expected}' on {self.on}."
+        return describe_difference(self.on, self.expected, self.value)
+
+
+def _is_short(text):
+    """A short text holds on one line and is quoted whole in messages."""
+    return "\n" not in text and len(text) <= LINE_WIDTH // 2
 
 
 class MatchBase(ABC):
