@@ -13,6 +13,7 @@
 | `timeout` | Default time limit in seconds |
 | `max-output` | Default cap per output stream (`64K`, `10M`, bytes; `0` = none) |
 | `points` / `weight` / `min-points` | Scoring (see below) |
+| `lang` | Language of Baygon's own messages: `en` (default) or `fr` |
 
 ## Test keys
 
@@ -85,7 +86,8 @@ eval:
 Evaluation order in a run: `args`, `stdin`, `env`, `exit`, generator args, then
 matcher values after the program ran. Assignments (`{{ x = 3 }}`) are visible to
 later expressions. Available: `math`, `random`, `statistics` functions and
-`iter(start=0, step=1)`, one counter per expression text.
+`iter(start=0, step=1)`, one counter per expression and per test;
+`iter(ctx="name")` shares a counter between tests.
 
 ## Scoring
 

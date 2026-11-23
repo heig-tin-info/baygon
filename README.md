@@ -112,9 +112,16 @@ class FilterStripDigits(Filter):
 
 ## How to install?
 
+Baygon is a command line tool: install it in its own environment with
+[uv](https://docs.astral.sh/uv/) or [pipx](https://pipx.pypa.io):
+
 ```console
-pip3 install baygon
+uv tool install baygon      # or: pipx install baygon
 ```
+
+`uvx baygon` (or `pipx run baygon`) runs it without installing it. On recent
+Debian and Ubuntu, `pip install` outside of a virtual environment is refused
+(PEP 668) and `pip` itself may be missing: use one of the commands above.
 
 ## Build documentation
 

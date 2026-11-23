@@ -456,6 +456,7 @@ class BaygonConfig(CommonSettings):
     report: str | None = None
     format: Literal["json", "yaml"] | None = None
     table: bool = False
+    lang: Literal["en", "fr"] = "en"
 
     @field_validator("version", mode="before")
     @classmethod
@@ -588,7 +589,25 @@ def _humanize_errors(error: ValidationError) -> str:
             previous = part
         location = ".".join(parts)
         messages.append(f"{location or 'config'}: {err['msg']}")
+    if any(err["type"] == "extra_forbidden" for err in error.errors()):
+        messages.append(_UNKNOWN_KEY_HINT.format(version=_installed_version()))
     return "\n".join(messages)
+
+
+_UNKNOWN_KEY_HINT = (
+    "An unknown key is either misspelled or meant for a newer Baygon than this "
+    "one ({version}): upgrade it with `pip install --upgrade baygon`, "
+    "`uv tool upgrade baygon` or `pipx upgrade baygon`."
+)
+
+
+def _installed_version() -> str:
+    from importlib.metadata import PackageNotFoundError, version
+
+    try:
+        return version("baygon")
+    except PackageNotFoundError:  # pragma: no cover - running from the sources
+        return "unknown version"
 
 
 def Schema(data: Any, humanize: bool = False):  # noqa: N802

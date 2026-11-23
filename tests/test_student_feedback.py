@@ -2,23 +2,31 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+import ast
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 import os
 from pathlib import Path
+import string
 from typing import Any
 
 from pydantic import ValidationError
 import pytest
 from rich.console import Console
+from typer.testing import CliRunner
 
-from baygon import eval as baygon_eval
+from baygon.__main__ import app
 from baygon.core.models import build_suite_model
 from baygon.executable import Outputs
 from baygon.helpers import display_command, display_program
+from baygon.i18n import FRENCH, get_language, set_language
 from baygon.matchers import describe_difference
 from baygon.presentation.rich import render_pretty_failures
-from baygon.presentation.text import failure_details, render_case_results
+from baygon.presentation.text import (
+    failure_details,
+    render_case_results,
+    render_summary,
+)
 from baygon.runtime.runner import BaygonRunner, CaseResult
 from baygon.schema import Schema
 
@@ -55,9 +63,11 @@ class FakeExecutable:
 
 
 @pytest.fixture(autouse=True)
-def _reset_counters() -> None:
-    """``iter()`` counters are global: start each test from scratch."""
-    baygon_eval.reset()
+def _english() -> Iterator[None]:
+    """The language is global: every test starts and ends in English."""
+    set_language("en")
+    yield
+    set_language("en")
 
 
 def _run(config: dict[str, Any], program: Program, tmp_path: Path):
@@ -357,3 +367,141 @@ def test_display_command_edge_cases() -> None:
     assert lines[0] == "$ ./prog <<'EOF'"
     assert lines[-2] == "... (5 more lines)"
     assert lines[-1] == "EOF"
+
+
+# --------------------------------------------------------------- counters
+
+
+def test_each_test_has_its_own_iter_counters(tmp_path: Path) -> None:
+    same = {"repeat": 2, "args": ["{{ n = iter(1) }}"], "stdout": "{{ 2 * n }}\n"}
+    shared = {"repeat": 2, "args": ["{{ iter(1, ctx='all') }}"]}
+    report, calls = _run(
+        {"eval": True, "tests": [same, same, shared, shared]}, _double, tmp_path
+    )
+    assert report.successes == 4
+    assert calls == [("1",), ("2",)] * 3 + [("3",), ("4",)]
+
+
+# -------------------------------------------------------- missing programs
+
+
+def test_a_missing_program_fails_only_its_tests(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    suite = build_suite_model(
+        Schema(
+            {
+                "version": 1,
+                "tests": [
+                    {
+                        "executable": "./unit",
+                        "repeat": 3,
+                        "args": [2],
+                        "stdout": "1\n",
+                        "message": "Not shown: the program did not run.",
+                    },
+                    {"executable": "echo", "args": ["hi"], "stdout": "hi\n"},
+                ],
+            }
+        )
+    )
+    report = BaygonRunner(suite, base_dir=tmp_path).run()
+    missing, passed = report.cases
+    assert passed.status == "passed"
+    assert missing.status == "failed"
+    assert missing.failed_run is None
+    assert failure_details(missing) == [
+        "Program ./unit was not found. Was it compiled?"
+    ]
+
+    set_language("fr")
+    assert str(missing.issues[0]) == (
+        "Le programme ./unit est introuvable. A-t-il bien été compilé ?"
+    )
+
+
+# ------------------------------------------------------------------ French
+
+
+def test_french_failure_details(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    set_language("fr")
+    result = _failing_result(tmp_path)
+    assert failure_details(result) == [
+        "$ ./prog 3  # essai 3 sur 5",
+        "Check the double of 3.",
+        "Wrong double.",
+        "La sortie stdout diffère de la sortie attendue à la ligne 1 :",
+        "  attendu : '6'",
+        "  obtenu :  '7'",
+    ]
+
+    report, _ = _run(
+        {"tests": [{"name": "Double", "args": [3], "exit": 1, "stdout": "6\n"}]},
+        _double,
+        tmp_path,
+    )
+    lines: list[str] = []
+    render_case_results(report, write=lines.append)
+    render_summary(report, write=lines.append)
+    assert lines[:3] == [
+        "Test 1 : Double ÉCHOUÉ",
+        "    $ ./prog 3",
+        "    La sortie stdout diffère de la sortie attendue à la ligne 1 :",
+    ]
+    assert lines[5] == "    Code de sortie incorrect : 1 attendu, 0 obtenu."
+    assert lines[-2:] == ["1 échoué(s), 0 réussi(s) (0.0 % ok).", "échec."]
+
+
+def _tr_texts() -> set[str]:
+    """Every text given to ``tr()`` in the sources of Baygon."""
+    texts: set[str] = set()
+    for path in Path(__file__).parent.parent.joinpath("baygon").rglob("*.py"):
+        for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+            if (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Name)
+                and node.func.id == "tr"
+                and node.args
+                and isinstance(node.args[0], ast.Constant)
+            ):
+                texts.add(node.args[0].value)
+    return texts
+
+
+def test_every_message_has_a_french_translation() -> None:
+    texts = _tr_texts()
+    assert len(texts) > 40
+    assert texts - FRENCH.keys() == set()
+
+
+@pytest.mark.parametrize("english", sorted(FRENCH))
+def test_french_keeps_the_placeholders(english: str) -> None:
+    def _names(text: str) -> set[str]:
+        return {name for _, name, _, _ in string.Formatter().parse(text) if name}
+
+    assert _names(FRENCH[english]) == _names(english)
+
+
+def test_lang_is_read_from_the_configuration() -> None:
+    assert build_suite_model(Schema({"tests": []})).lang == "en"
+    assert build_suite_model(Schema({"lang": "fr", "tests": []})).lang == "fr"
+    with pytest.raises(ValidationError):
+        Schema({"lang": "de", "tests": []})
+
+
+def test_cli_speaks_the_language_of_the_configuration(tmp_path: Path) -> None:
+    config = tmp_path / "baygon.yml"
+    config.write_text(
+        "version: 1\nlang: fr\nexecutable: echo\n"
+        "tests:\n  - name: Bonjour\n    args: [salut]\n    stdout: bonjour\n",
+        encoding="utf-8",
+    )
+    result = CliRunner().invoke(app, [f"--config={config}"])
+    assert get_language() == "fr"
+    assert "Fichier de configuration" in result.output
+    assert "Test 1 : Bonjour ÉCHOUÉ" in result.output
+    assert "$ echo salut" in result.output

@@ -78,9 +78,9 @@ def test_min_points_must_be_positive() -> None:
 def test_errors_point_to_the_right_model() -> None:
     with pytest.raises(ValidationError) as info:
         Schema({"version": 1, "tests": [{"tests": [{"stdout": [{"bogus": 1}]}]}]})
-    assert _humanize_errors(info.value) == (
-        "tests.0.tests.0.stdout.0.bogus: Extra inputs are not permitted"
-    )
+    first, hint = _humanize_errors(info.value).splitlines()
+    assert first == "tests.0.tests.0.stdout.0.bogus: Extra inputs are not permitted"
+    assert "newer Baygon" in hint
 
 
 def test_invalid_test_fails_alone(tmp_path: Path) -> None:

@@ -3,6 +3,8 @@ from pathlib import Path
 import re
 import shlex
 
+from .i18n import tr
+
 
 def escape_argument(arg):
     """Escape a command line argument.
@@ -83,7 +85,7 @@ def display_command(argv, stdin=None, start=None):
     body = text.split("\n")
     if len(body) > STDIN_LINES:
         hidden = len(body) - STDIN_LINES
-        body = [*body[:STDIN_LINES], f"... ({hidden} more lines)"]
+        body = [*body[:STDIN_LINES], tr("... ({count} more lines)", count=hidden)]
     return [f"$ {line} <<'EOF'", *body, "EOF"]
 
 

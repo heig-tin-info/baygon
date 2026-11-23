@@ -119,6 +119,10 @@ tests:
 
 Messages accept `{{ }}` expressions, evaluated with the values of the failing
 run. Prefer a message to a clever regex: the regex is shown to the student.
+`lang: fr` at the top level writes Baygon's own messages in French.
+
+A program that does not exist (it did not compile) fails only its own tests,
+so a suite can test a program and a separate unit-test runner side by side.
 
 ## Random and repeated inputs
 
@@ -193,8 +197,8 @@ with 1 on configuration errors (printed one per line, e.g.
 - `regex` searches anywhere; anchor with `^`/`$` (single line) or `\A`/`\Z`.
 - Quote regexes and strings with `:` `{` `[` `#` in YAML: `regex: '^\d+: ok$'`.
 - Each item of `not` must hold exactly one matcher; `same-as` cannot be negated.
-- `iter()` keeps one counter per expression text: two tests with the very same
-  `{{ n = iter(1) }}` share it. Vary the text or pass `ctx="name"`.
+- `iter()` keeps one counter per expression and per test; pass `ctx="name"`
+  to share one between tests.
 - A repeated test stops at its first failing run.
 - Destructive programs (`rm`, `mv`, `dd`, `mkfs`, `wget`) are refused as
   executables.

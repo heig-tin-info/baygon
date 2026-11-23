@@ -377,10 +377,11 @@ def test_file_next_to_the_config_wins_over_path(tmp_path: Path) -> None:
 
 
 def test_forbidden_programs_stay_forbidden(tmp_path: Path) -> None:
-    from baygon.error import InvalidExecutableError
-
-    with pytest.raises(InvalidExecutableError, match="forbidden"):
-        _run(tmp_path, {"tests": [{"executable": "rm", "args": ["-rf", "x"]}]})
+    (tmp_path / "x").mkdir()
+    report = _run(tmp_path, {"tests": [{"executable": "rm", "args": ["-rf", "x"]}]})
+    (issue,) = report.cases[0].issues
+    assert str(issue) == "Program rm cannot be run: Program 'rm' is forbidden!"
+    assert (tmp_path / "x").exists()
 
 
 def test_filters_on_tests_and_groups(tmp_path: Path) -> None:

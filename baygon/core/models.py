@@ -165,6 +165,8 @@ class SuiteModel:
     compute_score: bool = False
     timeout: float | None = None
     max_output: int | None = None
+    #: Language of the messages shown when a test fails (``en`` or ``fr``).
+    lang: str = "en"
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "filters", _deep_freeze(self.filters))
@@ -288,6 +290,7 @@ def _build_suite(config: Mapping[str, Any]) -> SuiteModel:
         compute_score=config.get("compute-score", False),
         timeout=config.get("timeout"),
         max_output=config.get("max-output"),
+        lang=config.get("lang", "en"),
     )
 
 

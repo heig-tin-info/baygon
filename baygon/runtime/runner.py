@@ -22,6 +22,7 @@ from baygon.core.models import CaseModel, ConditionModel, GroupModel, SuiteModel
 from baygon.error import InvalidExecutableError
 from baygon.executable import DEFAULT_MAX_OUTPUT, Executable, Outputs, get_env
 from baygon.filters import FilterEval, FilterNone, Filters
+from baygon.helpers import display_program
 from baygon.matchers import (
     ExecutionFailed,
     ExecutionTimeout,
@@ -30,6 +31,7 @@ from baygon.matchers import (
     InvalidSameAs,
     InvalidTestDefinition,
     MatcherFactory,
+    MissingExecutable,
     OutputLimitExceeded,
 )
 from baygon.score import float_or_int
@@ -327,11 +329,28 @@ class BaygonRunner:
                 f"Executable not provided for test '{case.name}' (id {case.id_str})."
             )
 
-        exec_obj = self._get_executable(exec_path)
         filters = context.filters
         eval_filter = context.eval_filter
+        if isinstance(eval_filter, FilterEval):
+            eval_filter.scope = case.id  # Its own ``iter()`` counters.
         generator = case.stdin_command
         run = 0
+
+        # A program that does not exist (it did not compile) only fails its
+        # own tests, the other ones still run.
+        try:
+            exec_obj = self._get_executable(exec_path)
+        except InvalidExecutableError as error:
+            issues.append(
+                MissingExecutable(
+                    str(error),
+                    display_program(exec_path),
+                    # A bare name, such as ``rm``, was found in the PATH.
+                    found=Path(exec_path).exists() or not Path(exec_path).is_absolute(),
+                    on="exit",
+                    test=case,
+                )
+            )
 
         # A repeated test stops at its first failing run: the student sees one
         # failure, with the inputs that caused it, instead of hundreds.
@@ -448,8 +467,9 @@ class BaygonRunner:
                 issue.message = _explain(eval_filter, case.exit_message, issues, case)
                 issues.append(issue)
 
+        # The message explains a wrong result: not shown when nothing ran.
         message = None
-        if issues:
+        if issues and run:
             message = _explain(eval_filter, context.message, issues, case)
         status = "failed" if issues else "passed"
         duration = round(self._clock() - start, 6)
@@ -464,7 +484,7 @@ class BaygonRunner:
             duration=duration,
             points_earned=earned,
             message=message,
-            failed_run=run if issues else None,
+            failed_run=run if issues and run else None,
         )
 
     def _run_helper(

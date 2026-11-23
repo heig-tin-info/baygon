@@ -203,6 +203,18 @@ failing run:
 
 Messages are also written in the report, under `messages`.
 
+### Language
+
+`lang: fr` at the top level writes in French the messages of Baygon itself:
+the header of each test, the issues and the summary. The default is `en`.
+
+```text
+Test 1.1 : Invalid arguments ÉCHOUÉ
+    $ ./collatz abc
+    main must end with return 2;
+    Code de sortie incorrect : 2 attendu, 1 obtenu.
+```
+
 ## Executable
 
 In the case you want to specify a different executable name for a different test:
@@ -226,6 +238,10 @@ A relative path is relative to the directory of the configuration file. A
 bare name such as `grep` or `gcc` that is not a file in that directory is looked
 up in the `PATH`, which is handy to [check the source code](source-checks.md).
 Destructive programs (`rm`, `mv`, `dd`, `mkfs`, `wget`) are refused.
+
+A program that does not exist, for example because it did not compile, only
+fails its own tests, with `Program ./unit was not found. Was it compiled?`.
+The other tests still run.
 
 The executable is propagated through the test tree, and the nearest one wins: a group or a test can set its own executable even when a parent already has one.
 
@@ -467,7 +483,9 @@ tests:
 - The functions of the `math`, `random` and `statistics` modules are available.
 - `iter(start=0, step=1)` returns `start`, then `start + step`... a new value
   each time the same expression is evaluated, e.g. one per run of a repeated
-  test.
+  test. Each test has its own counters, so two tests with the same expression
+  both start from `start`. `iter(ctx="name")` shares one counter between all
+  the tests.
 - The delimiters and the code run beforehand can be changed:
 
 ```yaml
