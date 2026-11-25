@@ -264,6 +264,7 @@ class CaseCondition(BaseModel):
     same_as: str | None = Field(default=None, alias="same-as")
     expected: str | None = None
     not_conditions: list[NegatedCondition] | None = Field(default=None, alias="not")
+    message: str | None = None
 
     @field_validator("equals", "regex", "contains", "expected", mode="before")
     @classmethod
@@ -342,6 +343,23 @@ class StdinCommand(BaseModel):
         return [_coerce_value(item) for item in value]
 
 
+class ExitSpec(BaseModel):
+    """Expected exit status with its explanation: ``{value: 2, message: ...}``."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    value: int | str
+    message: str | None = None
+
+    @field_validator("value", mode="before")
+    @classmethod
+    def _validate_value(cls, value: Any):
+        # Like the other values, booleans are read as 0 and 1.
+        if isinstance(value, bool):
+            return int(value)
+        return value
+
+
 class TestCaseModel(CommonSettings):
     """Single executable test case."""
 
@@ -353,8 +371,9 @@ class TestCaseModel(CommonSettings):
     stdout: list[CaseCondition] = Field(default_factory=list)
     stderr: list[CaseCondition] = Field(default_factory=list)
     repeat: int = 1
-    exit: int | str | bool | None = None
+    exit: int | str | bool | ExitSpec | None = None
     filters: FiltersConfig | None = None
+    message: str | None = None
     test_id: list[int] = Field(default_factory=list, alias="test_id")
 
     @field_validator("exit", mode="before")
@@ -403,6 +422,7 @@ class TestGroupModel(CommonSettings):
 
     tests: list[BaygonTest]
     filters: FiltersConfig | None = None
+    message: str | None = None
     test_id: list[int] = Field(default_factory=list, alias="test_id")
 
 
@@ -436,6 +456,7 @@ class BaygonConfig(CommonSettings):
     report: str | None = None
     format: Literal["json", "yaml"] | None = None
     table: bool = False
+    lang: Literal["en", "fr"] = "en"
 
     @field_validator("version", mode="before")
     @classmethod
@@ -568,7 +589,25 @@ def _humanize_errors(error: ValidationError) -> str:
             previous = part
         location = ".".join(parts)
         messages.append(f"{location or 'config'}: {err['msg']}")
+    if any(err["type"] == "extra_forbidden" for err in error.errors()):
+        messages.append(_UNKNOWN_KEY_HINT.format(version=_installed_version()))
     return "\n".join(messages)
+
+
+_UNKNOWN_KEY_HINT = (
+    "An unknown key is either misspelled or meant for a newer Baygon than this "
+    "one ({version}): upgrade it with `pip install --upgrade baygon`, "
+    "`uv tool upgrade baygon` or `pipx upgrade baygon`."
+)
+
+
+def _installed_version() -> str:
+    from importlib.metadata import PackageNotFoundError, version
+
+    try:
+        return version("baygon")
+    except PackageNotFoundError:  # pragma: no cover - running from the sources
+        return "unknown version"
 
 
 def Schema(data: Any, humanize: bool = False):  # noqa: N802

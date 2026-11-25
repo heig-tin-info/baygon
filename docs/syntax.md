@@ -101,6 +101,16 @@ tests:
   - exit: 0
 ```
 
+With a [message](#messages), `exit` is a mapping:
+
+```yaml
+tests:
+  - args: [abc]
+    exit:
+      value: 2
+      message: "On an error, main must end with return 2;"
+```
+
 ## Standard input
 
 `stdin` is the text given to the program on its standard input:
@@ -149,6 +159,62 @@ tests:
       - equals: foobar # Must be exactly equal to foobar
 ```
 
+## Messages
+
+Students are often beginners: a failing test should tell them what to fix, in
+their language. `message` explains a failure in the words of the teacher. It
+can be set on a test, on a group (its tests inherit it unless they set their
+own), on a condition of `stdout`/`stderr` and on the [exit status](#exit-status):
+
+```yaml
+version: 1
+executable: ./collatz
+tests:
+  - name: Invalid arguments
+    message: The usage is printed, then the program returns 2.
+    tests:
+      - args: [abc]
+        exit: { value: 2, message: "main must end with return 2;" }
+        stdout:
+          - regex: '^usage: '
+            message: Print the usage with printf, on the standard output.
+```
+
+A failing test shows the command to run it again, then the messages, each
+followed by the issue it explains:
+
+```text
+Test 1.1: Invalid arguments FAILED
+    $ ./collatz abc
+    The usage is printed, then the program returns 2.
+    main must end with return 2;
+    Invalid exit status: expected 2, got 1.
+```
+
+Messages accept [expressions](#expressions), evaluated with the values of the
+failing run:
+
+```yaml
+  - repeat: 4
+    args: [next, "{{ n = [2, 6, 16, 100000][iter()] }}"]
+    stdout: "{{ n // 2 }}\n"
+    message: "next_term({{ n }}) must return {{ n // 2 }}."
+```
+
+Messages are also written in the report, under `messages`.
+
+### Language
+
+`lang: fr` at the top level writes in French the messages of Baygon itself:
+the header of each test, the issues and the summary. The default is `en`.
+
+```text
+Test 1.1 : Invalid arguments ÉCHOUÉ
+    $ ./collatz abc
+    main must end with return 2;
+    Code de sortie incorrect : 2 attendu, 1 obtenu.
+```
+
 ## Executable
 
 In the case you want to specify a different executable name for a different test:
@@ -172,6 +238,10 @@ A relative path is relative to the directory of the configuration file. A
 bare name such as `grep` or `gcc` that is not a file in that directory is looked
 up in the `PATH`, which is handy to [check the source code](source-checks.md).
 Destructive programs (`rm`, `mv`, `dd`, `mkfs`, `wget`) are refused.
+
+A program that does not exist, for example because it did not compile, only
+fails its own tests, with `Program ./unit was not found. Was it compiled?`.
+The other tests still run.
 
 The executable is propagated through the test tree, and the nearest one wins: a group or a test can set its own executable even when a parent already has one.
 
@@ -241,8 +311,11 @@ tests:
 
 When a limit is reached, the program and every process it started are killed,
 the test fails with `Timeout after 1 s.` or `Output limit exceeded`, and the
-rest of the suite goes on. A test with `repeat` stops at the first run that
-reaches a limit.
+rest of the suite goes on.
+
+A test with `repeat` stops at its first failing run, whatever the cause: one
+failure is shown, with the command that caused it (`# run 3 of 1000`), instead
+of hundreds of them.
 
 There is no time limit by default. The `--timeout` option sets one for every
 test whose configuration has none:
@@ -410,7 +483,9 @@ tests:
 - The functions of the `math`, `random` and `statistics` modules are available.
 - `iter(start=0, step=1)` returns `start`, then `start + step`... a new value
   each time the same expression is evaluated, e.g. one per run of a repeated
-  test.
+  test. Each test has its own counters, so two tests with the same expression
+  both start from `start`. `iter(ctx="name")` shares one counter between all
+  the tests.
 - The delimiters and the code run beforehand can be changed:
 
 ```yaml

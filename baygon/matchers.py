@@ -8,11 +8,140 @@ import math
 import re
 from typing import TypeVar
 
+from .i18n import tr
+
 MatchType = TypeVar("MatchType", bound="MatchBase")
+
+#: Lines longer than this are cut around their first difference.
+LINE_WIDTH = 72
+
+#: Outputs quoted in a message are cut after this many characters.
+PREVIEW_LENGTH = 200
+
+
+def _show(line):
+    """Quote a line, making tabs and carriage returns visible.
+
+    >>> print(_show("a\\tb "))
+    'a\\tb '
+    """
+    return "'" + line.replace("\t", "\\t").replace("\r", "\\r") + "'"
+
+
+def _preview(text):
+    """Cut a long output quoted in a message.
+
+    >>> _preview("abc")
+    'abc'
+    >>> len(_preview("x" * 500))
+    201
+    """
+    if len(text) <= PREVIEW_LENGTH:
+        return text
+    return text[:PREVIEW_LENGTH] + "…"
+
+
+def _window(expected, found, width=LINE_WIDTH):
+    """Cut two lines around their first difference, keeping them aligned.
+
+    >>> _window("short", "shirt")
+    ('short', 'shirt')
+    >>> _window("a" * 100 + "X", "a" * 100 + "Y", width=10)
+    ('…aaaaaaaaaX', '…aaaaaaaaaY')
+    >>> _window("1 -> " * 30, "1", width=12)
+    ('1 -> 1 -> 1 …', '1')
+    """
+    longest = max(len(expected), len(found))
+    if longest <= width:
+        return expected, found
+    column = next(
+        (i for i, (a, b) in enumerate(zip(expected, found, strict=False)) if a != b),
+        min(len(expected), len(found)),
+    )
+    start = max(0, min(column - width // 3, longest - width))
+
+    def _cut(line):
+        part = line[start : start + width]
+        if start > 0:
+            part = "…" + part
+        if start + width < len(line):
+            part += "…"
+        return part
+
+    return _cut(expected), _cut(found)
+
+
+def describe_difference(stream, expected, found):
+    """Explain where an output first differs from the expected one.
+
+    >>> print(describe_difference("stdout", "a\\nb\\n", "a\\nc\\n"))
+    Output stdout differs from the expected output on line 2:
+      expected: 'b'
+      found:    'c'
+    >>> print(describe_difference("stdout", "a\\nb\\n", "a\\n"))
+    Output stdout differs from the expected output on line 2:
+      expected: 'b'
+      found:    (end of output)
+    >>> print(describe_difference("stdout", "a\\n", ""))
+    Output stdout differs from the expected output on line 1:
+      expected: 'a'
+      found:    (empty output)
+    >>> print(describe_difference("stdout", "1 -> " * 20 + "\\n", ""))
+    Output stdout differs from the expected output on line 1:
+      expected: '1 -> 1 -> 1 -> 1 -> 1 -> 1 -> 1 -> 1 -> 1 -> 1 -> 1 -> 1 -> 1 -> 1 -> 1 …'
+      found:    (empty output)
+    >>> print(describe_difference("stdout", "a\\n", "a"))
+    Output stdout has the expected lines, but the newline at the end is missing.
+    """
+    expected_lines = expected.splitlines()
+    found_lines = found.splitlines()
+    for index in range(max(len(expected_lines), len(found_lines))):
+        want = expected_lines[index] if index < len(expected_lines) else None
+        got = found_lines[index] if index < len(found_lines) else None
+        if want != got:
+            break
+    else:
+        if expected.endswith("\n") and not found.endswith("\n"):
+            reason = tr("the newline at the end is missing")
+        elif found.endswith("\n") and not expected.endswith("\n"):
+            reason = tr("there is an extra newline at the end")
+        else:
+            reason = tr("the line endings differ")
+        return tr(
+            "Output {stream} has the expected lines, but {reason}.",
+            stream=stream,
+            reason=reason,
+        )
+
+    cut_want, cut_got = _window(want or "", got or "")
+    want = None if want is None else cut_want
+    got = None if got is None else cut_got
+    shown_want = tr("(end of output)") if want is None else _show(want)
+    if got is not None:
+        shown_got = _show(got)
+    else:
+        shown_got = tr("(empty output)") if not found else tr("(end of output)")
+    return "\n".join(
+        (
+            tr(
+                "Output {stream} differs from the expected output on line {line}:",
+                stream=stream,
+                line=index + 1,
+            ),
+            "  " + tr("expected: ") + shown_want,
+            "  " + tr("found:    ") + shown_got,
+        )
+    )
 
 
 class InvalidCondition:
-    """Invalid test case condition."""
+    """Invalid test case condition.
+
+    ``message`` is the explanation written by the author of the test, shown
+    with the issue when it is set.
+    """
+
+    message = None
 
     def __init__(self, value, expected, on=None, test=None, inverse=False, **kwargs):
         self.on = on
@@ -22,9 +151,11 @@ class InvalidCondition:
         self.inverse = inverse
 
     def __str__(self):
-        return (
-            f'Expected value "{self.expected}" on {self.on}, '
-            f'but got "{self.value}" instead.'
+        return tr(
+            'Expected value "{expected}" on {stream}, but got "{found}" instead.',
+            expected=self.expected,
+            stream=self.on,
+            found=self.value,
         )
 
     def __repr__(self):
@@ -42,7 +173,11 @@ class InvalidExitStatus(InvalidCondition):
     """
 
     def __str__(self):
-        return f"Invalid exit status: expected {self.value}, got {self.expected}."
+        return tr(
+            "Invalid exit status: expected {expected}, got {found}.",
+            expected=self.value,
+            found=self.expected,
+        )
 
 
 class ExecutionTimeout(InvalidCondition):
@@ -57,7 +192,7 @@ class ExecutionTimeout(InvalidCondition):
         self.on = self.on or "exit"
 
     def __str__(self):
-        return f"Timeout after {self.expected:g} s."
+        return tr("Timeout after {seconds:g} s.", seconds=self.expected)
 
 
 class OutputLimitExceeded(InvalidCondition):
@@ -68,9 +203,9 @@ class OutputLimitExceeded(InvalidCondition):
     """
 
     def __str__(self):
-        return (
-            f"Output limit exceeded (more than {self.expected} bytes), "
-            "the program was killed."
+        return tr(
+            "Output limit exceeded (more than {limit} bytes), the program was killed.",
+            limit=self.expected,
         )
 
 
@@ -78,7 +213,41 @@ class ExecutionFailed(InvalidCondition):
     """The program could not be started."""
 
     def __str__(self):
-        return f"Unable to execute {self.expected}: {self.value}"
+        return tr(
+            "Unable to execute {program}: {error}",
+            program=self.expected,
+            error=self.value,
+        )
+
+
+class MissingExecutable(InvalidCondition):
+    """The program under test does not exist or cannot be run.
+
+    Only the tests of this program fail: a program that did not compile does
+    not stop the other tests. ``value`` is the reason, ``expected`` the path
+    as shown to the student, ``found`` tells whether the file exists.
+
+    >>> print(MissingExecutable("not executable", "./unit", found=False))
+    Program ./unit was not found. Was it compiled?
+    >>> print(MissingExecutable("Permission denied", "./unit", found=True))
+    Program ./unit cannot be run: Permission denied
+    """
+
+    def __init__(self, value, expected, found=False, **kwargs):
+        super().__init__(value, expected, **kwargs)
+        self.found = found
+
+    def __str__(self):
+        if not self.found:
+            return tr(
+                "Program {program} was not found. Was it compiled?",
+                program=self.expected,
+            )
+        return tr(
+            "Program {program} cannot be run: {error}",
+            program=self.expected,
+            error=self.value,
+        )
 
 
 class InvalidTestDefinition(InvalidCondition):
@@ -89,7 +258,9 @@ class InvalidTestDefinition(InvalidCondition):
     """
 
     def __str__(self):
-        return f"Invalid test: {type(self.value).__name__}: {self.value}"
+        return tr(
+            "Invalid test: {error}", error=f"{type(self.value).__name__}: {self.value}"
+        )
 
 
 class InvalidNumber(InvalidCondition):
@@ -100,15 +271,18 @@ class InvalidNumber(InvalidCondition):
 
     def __str__(self):
         text = self.value.strip()
+        values = {"stream": self.on, "found": text, "expected": self.expected}
         if self.inverse:
-            return f"Output {self.on} is {text}, it should not be {self.expected}."
-        if _parse_number(text) is None:
-            shown = text if len(text) <= 60 else text[:57] + "..."
-            return (
-                f'Output {self.on} is not a number: "{shown}" '
-                f"(expected {self.expected})."
+            return tr(
+                "Output {stream} is {found}, it should not be {expected}.", **values
             )
-        return f"Output {self.on} is {text}, expected {self.expected}."
+        if _parse_number(text) is None:
+            values["found"] = text if len(text) <= 60 else text[:57] + "..."
+            return tr(
+                'Output {stream} is not a number: "{found}" (expected {expected}).',
+                **values,
+            )
+        return tr("Output {stream} is {found}, expected {expected}.", **values)
 
 
 class InvalidCount(InvalidCondition):
@@ -123,14 +297,18 @@ class InvalidCount(InvalidCondition):
         self.unit = unit
 
     def __str__(self):
+        values = {
+            "stream": self.on,
+            "count": self.value,
+            "unit": tr(self.unit),
+            "expected": self.expected,
+        }
         if self.inverse:
-            return (
-                f"Output {self.on} has {self.value} {self.unit}, "
-                f"it should not have {self.expected}."
+            return tr(
+                "Output {stream} has {count} {unit}, it should not have {expected}.",
+                **values,
             )
-        return (
-            f"Output {self.on} has {self.value} {self.unit}, expected {self.expected}."
-        )
+        return tr("Output {stream} has {count} {unit}, expected {expected}.", **values)
 
 
 class InvalidSameAs(InvalidCondition):
@@ -145,11 +323,12 @@ class InvalidSameAs(InvalidCondition):
         self.reference = reference
 
     def __str__(self):
-        value = "(empty)" if not self.value else f"'{self.value}'"
-        expected = "(empty)" if not self.expected else f"'{self.expected}'"
-        return (
-            f"Output {self.on} {value} differs from the reference "
-            f"{self.reference}: {expected}."
+        return tr(
+            "Output {stream} {found} differs from the reference {reference}: {expected}.",
+            stream=self.on,
+            found=f"'{self.value}'" if self.value else tr("(empty)"),
+            reference=self.reference,
+            expected=f"'{self.expected}'" if self.expected else tr("(empty)"),
         )
 
 
@@ -161,21 +340,30 @@ class HelperProgramFailed(InvalidCondition):
     """
 
     def __str__(self):
-        return f"{self.expected} failed: {str(self.value).rstrip('.!')}."
+        return tr(
+            "{program} failed: {reason}.",
+            program=self.expected,
+            reason=str(self.value).rstrip(".!"),
+        )
 
 
 class InvalidContains(InvalidCondition):
     """Invalid contains error."""
 
     def __str__(self):
+        values = {
+            "stream": self.on,
+            "expected": self.expected,
+            "found": _preview(self.value),
+        }
         if self.inverse:
-            return (
-                f"Output {self.on} should not contain {self.expected}. "
-                f'Found "{self.value}".'
+            return tr(
+                'Output {stream} should not contain {expected}. Found "{found}".',
+                **values,
             )
-        return (
-            f"Output {self.on} does not contain {self.expected}. "
-            f'Found "{self.value}" instead.'
+        return tr(
+            'Output {stream} does not contain {expected}. Found "{found}" instead.',
+            **values,
         )
 
 
@@ -183,24 +371,54 @@ class InvalidRegex(InvalidCondition):
     """Invalid regex error."""
 
     def __str__(self):
+        values = {
+            "stream": self.on,
+            "pattern": self.expected,
+            "found": _preview(self.value),
+        }
         if self.inverse:
-            return (
-                f"Output '{self.on}' should not match /{self.expected}/ "
-                f'on "{self.value}".'
+            return tr(
+                'Output {stream} should not match /{pattern}/ on "{found}".', **values
             )
-        return (
-            f"Output '{self.on}' does not match /{self.expected}/ on \"{self.value}\"."
-        )
+        return tr('Output {stream} does not match /{pattern}/ on "{found}".', **values)
 
 
 class InvalidEquals(InvalidCondition):
-    """Invalid equals error."""
+    """Invalid equals error.
+
+    Short one-line outputs are quoted whole, longer ones are described by
+    their first differing line.
+
+    >>> str(InvalidEquals("4", "3", on="stdout"))
+    "Output '4' does not equal '3' on stdout."
+    >>> print(InvalidEquals("1\\n", "1 (0 steps)\\n", on="stdout"))
+    Output stdout differs from the expected output on line 1:
+      expected: '1 (0 steps)'
+      found:    '1'
+    """
 
     def __str__(self):
-        value = "(empty)" if not self.value else f"'{self.value}'"
+        value = tr("(empty)") if not self.value else f"'{_preview(self.value)}'"
         if self.inverse:
-            return f"Output {value} should not equal '{self.expected}' on {self.on}."
-        return f"Output {value} does not equal '{self.expected}' on {self.on}."
+            return tr(
+                "Output {found} should not equal '{expected}' on {stream}.",
+                found=value,
+                expected=_preview(self.expected),
+                stream=self.on,
+            )
+        if _is_short(self.value) and _is_short(self.expected):
+            return tr(
+                "Output {found} does not equal '{expected}' on {stream}.",
+                found=value,
+                expected=self.expected,
+                stream=self.on,
+            )
+        return describe_difference(self.on, self.expected, self.value)
+
+
+def _is_short(text):
+    """A short text holds on one line and is quoted whole in messages."""
+    return "\n" not in text and len(text) <= LINE_WIDTH // 2
 
 
 class MatchBase(ABC):
@@ -342,10 +560,10 @@ class _RangeMatch(MatchBase):
 
     def _describe_range(self):
         if self.min is not None and self.max is not None:
-            return f"between {_fmt(self.min)} and {_fmt(self.max)}"
+            return tr("between {min} and {max}", min=_fmt(self.min), max=_fmt(self.max))
         if self.min is not None:
-            return f"at least {_fmt(self.min)}"
-        return f"at most {_fmt(self.max)}"
+            return tr("at least {min}", min=_fmt(self.min))
+        return tr("at most {max}", max=_fmt(self.max))
 
 
 @register_matcher
@@ -396,7 +614,7 @@ class _CountMatch(_RangeMatch):
     def describe(self):
         """Describe the expected count."""
         if self.value is not None:
-            return f"exactly {_fmt(self.value)}"
+            return tr("exactly {value}", value=_fmt(self.value))
         return self._describe_range()
 
     def __call__(self, value, **kwargs):

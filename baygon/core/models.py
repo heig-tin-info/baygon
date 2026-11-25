@@ -62,6 +62,7 @@ class ConditionModel:
     length: Mapping[str, Any] | None = None
     lines: Mapping[str, Any] | None = None
     same_as: str | None = None
+    message: str | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "filters", _deep_freeze(self.filters))
@@ -98,6 +99,10 @@ class CaseModel:
     timeout: float | None = None
     max_output: int | None = None
     stdin_command: StdinCommandModel | None = None
+    #: Explanation shown when the test fails.
+    message: str | None = None
+    #: Explanation shown when the exit status is not the expected one.
+    exit_message: str | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "env", _deep_freeze(self.env))
@@ -126,6 +131,8 @@ class GroupModel:
     eval: Mapping[str, Any] | None = None
     timeout: float | None = None
     max_output: int | None = None
+    #: Explanation shown when one of its tests fails, unless it has its own.
+    message: str | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "filters", _deep_freeze(self.filters))
@@ -158,6 +165,8 @@ class SuiteModel:
     compute_score: bool = False
     timeout: float | None = None
     max_output: int | None = None
+    #: Language of the messages shown when a test fails (``en`` or ``fr``).
+    lang: str = "en"
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "filters", _deep_freeze(self.filters))
@@ -281,6 +290,7 @@ def _build_suite(config: Mapping[str, Any]) -> SuiteModel:
         compute_score=config.get("compute-score", False),
         timeout=config.get("timeout"),
         max_output=config.get("max-output"),
+        lang=config.get("lang", "en"),
     )
 
 
@@ -298,6 +308,7 @@ def _build_node(config: Mapping[str, Any]) -> TestNode:
             eval=config.get("eval"),
             timeout=config.get("timeout"),
             max_output=config.get("max-output"),
+            message=config.get("message"),
         )
     stdin = config.get("stdin")
     stdin_command = None
@@ -307,6 +318,11 @@ def _build_node(config: Mapping[str, Any]) -> TestNode:
             args=tuple(stdin.get("args") or ()),
         )
         stdin = None
+    exit_status = config.get("exit")
+    exit_message = None
+    if isinstance(exit_status, Mapping):
+        exit_message = exit_status.get("message")
+        exit_status = exit_status["value"]
     return CaseModel(
         id=_as_id_tuple(config.get("test_id")),
         name=config.get("name", ""),
@@ -319,12 +335,14 @@ def _build_node(config: Mapping[str, Any]) -> TestNode:
         stdout=tuple(_build_condition(item) for item in config.get("stdout") or ()),
         stderr=tuple(_build_condition(item) for item in config.get("stderr") or ()),
         repeat=int(config.get("repeat", 1)),
-        exit=config.get("exit"),
+        exit=exit_status,
         filters=config.get("filters") or {},
         eval=config.get("eval"),
         timeout=config.get("timeout"),
         max_output=config.get("max-output"),
         stdin_command=stdin_command,
+        message=config.get("message"),
+        exit_message=exit_message,
     )
 
 
@@ -351,4 +369,5 @@ def _build_condition(config: Mapping[str, Any]) -> ConditionModel:
         length=config.get("length"),
         lines=config.get("lines"),
         same_as=config.get("same-as"),
+        message=config.get("message"),
     )

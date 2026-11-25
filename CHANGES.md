@@ -5,10 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## 0.10.0 (2026-11-25)
+
+### Added
+
+- `message`: an explanation in the words of the teacher, shown when a test fails. It can be set on a test, on a group (inherited by its tests), on a `stdout`/`stderr` condition and on the exit status (`exit: {value: 2, message: ...}`). It accepts `{{ }}` expressions, evaluated with the values of the failing run, and is written in the report under `messages`
+- A failing test shows the command to run it again, with a path relative to the current directory and its standard input: `$ ./collatz abc`, `$ echo '3 4' | ./add`. A repeated test also tells which run failed: `# run 3 of 1000`
+- `lang: fr` writes the messages of Baygon in French: test headers, issues and summary (`baygon.i18n`)
+- An unknown key in the configuration suggests upgrading Baygon, as it may come from a newer version
 
 ### Changed
 
+- A repeated test stops at its first failing run, whatever the cause, instead of only on a time or output limit. The report gives the failing run under `failed_run`
+- A long or multi-line output that is not the expected one is described by its first differing line, cut around the difference, instead of being quoted whole. Outputs quoted by `contains` and `regex` failures are cut after 200 characters
+- In the text output, the details of a failing test are indented under it
+- A program that does not exist, or cannot be run, only fails its own tests (`Program ./unit was not found. Was it compiled?`) instead of stopping the whole suite. The `message` of such a test is not shown, as nothing ran
+- Each test has its own `iter()` counters: two tests with the same expression both start from the beginning. `iter(ctx="name")` still shares a counter. `FilterEval` keeps its counters itself; `baygon.eval.iter` and `baygon.eval.reset` are no longer used
+- `regex` failures name the stream like the other matchers: `Output stdout does not match ...` instead of `Output 'stdout' ...`
+- The README recommends installing Baygon with `uv tool install` or `pipx install`
 - The Claude Code plugin follows the Baygon releases: each release publishes `plugins/baygon` to the `claude-plugin` branch with the version of the release, and the marketplace serves that branch. Plugin users get the skill of the latest release only, and `claude plugin update` sees each release as an update
 - The plugin has an icon and its own README
 

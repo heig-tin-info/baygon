@@ -182,7 +182,20 @@ class FilterRegex(Filter):
 
 @register_filter
 class FilterEval(Filter):
-    """Filter for evaluating mustaches in strings."""
+    """Filter for evaluating mustaches in strings.
+
+    ``iter(start=0, step=1)`` returns ``start``, then ``start + step``... one
+    new value each time the same mustache is evaluated. Each test has its own
+    counters: the runner gives it as ``scope``. ``iter(ctx="name")`` shares a
+    counter between all the tests.
+
+    >>> f = FilterEval()
+    >>> " ".join(f("{{ iter() }}") for _ in range(3))
+    '0 1 2'
+    >>> f.scope = (2,)
+    >>> f("{{ iter() }}"), f("{{ iter() }}")
+    ('0', '1')
+    """
 
     def __init__(
         self, start: str = "{{", end: str = "}}", init: list[str] | None = None
@@ -190,22 +203,28 @@ class FilterEval(Filter):
         super().__init__()
         self._mustache = re.compile(f"{re.escape(start)}(.*?){re.escape(end)}")
         self._kernel = TinyKernel()
+        self._counters: dict[tuple, int] = {}
+        self._code: str | None = None
+        #: The test whose mustaches are evaluated, see ``iter()``.
+        self.scope: object = None
 
         seed = list(init) if init is not None else []
         seed += [
             "from math import *",
             "from random import *",
             "from statistics import *",
-            # ``iter()`` keeps one counter per mustache: the mustache being
-            # evaluated is given to it through ``_baygon_ctx``.
-            "from baygon.eval import iter as _baygon_iter",
-            "_baygon_ctx = None",
-            "iter = lambda start=0, step=1, ctx=None: _baygon_iter("
-            "start, step, _baygon_ctx if ctx is None else ctx)",
         ]
 
         for item in seed:
             self._kernel(item)
+        self._kernel.glb["iter"] = self._iter
+
+    def _iter(self, start=0, step=1, ctx=None):
+        """Next value of the counter of the mustache being evaluated."""
+        owner = ("ctx", ctx) if ctx is not None else (self.scope, self._code)
+        key = (start, step, owner)
+        self._counters[key] = self._counters.get(key, start - step) + step
+        return self._counters[key]
 
     def apply(self, value: str) -> str:
         """Evaluate mustaches in a string."""
@@ -221,7 +240,7 @@ class FilterEval(Filter):
     def exec(self, code: str):
         """Execute code in the kernel."""
 
-        self._kernel.glb["_baygon_ctx"] = hash(code)
+        self._code = code
 
         # Workaround to get the value of assignments
         try:

@@ -22,6 +22,7 @@ from baygon.core.models import CaseModel, ConditionModel, GroupModel, SuiteModel
 from baygon.error import InvalidExecutableError
 from baygon.executable import DEFAULT_MAX_OUTPUT, Executable, Outputs, get_env
 from baygon.filters import FilterEval, FilterNone, Filters
+from baygon.helpers import display_program
 from baygon.matchers import (
     ExecutionFailed,
     ExecutionTimeout,
@@ -30,6 +31,7 @@ from baygon.matchers import (
     InvalidSameAs,
     InvalidTestDefinition,
     MatcherFactory,
+    MissingExecutable,
     OutputLimitExceeded,
 )
 from baygon.score import float_or_int
@@ -61,6 +63,25 @@ class CaseResult:
     commands: tuple[CommandLog, ...]
     duration: float | None = None
     points_earned: float | int | None = None
+    #: Explanation written by the author of the test, shown when it fails.
+    message: str | None = None
+    #: Run (from 1) of a repeated test that failed; the next runs are skipped.
+    failed_run: int | None = None
+
+    @property
+    def command(self) -> CommandLog | None:
+        """The last run of the program under test."""
+        programs = [log for log in self.commands if log.role is None]
+        return programs[-1] if programs else None
+
+    @property
+    def messages(self) -> list[str]:
+        """Explanations of the failure written by the author of the test."""
+        found: list[str] = []
+        for text in (self.message, *(getattr(i, "message", None) for i in self.issues)):
+            if text and text not in found:
+                found.append(text)
+        return found
 
 
 @dataclass(frozen=True)
@@ -107,7 +128,7 @@ def _round_points(value: float | int) -> float | int:
 
 def _case_payload(result: CaseResult) -> dict[str, Any]:
     case = result.case
-    return {
+    payload = {
         "id": case.id_str,
         "name": case.name,
         "status": result.status,
@@ -118,6 +139,11 @@ def _case_payload(result: CaseResult) -> dict[str, Any]:
         "time": result.duration,
         "issues": [str(issue) for issue in result.issues],
     }
+    if result.messages:
+        payload["messages"] = result.messages
+    if result.failed_run is not None and case.repeat > 1:
+        payload["failed_run"] = result.failed_run
+    return payload
 
 
 def _groups_payload(
@@ -170,6 +196,7 @@ class _ExecutionContext:
     executable: str | None
     timeout: float | None = None
     max_output: int | None = None
+    message: str | None = None
 
 
 class BaygonRunner:
@@ -283,6 +310,7 @@ class BaygonRunner:
             ),
             timeout=_first_set(node.timeout, parent_context.timeout),
             max_output=_first_set(node.max_output, parent_context.max_output),
+            message=_first_set(node.message, parent_context.message),
         )
         if isinstance(node, CaseModel):
             yield (node, context)
@@ -301,12 +329,33 @@ class BaygonRunner:
                 f"Executable not provided for test '{case.name}' (id {case.id_str})."
             )
 
-        exec_obj = self._get_executable(exec_path)
         filters = context.filters
         eval_filter = context.eval_filter
+        if isinstance(eval_filter, FilterEval):
+            eval_filter.scope = case.id  # Its own ``iter()`` counters.
         generator = case.stdin_command
+        run = 0
 
-        for _ in range(case.repeat):
+        # A program that does not exist (it did not compile) only fails its
+        # own tests, the other ones still run.
+        try:
+            exec_obj = self._get_executable(exec_path)
+        except InvalidExecutableError as error:
+            issues.append(
+                MissingExecutable(
+                    str(error),
+                    display_program(exec_path),
+                    # A bare name, such as ``rm``, was found in the PATH.
+                    found=Path(exec_path).exists() or not Path(exec_path).is_absolute(),
+                    on="exit",
+                    test=case,
+                )
+            )
+
+        # A repeated test stops at its first failing run: the student sees one
+        # failure, with the inputs that caused it, instead of hundreds.
+        while run < case.repeat and not issues:
+            run += 1
             try:
                 filtered_args = tuple(_apply_eval(eval_filter, list(case.args)))
                 filtered_stdin = _apply_eval(eval_filter, case.stdin)
@@ -409,15 +458,19 @@ class BaygonRunner:
                 break
 
             if expected_exit is not None and expected_exit != output.exit_status:
-                issues.append(
-                    InvalidExitStatus(
-                        expected_exit,
-                        output.exit_status,
-                        on="exit",
-                        test=case,
-                    )
+                issue = InvalidExitStatus(
+                    expected_exit,
+                    output.exit_status,
+                    on="exit",
+                    test=case,
                 )
+                issue.message = _explain(eval_filter, case.exit_message, issues, case)
+                issues.append(issue)
 
+        # The message explains a wrong result: not shown when nothing ran.
+        message = None
+        if issues and run:
+            message = _explain(eval_filter, context.message, issues, case)
         status = "failed" if issues else "passed"
         duration = round(self._clock() - start, 6)
         points = case.points or 0
@@ -430,6 +483,8 @@ class BaygonRunner:
             commands=tuple(command_logs),
             duration=duration,
             points_earned=earned,
+            message=message,
+            failed_run=run if issues and run else None,
         )
 
     def _run_helper(
@@ -496,6 +551,26 @@ def _limits(context: _ExecutionContext) -> dict[str, Any]:
     if context.max_output is not None:
         limits["max_output"] = context.max_output
     return limits
+
+
+def _explain(
+    eval_filter: EvalType,
+    message: str | None,
+    issues: list[Any],
+    case: CaseModel,
+) -> str | None:
+    """Evaluate an explanation written by the author of the test.
+
+    Its ``{{ }}`` expressions see the values of the failing run. An expression
+    that cannot be evaluated adds an issue and leaves the text as it is.
+    """
+    if message is None:
+        return None
+    try:
+        return str(_apply_eval(eval_filter, message))
+    except Exception as error:
+        issues.append(InvalidTestDefinition(error, None, test=case))
+        return message
 
 
 def _expected_exit(eval_filter: EvalType, value: int | str | None) -> int | None:
@@ -627,6 +702,7 @@ def _match_streams(
     stream_value = getattr(output, stream_name)
     value = str(stream_value) if stream_value is not None else ""
     for condition in conditions:
+        first = len(issues)
         filters = _merge_filters(base_filters, condition.filters)
         filtered_value = filters(value)
         if condition.same_as is not None:
@@ -663,6 +739,10 @@ def _match_streams(
                     eval_filter=eval_filter,
                 )
             )
+        if condition.message is not None and len(issues) > first:
+            message = str(_apply_eval(eval_filter, condition.message))
+            for issue in issues[first:]:
+                issue.message = message
     return issues
 
 

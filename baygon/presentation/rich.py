@@ -12,7 +12,7 @@ from rich.style import Style
 from rich.table import Table
 from rich.text import Text
 
-from baygon.helpers import create_command_line
+from baygon.helpers import create_command_line, display_program
 from baygon.runtime.runner import CaseResult, CommandLog, RunReport
 
 
@@ -87,6 +87,10 @@ def _build_pretty_failure_panel(result: CaseResult) -> Panel:
     summary.add_row("path", result.case.name)
     summary.add_row("status", Text("FAILED", style="bold red"))
     summary.add_row("points", f"0/{result.case.points or 0}")
+    if result.failed_run is not None and result.case.repeat > 1:
+        summary.add_row("run", f"{result.failed_run} of {result.case.repeat}")
+    if result.message:
+        summary.add_row("message", Text(result.message, style="bold yellow"))
 
     issues_table = Table.grid(padding=(0, 1))
     issues_table.add_column(style="red bold", justify="right")
@@ -95,10 +99,12 @@ def _build_pretty_failure_panel(result: CaseResult) -> Panel:
         issues_table.add_row("", Text("No matcher issues recorded.", style="dim"))
     else:
         for index, issue in enumerate(result.issues, start=1):
-            issues_table.add_row(
-                f"#{index}",
-                Text(str(issue), style="white", overflow="fold"),
-            )
+            text = Text(overflow="fold")
+            message = getattr(issue, "message", None)
+            if message and message != result.message:
+                text.append(message + "\n", style="bold yellow")
+            text.append(str(issue), style="white")
+            issues_table.add_row(f"#{index}", text)
     issues_panel = Panel(issues_table, title="issues", border_style="red")
 
     renderables = [summary, Rule(style="grey37"), issues_panel]
@@ -141,7 +147,10 @@ def _build_command_panel(
     meta_table = Table.grid(padding=(0, 1))
     meta_table.add_column(style="cyan bold", justify="right")
     meta_table.add_column()
-    meta_table.add_row("command", create_command_line(command.argv))
+    argv = list(command.argv)
+    if argv:
+        argv[0] = display_program(argv[0])
+    meta_table.add_row("command", create_command_line(argv))
     meta_table.add_row("exit", str(command.exit_status))
     if getattr(command, "timed_out", False):
         meta_table.add_row("killed", Text("time limit reached", style="red"))

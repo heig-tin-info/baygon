@@ -12,6 +12,7 @@ import typer
 
 from . import __copyright__, __version__
 from .error import ConfigError, InvalidExecutableError
+from .i18n import set_language, tr
 from .presentation.rich import (
     render_command_panels,
     render_pretty_failures,
@@ -215,8 +216,9 @@ def cli(
         typer.secho(f"\nError: {error}", fg="red", bold=True, err=True)
         raise typer.Exit(code=1) from error
 
+    set_language(context.model.lang)
     config_path = context.source_path or config
-    typer.secho(f"Using configuration file: {config_path}")
+    typer.secho(tr("Using configuration file: {path}", path=config_path))
 
     if verbose > 0:
         typer.echo(f"Verbose level set to {verbose}")
