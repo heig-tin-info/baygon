@@ -190,8 +190,8 @@ class FilterEval(Filter):
     counter between all the tests.
 
     >>> f = FilterEval()
-    >>> [f("{{ iter() }}") for _ in range(3)]
-    ['0', '1', '2']
+    >>> " ".join(f("{{ iter() }}") for _ in range(3))
+    '0 1 2'
     >>> f.scope = (2,)
     >>> f("{{ iter() }}"), f("{{ iter() }}")
     ('0', '1')
