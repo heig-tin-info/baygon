@@ -13,6 +13,7 @@
 | `timeout` | Default time limit in seconds |
 | `max-output` | Default cap per output stream (`64K`, `10M`, bytes; `0` = none) |
 | `points` / `weight` / `min-points` | Scoring (see below) |
+| `lang` | Language of Baygon's own messages: `en` (default) or `fr` |
 
 ## Test keys
 
@@ -23,15 +24,16 @@
 | `args` | `[]` | Arguments; numbers are converted to strings |
 | `stdin` | `""` | Text, or `{executable, args}` of a generator whose output is the input |
 | `env` | `{}` | Extra environment variables |
-| `exit` | not checked | Expected exit status (`true`/`false` read as 1/0) |
+| `exit` | not checked | Expected exit status (`true`/`false` read as 1/0), or `{value, message}` |
 | `stdout` / `stderr` | `[]` | Conditions (a plain value means `equals`) |
-| `repeat` | `1` | Runs the test N times (stops at the first timeout) |
+| `repeat` | `1` | Runs the test N times, stops at the first failing run |
+| `message` | inherited | Explanation shown when the test fails (`{{ }}` allowed) |
 | `filters` | inherited | Added to the inherited filters |
 | `timeout` / `max-output` | inherited | Limits for this test |
 | `points` / `weight` | computed | Scoring |
 
 A group has `name`, `tests` and any inheritable key (`executable`, `filters`,
-`timeout`, `max-output`, `points`, `weight`, `min-points`).
+`timeout`, `max-output`, `points`, `weight`, `min-points`, `message`).
 
 ## Conditions
 
@@ -54,6 +56,8 @@ stdout:
   - not:
       - contains: Traceback
       - number: 0
+  - regex: '^usage: '
+    message: Print the usage on stdout.     # explains this condition only
 ```
 
 - `number` parses the whole (filtered, stripped) output. Use a `regex` filter to
@@ -82,7 +86,8 @@ eval:
 Evaluation order in a run: `args`, `stdin`, `env`, `exit`, generator args, then
 matcher values after the program ran. Assignments (`{{ x = 3 }}`) are visible to
 later expressions. Available: `math`, `random`, `statistics` functions and
-`iter(start=0, step=1)`, one counter per expression text.
+`iter(start=0, step=1)`, one counter per expression and per test;
+`iter(ctx="name")` shares a counter between tests.
 
 ## Scoring
 
